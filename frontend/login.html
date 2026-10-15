@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión - Aroma Cacao</title>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary p-4">
+
+  <div class="w-full max-w-sm bg-card text-card-foreground rounded-xl border border-border shadow-sm p-6">
+
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 mx-auto rounded-xl bg-gradient-to-r from-primary to-chart-1 flex items-center justify-center mb-3">
+        <i class="bi bi-box-seam text-primary-foreground text-xl"></i>
+      </div>
+      <h1 class="font-medium text-lg">Aroma Cacao S.A.</h1>
+      <p class="text-sm text-muted-foreground">Inventario de Mantenimiento</p>
+    </div>
+
+    <form action="dashboard.html" class="space-y-4">
+      <div>
+        <label for="email" class="text-sm font-medium block mb-1.5">Correo electrónico</label>
+        <input type="email" id="email" required placeholder="usuario@aromacacao.com"
+          class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+      </div>
+
+      <div>
+        <label for="password" class="text-sm font-medium block mb-1.5">Contraseña</label>
+        <input type="password" id="password" required
+          class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
+      </div>
+
+      <button type="submit"
+        class="w-full rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:opacity-90 transition">
+        Ingresar
+      </button>
+    </form>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
