@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Máquinas - Aroma Cacao</title>
+</head>
+<body class="bg-gradient-to-br from-background via-background to-secondary min-h-screen">
+<div class="flex w-full min-h-screen">
+
+  <aside class="hidden lg:flex flex-col w-64 shrink-0 border-r border-border bg-background/80 backdrop-blur-xl">
+    <div class="p-6 border-b border-border">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-chart-1 flex items-center justify-center">
+          <i class="bi bi-box-seam text-primary-foreground text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-medium leading-tight">Aroma Cacao</h2>
+          <p class="text-xs text-muted-foreground">Mantenimiento</p>
+        </div>
+      </div>
+    </div>
+    <nav class="p-4 space-y-1 flex-1">
+      <a href="dashboard.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-speedometer2 w-5 text-center"></i>Dashboard</a>
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pt-4 pb-1">Inventario</p>
+      <a href="productos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-box w-5 text-center"></i>Productos</a>
+      <a href="movimientos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-arrow-left-right w-5 text-center"></i>Movimientos</a>
+      <a href="prestamos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-tools w-5 text-center"></i>Préstamos</a>
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pb-1">Catálogos</p>
+      <a href="proveedores.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-truck w-5 text-center"></i>Proveedores</a>
+      <a href="maquinas.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm bg-primary/10 text-primary border-l-2 border-primary font-medium"><i class="bi bi-gear-wide-connected w-5 text-center"></i>Máquinas</a>
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pt-4 pb-1">Administración</p>
+      <a href="usuarios.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-people w-5 text-center"></i>Usuarios</a>
+    </nav>
+    <div class="p-4 border-t border-border">
+      <a href="login.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition"><i class="bi bi-box-arrow-left w-5 text-center"></i>Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <div id="mobile-sidebar-overlay" class="hidden fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
+  <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-72 bg-background z-50 -translate-x-full transition-transform duration-200 lg:hidden flex flex-col">
+    <div class="p-6 border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-chart-1 flex items-center justify-center">
+          <i class="bi bi-box-seam text-primary-foreground text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-medium leading-tight">Aroma Cacao</h2>
+          <p class="text-xs text-muted-foreground">Mantenimiento</p>
+        </div>
+      </div>
+      <button id="mobile-sidebar-close" class="text-muted-foreground"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <nav class="p-4 space-y-1 flex-1 overflow-y-auto">
+      <a href="dashboard.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-speedometer2 w-5 text-center"></i>Dashboard</a>
+      <a href="productos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-box w-5 text-center"></i>Productos</a>
+      <a href="movimientos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-arrow-left-right w-5 text-center"></i>Movimientos</a>
+      <a href="prestamos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-tools w-5 text-center"></i>Préstamos</a>
+      <a href="proveedores.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-truck w-5 text-center"></i>Proveedores</a>
+      <a href="maquinas.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm bg-primary/10 text-primary font-medium"><i class="bi bi-gear-wide-connected w-5 text-center"></i>Máquinas</a>
+      <a href="usuarios.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-people w-5 text-center"></i>Usuarios</a>
+    </nav>
+  </aside>
+
+  <div class="flex-1 flex flex-col min-w-0">
+    <header class="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl p-4">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button id="mobile-menu-trigger" class="lg:hidden text-muted-foreground"><i class="bi bi-list text-xl"></i></button>
+          <h1 class="text-lg font-medium">Máquinas</h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="relative text-muted-foreground">
+            <i class="bi bi-bell text-lg"></i>
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full"></span>
+          </button>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center text-xs font-medium text-primary">CM</div>
+            <span class="hidden sm:inline text-sm">Carlos Mena</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 lg:p-6">
+
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 class="text-xl font-medium">Máquinas de planta</h2>
+        <button data-modal-target="modalMaquina" class="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm px-4 py-2 hover:opacity-90 transition">
+          <i class="bi bi-plus-lg"></i>Nueva máquina
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        <div class="bg-card border border-border rounded-xl p-5">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="font-medium">Molino M-1</h3>
+            <button data-modal-target="modalMaquina" class="text-muted-foreground hover:text-foreground"><i class="bi bi-pencil"></i></button>
+          </div>
+          <p class="text-xs text-muted-foreground mb-3">Código: MAQ-001</p>
+          <p class="text-sm text-muted-foreground flex items-center gap-2 mb-4"><i class="bi bi-geo-alt"></i>Planta de procesamiento, nivel 1</p>
+          <button data-modal-target="modalRepuestosMaquina" class="w-full rounded-lg border border-border text-sm py-2 hover:bg-accent inline-flex items-center justify-center gap-2">
+            <i class="bi bi-gear"></i>Repuestos compatibles (4)
+          </button>
+        </div>
+
+        <div class="bg-card border border-border rounded-xl p-5">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="font-medium">Tostadora T-2</h3>
+            <button data-modal-target="modalMaquina" class="text-muted-foreground hover:text-foreground"><i class="bi bi-pencil"></i></button>
+          </div>
+          <p class="text-xs text-muted-foreground mb-3">Código: MAQ-002</p>
+          <p class="text-sm text-muted-foreground flex items-center gap-2 mb-4"><i class="bi bi-geo-alt"></i>Planta de procesamiento, nivel 1</p>
+          <button data-modal-target="modalRepuestosMaquina" class="w-full rounded-lg border border-border text-sm py-2 hover:bg-accent inline-flex items-center justify-center gap-2">
+            <i class="bi bi-gear"></i>Repuestos compatibles (2)
+          </button>
+        </div>
+
+        <div class="bg-card border border-border rounded-xl p-5">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="font-medium">Envasadora E-3</h3>
+            <button data-modal-target="modalMaquina" class="text-muted-foreground hover:text-foreground"><i class="bi bi-pencil"></i></button>
+          </div>
+          <p class="text-xs text-muted-foreground mb-3">Código: MAQ-003</p>
+          <p class="text-sm text-muted-foreground flex items-center gap-2 mb-4"><i class="bi bi-geo-alt"></i>Planta de empaque, nivel 2</p>
+          <button data-modal-target="modalRepuestosMaquina" class="w-full rounded-lg border border-border text-sm py-2 hover:bg-accent inline-flex items-center justify-center gap-2">
+            <i class="bi bi-gear"></i>Repuestos compatibles (3)
+          </button>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Modal: registrar/editar máquina -->
+<div id="modalMaquina" class="modal-backdrop hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-card border border-border rounded-xl w-full max-w-md">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+      <h3 class="font-medium">Nueva máquina</h3>
+      <button data-modal-close class="text-muted-foreground"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1.5">Nombre</label>
+        <input type="text" placeholder="Ej. Molino M-1" class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1.5">Código</label>
+          <input type="text" placeholder="MAQ-004" class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1.5">Ubicación</label>
+          <input type="text" placeholder="Nivel 2" class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm">
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+      <button data-modal-close class="rounded-lg border border-border px-4 py-2 text-sm">Cancelar</button>
+      <button class="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm hover:opacity-90">Guardar máquina</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: repuestos compatibles -->
+<div id="modalRepuestosMaquina" class="modal-backdrop hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-card border border-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+      <h3 class="font-medium">Repuestos compatibles con Molino M-1</h3>
+      <button data-modal-close class="text-muted-foreground"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="p-5">
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm">
+          <thead class="text-muted-foreground">
+            <tr>
+              <th class="text-left font-medium py-2">Código</th>
+              <th class="text-left font-medium py-2">Repuesto</th>
+              <th class="text-right font-medium py-2">Stock</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr><td class="py-2">REP-014</td><td class="py-2">Rodamiento 6205</td><td class="py-2 text-right">0</td><td class="text-right"><button class="text-muted-foreground hover:text-destructive"><i class="bi bi-trash"></i></button></td></tr>
+            <tr><td class="py-2">REP-032</td><td class="py-2">Banda transportadora B-48</td><td class="py-2 text-right">1</td><td class="text-right"><button class="text-muted-foreground hover:text-destructive"><i class="bi bi-trash"></i></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="border-t border-border pt-4">
+        <label class="text-sm font-medium block mb-1.5">Asociar repuesto compatible</label>
+        <div class="flex gap-2">
+          <select class="flex-1 rounded-lg bg-input-background border border-border px-3 py-2 text-sm">
+            <option>HER-002 · Juego de llaves allen</option>
+            <option>REP-040 · Sello mecánico</option>
+          </select>
+          <button class="rounded-lg bg-primary text-primary-foreground text-sm px-4 hover:opacity-90">Asociar</button>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 px-5 py-4 border-t border-border">
+      <button data-modal-close class="rounded-lg border border-border px-4 py-2 text-sm">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

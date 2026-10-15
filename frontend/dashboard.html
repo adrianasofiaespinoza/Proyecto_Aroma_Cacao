@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard - Aroma Cacao</title>
+</head>
+<body class="bg-gradient-to-br from-background via-background to-secondary min-h-screen">
+<div class="flex w-full min-h-screen">
+
+  <!-- ===== SIDEBAR DESKTOP ===== -->
+  <aside class="hidden lg:flex flex-col w-64 shrink-0 border-r border-border bg-background/80 backdrop-blur-xl">
+    <div class="p-6 border-b border-border">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-chart-1 flex items-center justify-center">
+          <i class="bi bi-box-seam text-primary-foreground text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-medium leading-tight">Aroma Cacao</h2>
+          <p class="text-xs text-muted-foreground">Mantenimiento</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="p-4 space-y-1 flex-1">
+      <a href="dashboard.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm bg-primary/10 text-primary border-l-2 border-primary font-medium">
+        <i class="bi bi-speedometer2 w-5 text-center"></i>Dashboard
+      </a>
+
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pt-4 pb-1">Inventario</p>
+      <a href="productos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-box w-5 text-center"></i>Productos
+      </a>
+      <a href="movimientos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-arrow-left-right w-5 text-center"></i>Movimientos
+      </a>
+      <a href="prestamos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-tools w-5 text-center"></i>Préstamos
+      </a>
+
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pt-4 pb-1">Catálogos</p>
+      <a href="proveedores.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-truck w-5 text-center"></i>Proveedores
+      </a>
+      <a href="maquinas.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-gear-wide-connected w-5 text-center"></i>Máquinas
+      </a>
+
+      <p class="text-xs uppercase tracking-wide text-muted-foreground px-3 pt-4 pb-1">Administración</p>
+      <a href="usuarios.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-people w-5 text-center"></i>Usuarios
+      </a>
+    </nav>
+
+    <div class="p-4 border-t border-border">
+      <a href="login.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition">
+        <i class="bi bi-box-arrow-left w-5 text-center"></i>Cerrar sesión
+      </a>
+    </div>
+  </aside>
+
+  <!-- ===== SIDEBAR MÓVIL (drawer) ===== -->
+  <div id="mobile-sidebar-overlay" class="hidden fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
+  <aside id="mobile-sidebar" class="fixed inset-y-0 left-0 w-72 bg-background z-50 -translate-x-full transition-transform duration-200 lg:hidden flex flex-col">
+    <div class="p-6 border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-chart-1 flex items-center justify-center">
+          <i class="bi bi-box-seam text-primary-foreground text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-medium leading-tight">Aroma Cacao</h2>
+          <p class="text-xs text-muted-foreground">Mantenimiento</p>
+        </div>
+      </div>
+      <button id="mobile-sidebar-close" class="text-muted-foreground"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <nav class="p-4 space-y-1 flex-1 overflow-y-auto">
+      <a href="dashboard.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm bg-primary/10 text-primary font-medium"><i class="bi bi-speedometer2 w-5 text-center"></i>Dashboard</a>
+      <a href="productos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-box w-5 text-center"></i>Productos</a>
+      <a href="movimientos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-arrow-left-right w-5 text-center"></i>Movimientos</a>
+      <a href="prestamos.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-tools w-5 text-center"></i>Préstamos</a>
+      <a href="proveedores.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-truck w-5 text-center"></i>Proveedores</a>
+      <a href="maquinas.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-gear-wide-connected w-5 text-center"></i>Máquinas</a>
+      <a href="usuarios.html" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent"><i class="bi bi-people w-5 text-center"></i>Usuarios</a>
+    </nav>
+  </aside>
+
+  <!-- ===== CONTENIDO ===== -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <header class="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl p-4">
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button id="mobile-menu-trigger" class="lg:hidden text-muted-foreground"><i class="bi bi-list text-xl"></i></button>
+          <h1 class="text-lg font-medium">Dashboard</h1>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="hidden md:flex items-center gap-2 bg-accent/60 rounded-lg px-3 py-2 min-w-64">
+            <i class="bi bi-search text-muted-foreground"></i>
+            <input type="text" placeholder="Buscar productos, movimientos..." class="bg-transparent border-none outline-none text-sm flex-1">
+          </div>
+
+          <button class="relative text-muted-foreground">
+            <i class="bi bi-bell text-lg"></i>
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full"></span>
+          </button>
+
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-primary/10 ring-2 ring-primary/20 flex items-center justify-center text-xs font-medium text-primary">CM</div>
+            <span class="hidden sm:inline text-sm">Carlos Mena</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 lg:p-6">
+
+      <!-- Tarjetas resumen -->
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <div class="bg-card border border-border rounded-xl p-4">
+          <p class="text-sm text-muted-foreground mb-1">Productos activos</p>
+          <p class="text-2xl font-medium">184</p>
+        </div>
+        <div class="bg-card border border-border rounded-xl p-4">
+          <p class="text-sm text-muted-foreground mb-1">Stock bajo</p>
+          <p class="text-2xl font-medium text-destructive">4</p>
+        </div>
+        <div class="bg-card border border-border rounded-xl p-4">
+          <p class="text-sm text-muted-foreground mb-1">Movimientos pendientes</p>
+          <p class="text-2xl font-medium">3</p>
+        </div>
+        <div class="bg-card border border-border rounded-xl p-4">
+          <p class="text-sm text-muted-foreground mb-1">Herramientas prestadas</p>
+          <p class="text-2xl font-medium">7</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 2xl:grid-cols-7 gap-4">
+
+        <!-- Alertas -->
+        <div class="2xl:col-span-4 bg-card border border-border rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-border font-medium flex items-center gap-2">
+            <i class="bi bi-exclamation-triangle text-destructive"></i>Alertas de stock bajo
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-accent/40 text-muted-foreground">
+                <tr>
+                  <th class="text-left font-medium px-4 py-2">Código</th>
+                  <th class="text-left font-medium px-4 py-2">Producto</th>
+                  <th class="text-right font-medium px-4 py-2">Stock</th>
+                  <th class="text-left font-medium px-4 py-2">Estado</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr>
+                  <td class="px-4 py-2">REP-014</td>
+                  <td class="px-4 py-2">Rodamiento 6205</td>
+                  <td class="px-4 py-2 text-right">0</td>
+                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5">Agotado</span></td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2">REP-032</td>
+                  <td class="px-4 py-2">Banda transportadora B-48</td>
+                  <td class="px-4 py-2 text-right">1</td>
+                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-chart-4/20 text-foreground text-xs px-2 py-0.5">Stock bajo</span></td>
+                </tr>
+                <tr>
+                  <td class="px-4 py-2">INS-007</td>
+                  <td class="px-4 py-2">Grasa multipropósito (kg)</td>
+                  <td class="px-4 py-2 text-right">3</td>
+                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-chart-4/20 text-foreground text-xs px-2 py-0.5">Stock bajo</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Movimientos pendientes -->
+        <div class="2xl:col-span-3 bg-card border border-border rounded-xl overflow-hidden">
+          <div class="px-4 py-3 border-b border-border font-medium flex items-center gap-2">
+            <i class="bi bi-hourglass-split text-chart-4"></i>Pendientes de autorización
+          </div>
+          <div class="divide-y divide-border">
+            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
+              <div>
+                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">EXIT</span>
+                Luis Pozo
+              </div>
+              <span class="text-muted-foreground">28/09</span>
+            </a>
+            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
+              <div>
+                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">ENTRY</span>
+                Ana Toapanta
+              </div>
+              <span class="text-muted-foreground">28/09</span>
+            </a>
+            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
+              <div>
+                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">EXIT</span>
+                Luis Pozo
+              </div>
+              <span class="text-muted-foreground">27/09</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
