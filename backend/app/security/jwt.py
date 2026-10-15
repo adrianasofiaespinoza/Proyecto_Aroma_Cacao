@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from datetime import (
     datetime,
@@ -10,10 +11,28 @@ from dotenv import load_dotenv
 from jose import JWTError, jwt
 
 
-load_dotenv()
+BASE_DIR = os.path.dirname(
+    os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+)
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+
+load_dotenv(ENV_PATH)
 
 
 SECRET_KEY = os.getenv("JWT_SECRET")
+
+if not SECRET_KEY:
+    raise RuntimeError(
+        f"JWT_SECRET no está configurada. Revisa el archivo: {ENV_PATH}"
+    )
+
+if len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "JWT_SECRET es demasiado corta. Debe tener al menos 32 caracteres para HS256."
+    )
+
 ALGORITHM = "HS256"
 
 ACCESS_TOKEN_MINUTES = int(
@@ -38,6 +57,10 @@ REMEMBER_REFRESH_TOKEN_DAYS = int(
 )
 
 
+def get_access_token_expires_in() -> int:
+    return ACCESS_TOKEN_MINUTES * 60
+
+
 def create_access_token(
     user_id: int
 ) -> str:
@@ -53,6 +76,7 @@ def create_access_token(
         "sub": str(user_id),
         "type": "access",
         "exp": expire,
+        "jti": str(uuid.uuid4()),
     }
 
     return jwt.encode(
@@ -82,6 +106,7 @@ def create_refresh_token(
         "sub": str(user_id),
         "type": "refresh",
         "exp": expire,
+        "jti": str(uuid.uuid4()),
     }
 
     token = jwt.encode(

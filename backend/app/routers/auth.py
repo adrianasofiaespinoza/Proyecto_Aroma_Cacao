@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import (
     APIRouter,
@@ -7,9 +7,14 @@ from fastapi import (
     status,
 )
 
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 from jose import JWTError
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -32,9 +37,11 @@ from app.security.password import (
 )
 
 from app.security.jwt import (
+    REFRESH_TOKEN_DAYS,
     create_access_token,
     create_refresh_token,
     decode_token,
+    get_access_token_expires_in,
 )
 
 from app.security.token_utils import (
@@ -103,7 +110,14 @@ def register_user(
     )
 
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username or email already registered"
+        )
     db.refresh(new_user)
 
     return new_user
@@ -183,7 +197,7 @@ def login_user(
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
-        "expires_in": 900
+        "expires_in": get_access_token_expires_in()
     }
 
 
@@ -233,10 +247,17 @@ def refresh_access_token(
         )
 
 
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )
+
     token_hash_value = hash_token(
         data.refresh_token
     )
-
 
     stored_token = db.scalar(
         select(RefreshToken).where(
@@ -245,58 +266,70 @@ def refresh_access_token(
         )
     )
 
-
     if not stored_token:
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token not found"
         )
 
-
     if stored_token.revoked_at:
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token revoked"
         )
 
-
-    if stored_token.expires_at < datetime.utcnow():
-
+    if stored_token.expires_at < get_utc_now():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired"
         )
 
-
     user = db.get(
         User,
-        int(user_id)
+        user_id_int
     )
 
-
     if not user or not user.is_active:
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User unavailable"
         )
 
+    # Revoke current token
+    stored_token.revoked_at = get_utc_now()
+
+    # Determine if original token had remember_me duration
+    remember_me = False
+    if stored_token.created_at and stored_token.expires_at:
+        token_lifetime_days = (stored_token.expires_at - stored_token.created_at).days
+        if token_lifetime_days > REFRESH_TOKEN_DAYS:
+            remember_me = True
+
+    new_refresh_token, new_expires_at = create_refresh_token(
+        user.id,
+        remember_me
+    )
+
+    new_refresh_record = RefreshToken(
+        user_id=user.id,
+        token_hash=hash_token(
+            new_refresh_token
+        ),
+        expires_at=new_expires_at
+    )
+
+    db.add(new_refresh_record)
+    db.commit()
 
     new_access_token = create_access_token(
         user.id
     )
 
-
     return {
         "access_token": new_access_token,
-
-        # Keep same refresh token for now
-        "refresh_token": data.refresh_token,
-
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
-        "expires_in": 900
+        "expires_in": get_access_token_expires_in()
     }
 
 
@@ -342,7 +375,7 @@ def logout_user(
         )
 
 
-    stored_token.revoked_at = datetime.utcnow()
+    stored_token.revoked_at = get_utc_now()
 
     db.commit()
 

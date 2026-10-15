@@ -63,9 +63,17 @@ def get_current_user(
             detail="Invalid access token"
         )
 
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token"
+        )
+
     user = db.get(
         User,
-        int(user_id)
+        user_id_int
     )
 
     if not user:
