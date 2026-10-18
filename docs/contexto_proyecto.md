@@ -93,7 +93,7 @@ El procedimiento anterior de restablecimiento funcionó según lo confirmado por
 
 ### D. Productos e inventario
 
-**Estado: backend implementado; quedan verificaciones funcionales pendientes.**
+**Estado: implementado y verificado.**
 
 - Los esquemas de productos incorporan validaciones numéricas.
 - `current_stock` no se modifica directamente mediante `ProductUpdate`.
@@ -274,7 +274,7 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 ## 7. Prioridad inmediata
 
-**Prioridad actual: completar y verificar productos e inventario, y después avanzar con la integración funcional del frontend y el backend.**
+**Prioridad actual: avanzar con la integración funcional del frontend y el backend.**
 
 El plan de trabajo se establece en el siguiente orden:
 
@@ -303,5 +303,3 @@ Para cada funcionalidad importante:
 6. Revisar los cambios locales y su estado en Git.
 7. Preparar un commit únicamente con autorización.
 8. Solicitar autorización expresa antes de publicar en GitHub.
-
-

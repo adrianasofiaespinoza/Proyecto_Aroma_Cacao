@@ -13,7 +13,7 @@ from fastapi import HTTPException
 class TestInventoryLimits(unittest.TestCase):
     def setUp(self):
         self.session = SessionLocal()
-        
+
         # Ensure mandatory dependencies exist
         self.category = self.session.scalar(select(Category).where(Category.name == "Test Category"))
         if not self.category:
@@ -63,7 +63,7 @@ class TestInventoryLimits(unittest.TestCase):
             if movement_id:
                 self.session.execute(delete(MovementDetail).where(MovementDetail.movement_id == movement_id))
                 self.session.execute(delete(Movement).where(Movement.id == movement_id))
-            
+
             self.session.execute(delete(MovementDetail).where(MovementDetail.product_id == product_id))
             product = self.session.get(Product, product_id)
             if product:
@@ -75,41 +75,39 @@ class TestInventoryLimits(unittest.TestCase):
     def test_adjustment_negative_rejected(self):
         """
         Verify that a negative adjustment is rejected by the router's validation logic.
-        Uses a mock for the 'details' attribute of the Movement object to bypass 
-        DB constraints and test the router's branch.
+        Uses a mock for the Movement object to bypass SQLAlchemy's internal
+        instrumentation and test the router's branch.
         """
         product = self.create_test_product(stock=10)
         initial_stock = product.current_stock
-        
-        # Create a real movement record
-        movement = Movement(
-            type="ADJUSTMENT",
-            requesting_user_id=self.coordinator.id,
-            status="pending",
-            reason="Test negative adjustment"
-        )
-        self.session.add(movement)
-        self.session.flush()
-        
-        # Create a mock detail
-        mock_detail = MagicMock()
+
+        # Mock the movement object entirely to avoid SQLAlchemy instrumentation errors
+        mock_movement = MagicMock(spec=Movement)
+        mock_movement.id = 999
+        mock_movement.type = "ADJUSTMENT"
+        mock_movement.status = "pending"
+
+        # Mock the detail
+        mock_detail = MagicMock(spec=MovementDetail)
         mock_detail.product_id = product.id
         mock_detail.quantity = Decimal("-10")
-        
-        # Use patch to mock the 'details' property of the Movement instance
-        # This avoids SQLAlchemy's internal validation of the collection
-        with patch.object(movement, 'details', [mock_detail]):
+        mock_movement.details = [mock_detail]
+
+        # Mock db.scalar to return our mock_movement and then the real product
+        with patch.object(self.session, "scalar") as mock_scalar:
+            mock_scalar.side_effect = [mock_movement, product]
+
             with self.assertRaises(HTTPException) as cm:
-                authorize_movement(movement.id, self.session, self.coordinator)
-            
+                authorize_movement(999, self.session, self.coordinator)
+
             self.assertEqual(cm.exception.status_code, 400)
             self.assertIn("cannot be negative", cm.exception.detail)
-        
+
         # Verify stock remains unchanged
         self.session.refresh(product)
         self.assertEqual(product.current_stock, initial_stock)
-        
-        self.cleanup_test_data(product.id, movement.id)
+
+        self.cleanup_test_data(product.id)
 
     def test_adjustment_valid(self):
         """Verify that a valid ADJUSTMENT updates stock correctly."""
@@ -122,7 +120,7 @@ class TestInventoryLimits(unittest.TestCase):
         )
         self.session.add(movement)
         self.session.flush()
-        
+
         detail = MovementDetail(
             movement_id=movement.id,
             product_id=product.id,
@@ -132,7 +130,7 @@ class TestInventoryLimits(unittest.TestCase):
         self.session.commit()
 
         authorize_movement(movement.id, self.session, self.coordinator)
-        
+
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("25"))
         self.cleanup_test_data(product.id, movement.id)
@@ -148,7 +146,7 @@ class TestInventoryLimits(unittest.TestCase):
         )
         self.session.add(movement)
         self.session.flush()
-        
+
         detail = MovementDetail(
             movement_id=movement.id,
             product_id=product.id,
@@ -158,7 +156,7 @@ class TestInventoryLimits(unittest.TestCase):
         self.session.commit()
 
         authorize_movement(movement.id, self.session, self.coordinator)
-        
+
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("15"))
         self.cleanup_test_data(product.id, movement.id)
@@ -174,7 +172,7 @@ class TestInventoryLimits(unittest.TestCase):
         )
         self.session.add(movement)
         self.session.flush()
-        
+
         detail = MovementDetail(
             movement_id=movement.id,
             product_id=product.id,
@@ -184,7 +182,7 @@ class TestInventoryLimits(unittest.TestCase):
         self.session.commit()
 
         authorize_movement(movement.id, self.session, self.coordinator)
-        
+
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("7"))
         self.cleanup_test_data(product.id, movement.id)
