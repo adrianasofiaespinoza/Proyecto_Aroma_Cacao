@@ -274,29 +274,22 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 ## 7. Prioridad inmediata
 
-**Continuar exactamente desde la revisión de alertas de stock mínimo.**
+**Prioridad actual: completar y verificar productos e inventario, y después avanzar con la integración funcional del frontend y el backend.**
 
-Inspeccionar los siguientes fragmentos mediante comandos de solo lectura:
+El plan de trabajo se establece en el siguiente orden:
 
-```fish
-sed -n '175,235p' backend/app/routers/products.py
-sed -n '325,390p' backend/app/routers/products.py
-sed -n '75,110p' backend/app/models/product.py
-```
+1. **Productos e inventario (paso D):** revisar las validaciones de productos, la protección de `current_stock`, las reglas de stock mínimo y su coherencia con los movimientos. Identificar los casos pendientes y corregir únicamente los problemas confirmados.
+2. **Movimientos de inventario:** verificar entradas, salidas, ajustes, solicitudes pendientes, autorización, persistencia, errores y permisos. Mantener las reglas de negocio acordadas y señalar las decisiones que necesiten confirmación.
+3. **Integración frontend-backend:** completar y probar las vistas de productos y movimientos utilizando los endpoints existentes. Después continuar con usuarios, máquinas y préstamos, respetando las prioridades y los requisitos originales.
+4. **Validación integral:** probar desde el navegador hasta PostgreSQL los flujos implementados, incluidos autenticación, rutas protegidas, permisos por rol, mensajes de error y actualización del inventario.
 
-Determinar:
-
-1. Si crear un producto con stock igual o inferior al mínimo genera una alerta.
-2. Si cambiar `minimum_stock` crea, resuelve o actualiza alertas.
-3. Qué validaciones se aplican a los productos.
-4. Si la gestión de alertas está distribuida entre las rutas o centralizada.
-5. Qué cambio mínimo permitiría mantener las reglas consistentes.
-
-**Durante esta revisión no modificar código, datos ni esquema de PostgreSQL.**
-
-Una vez entendido el comportamiento real, documentar el flujo y presentar la propuesta de corrección antes de implementarla. Después, probar los casos relevantes y actualizar el estado del proyecto.
-
-No iniciar una auditoría completa de autenticación ni cambiar el alcance de esta tarea sin una razón concreta. La revisión de los casos límite de autenticación queda pendiente para un bloque posterior.
+**Estado actual y restricciones:**
+- Las alertas de stock mínimo están implementadas y cuentan con ocho pruebas funcionales reportadas como aprobadas en PostgreSQL 17.
+- La concurrencia de las alertas sigue siendo una limitación pendiente.
+- La integración del frontend y backend es parcial y todavía necesita pruebas funcionales.
+- La autenticación tiene verificaciones de integración y casos límite pendientes, pero no constituye una razón para iniciar ahora una auditoría independiente.
+- No se debe repetir la configuración inicial de PostgreSQL ni las verificaciones ya confirmadas, salvo que aparezca un problema concreto.
+- El objetivo sigue siendo completar el sistema de inventario de Aroma Cacao; no ampliar el alcance hacia DevOps, multiempresa ni nuevas funcionalidades no solicitadas.
 
 ## 8. Criterio para dar por terminado un bloque
 
