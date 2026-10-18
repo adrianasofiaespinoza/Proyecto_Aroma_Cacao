@@ -266,6 +266,11 @@ def authorize_movement(
 
         elif movement.type == "ADJUSTMENT":
             # Establishes the real counted physical stock
+            if detail.quantity < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Adjustment quantity for product '{product.name}' cannot be negative"
+                )
             product.current_stock = detail.quantity
 
         update_stock_alerts(db, product)
