@@ -17,7 +17,7 @@ from app.models.product import (
     Category,
     UnitOfMeasure,
 )
-
+from app.services.alerts import update_stock_alerts
 from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
@@ -236,6 +236,8 @@ def create_product(
     )
 
     db.add(new_product)
+    db.flush()
+    update_stock_alerts(db, new_product)
     db.commit()
     db.refresh(new_product)
 
@@ -374,10 +376,6 @@ def update_product(
         product_data.part_number
     )
 
-    product.current_stock = (
-        product_data.current_stock
-    )
-
     product.minimum_stock = (
         product_data.minimum_stock
     )
@@ -397,7 +395,7 @@ def update_product(
     product.unit_of_measure_id = (
         product_data.unit_of_measure_id
     )
-
+    update_stock_alerts(db, product)
     db.commit()
     db.refresh(product)
 
@@ -439,7 +437,7 @@ def delete_product(
         )
 
     product.status = "inactive"
-
+    update_stock_alerts(db, product)
     db.commit()
     db.refresh(product)
 
