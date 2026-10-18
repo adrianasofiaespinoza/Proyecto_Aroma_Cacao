@@ -304,4 +304,4 @@ Para cada funcionalidad importante:
 7. Preparar un commit únicamente con autorización.
 8. Solicitar autorización expresa antes de publicar en GitHub.
 
-**Prioridad actual: completar la revisión de alertas de stock mínimo, documentar el comportamiento real y corregirlo de forma controlada antes de ampliar el alcance.**
+
