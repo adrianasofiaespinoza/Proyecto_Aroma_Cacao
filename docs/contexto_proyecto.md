@@ -29,7 +29,9 @@ El trabajo se realiza y prueba localmente. No ejecutar `git push` ni publicar ca
 | `python-jose`           | Autenticación mediante JWT            |
 | `pwdlib` con Argon2id   | Hashing de contraseñas                |
 
-La base de datos se llama `aroma_`cacao y el contenedor PostgreSQL se llama `aroma-`user.
+- **Contenedor:** aroma-postgres
+- **Usuario PostgreSQL:** aroma_user
+- **Base de datos:** aroma_inventory
 
 ## 3. Estado actual del sistema
 
