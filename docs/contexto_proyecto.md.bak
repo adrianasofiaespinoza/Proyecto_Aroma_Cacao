@@ -1,0 +1,674 @@
+**# Contexto del proyecto: Aroma Cacao**
+
+
+
+**## 1. Objetivo**
+
+
+
+Desarrollo de un sistema web de gestión de inventario para la empresa Aroma Cacao.
+
+
+
+\- **\*\*Repositorio:\*\*** https\://github.com/adrianasofiaespinoza/Proyecto_Aroma_Cacao
+
+\- **\*\*Ruta local:\*\*** \`\~/Documents/Proyecto_aroma_cacao\`
+
+\- **\*\*Sistema operativo:\*\*** CachyOS Linux
+
+\- **\*\*Terminal:\*\*** Fish
+
+\- **\*\*Backend:\*\*** \`backend/\`
+
+\- **\*\*Frontend:\*\*** \`frontend/\`
+
+\- **\*\*Base de datos:\*\*** \`database/\`
+
+
+
+**\*\*Regla de trabajo:\*\*** todo se desarrolla y prueba localmente. No ejecutar \`git push\` ni subir cambios a GitHub sin autorización expresa.
+
+
+
+**## 2. Stack tecnológico**
+
+
+
+\- **\*\*Frontend:\*\*** React 19, Vite 8, Tailwind CSS v4 y Bootstrap Icons.
+
+\- **\*\*Backend:\*\*** FastAPI.
+
+\- **\*\*Base de datos:\*\*** PostgreSQL 17 en Docker.
+
+\- **\*\*Contenedor PostgreSQL:\*\*** \`aroma-postgres\`.
+
+\- **\*\*Base de datos:\*\*** \`aroma_inventory\`.
+
+\- **\*\*ORM:\*\*** SQLAlchemy.
+
+\- **\*\*Autenticación:\*\*** JWT mediante \`python-jose\`.
+
+\- **\*\*Hashing de contraseñas:\*\*** \`pwdlib\` con Argon2id.
+
+\- **\*\*Validación:\*\*** Pydantic.
+
+\- **\*\*Estilos:\*\*** Tailwind CSS v4 y variables CSS con OKLCH.
+
+
+
+**## 3. Estado actual del sistema**
+
+
+
+**### A. Base de datos**
+
+
+
+**\*\*Estado: operativa y verificada localmente.\*\***
+
+
+
+\- El contenedor \`aroma-postgres\` ejecuta PostgreSQL 17 en el puerto 5432.
+
+\- La base de datos \`aroma_inventory\` existe y permite conexiones.
+
+\- Se verificaron usuarios y datos iniciales mediante consultas SQL.
+
+\- Tablas existentes verificadas:
+
+
+
+\`users\`, \`category\`, \`unit_of_measure\`, \`product\`, \`lot\`, \`machine\`, \`movement\`, \`movement_detail\`, \`alert\`, \`refresh_tokens\`, \`loan\`, \`worker\`, \`supplier\` y \`product_machine\`, \`product_supplier\`.
+
+
+
+**### B. Autenticación y seguridad del backend**
+
+
+
+**\*\*Estado: implementación revisada y pruebas de partes del flujo confirmadas. La integración completa de extremo a extremo debe seguir verificándose.\*\***
+
+
+
+Archivos relevantes:
+
+
+
+\- \`backend/app/routers/auth.py\`
+
+\- \`backend/app/security/password.py\`
+
+\- \`backend/app/security/jwt.py\`
+
+\- \`backend/app/security/token_utils.py\`
+
+\- \`backend/app/models/user.py\`
+
+\- \`backend/app/models/refresh_token.py\`
+
+
+
+Implementación revisada:
+
+
+
+\- Eliminación de endpoints de prueba inseguros \`/test-users\` y \`/test-db\`, sustituidos por \`/health\`.
+
+\- Configuración de CORS para desarrollo en \`backend/app/main.py\`, incluido \`http\://localhost:5173\`.
+
+\- Validación obligatoria de \`JWT_SECRET\`, con longitud mínima de 32 caracteres, y carga de \`.env\` mediante una ruta absoluta.
+
+\- Tokens de acceso JWT con claim \`jti\` único basado en UUID.
+
+\- Manejo de tokens inválidos para evitar errores HTTP 500 por valores incorrectos de \`sub\`.
+
+\- Rotación de refresh tokens en \`/auth/refresh\`, con revocación del token anterior.
+
+\- Cálculo dinámico de \`expires_in\` a partir de \`ACCESS_TOKEN_MINUTES\`.
+
+\- Manejo de \`IntegrityError\` durante el registro para responder con HTTP 409 cuando existen conflictos de usuario o correo.
+
+\- Hashing y verificación de contraseñas mediante \`pwdlib\` y \`PasswordHash.recommended()\`.
+
+\- El login utiliza correo electrónico y contraseña, no solamente el nombre de usuario.
+
+\- Las contraseñas se almacenan en \`password_hash\`; no se pueden recuperar en texto plano a partir del hash.
+
+
+
+Endpoints de autenticación revisados:
+
+
+
+\- \`POST /auth/register\`
+
+\- \`POST /auth/login\`
+
+\- \`POST /auth/refresh\`
+
+\- \`POST /auth/logout\`
+
+
+
+No se identificó un endpoint de recuperación de contraseña en el archivo \`backend/app/routers/auth.py\` revisado.
+
+
+
+**### C. Usuarios y recuperación de acceso**
+
+
+
+**\*\*Estado: restablecimiento de la contraseña de \`adriana01\` confirmado por el usuario.\*\***
+
+
+
+Usuarios encontrados en PostgreSQL:
+
+
+
+\| ID | Usuario | Correo | Rol | Estado |
+
+\|---|---|---|---|---|
+
+\| 1 | \`adriana01\` | \`adriana\@example.com\` | \`Coordinator\` | Activo |
+
+\| 2 | \`sofia\` | \`sofia\@gmail.com\` | \`Read-only\` | Activo |
+
+
+
+Se verificó que ambos usuarios tenían hashes con el formato Argon2id y \`auth_provider = 'local'\`.
+
+
+
+La contraseña de \`adriana01\` se restableció correctamente mediante un script Python que:
+
+
+
+1\. Solicitó una nueva contraseña sin mostrarla en pantalla.
+
+2\. Comprobó que ambas entradas coincidieran.
+
+3\. Generó el hash con \`hash_password()\` de \`backend/app/security/password.py\`.
+
+4\. Actualizó únicamente el registro de \`adriana\@example.com\` usando SQLAlchemy.
+
+5\. Guardó los cambios en PostgreSQL.
+
+
+
+Para ejecutar el script fue necesario usar \`PYTHONPATH=.\` desde la carpeta \`backend\`, ya que la ejecución directa inicialmente no encontraba el paquete \`app\`.
+
+
+
+**\*\*Resultado confirmado:\*\*** el usuario indicó que el procedimiento funcionó.
+
+
+
+**\*\*Importante:\*\*** no almacenar ni incluir la nueva contraseña en documentación, repositorios, mensajes o archivos de configuración. El restablecimiento se realizó sin cambiar el correo, el rol ni el estado de la cuenta. La contraseña de \`sofia\` no se modificó.
+
+
+
+El archivo temporal \`backend/app/reset_password.py\` se creó para realizar la operación. **\*\*Pendiente:\*\*** comprobar si sigue existiendo y eliminarlo cuando ya no sea necesario, para no dejar un script administrativo de restablecimiento en el código de la aplicación.
+
+
+
+**#### Comando utilizado para restablecer la contraseña**
+
+
+
+**\*\*Ubicación:\*\*** \`\~/Documents/Proyecto_aroma_cacao/backend\`
+
+
+
+Se creó temporalmente el archivo \`app/reset_password.py\` con el siguiente código:
+
+
+
+\`\`\`python
+
+from getpass import getpass
+
+
+
+from sqlalchemy import select
+
+
+
+from app.database import SessionLocal
+
+from app.models.user import User
+
+from app.security.password import hash_password
+
+
+
+
+
+def main():
+
+&#x20;   email = "adriana\@example.com"
+
+
+
+&#x20;   password = getpass("Nueva contraseña: ")
+
+&#x20;   confirmation = getpass("Confirma la contraseña: ")
+
+
+
+&#x20;   if not password:
+
+&#x20;       print("La contraseña no puede estar vacía.")
+
+&#x20;       return
+
+
+
+&#x20;   if password != confirmation:
+
+&#x20;       print("Las contraseñas no coinciden.")
+
+&#x20;       return
+
+
+
+&#x20;   with SessionLocal() as db:
+
+&#x20;       user = db.scalar(
+
+&#x20;           select(User).where(User.email == email)
+
+&#x20;       )
+
+
+
+&#x20;       if user is None:
+
+&#x20;           print("No se encontró el usuario.")
+
+&#x20;           return
+
+
+
+&#x20;       user.password_hash = hash_password(password)
+
+&#x20;       db.commit()
+
+
+
+&#x20;       print(f"Contraseña actualizada para {user.username}.")
+
+
+
+
+
+if \_\_name\_\_ == "\_\_main\_\_":
+
+&#x20;   main()
+
+\`\`\`
+
+
+
+**\*\*Comando de ejecución que funcionó:\*\***
+
+
+
+\`\`\`bash
+
+cd \~/Documents/Proyecto_aroma_cacao/backend
+
+PYTHONPATH=. python app/reset_password.py
+
+\`\`\`
+
+
+
+El prefijo \`PYTHONPATH=.\` permite a Python localizar el paquete \`app\` desde la carpeta \`backend\`.
+
+
+
+El script solicita la nueva contraseña dos veces, genera el hash Argon2id utilizando la función oficial del proyecto \`hash_password()\` y actualiza únicamente al usuario con correo \`adriana\@example.com\`.
+
+
+
+**\*\*Resultado:\*\*** la operación terminó correctamente, según la confirmación del usuario.
+
+
+
+**\*\*Seguridad:\*\*** la contraseña no se guarda en el script ni se muestra en pantalla. Una vez terminado el restablecimiento, se recomienda eliminar el archivo temporal \`backend/app/reset_password.py\` si ya no se necesita.
+
+
+
+
+
+**### D. Productos e inventario**
+
+
+
+**\*\*Estado: cambios de backend implementados y partes de la lógica probadas con la base de datos real.\*\***
+
+
+
+Archivos relevantes:
+
+
+
+\- \`backend/app/schemas/product.py\`
+
+\- \`backend/app/routers/products.py\`
+
+\- \`backend/app/models/product.py\`
+
+
+
+Cambios realizados:
+
+
+
+\- Validaciones Pydantic con \`ge=0\` para cantidades y valores numéricos pertinentes en \`ProductCreate\` y \`ProductUpdate\`.
+
+\- Eliminación de \`current_stock\` de \`ProductUpdate\`, para evitar modificar existencias directamente.
+
+\- Los cambios de stock deben realizarse mediante movimientos de inventario auditables.
+
+
+
+**### E. Movimientos de inventario**
+
+
+
+**\*\*Estado: lógica de backend implementada; se han probado operaciones contra la base de datos real.\*\***
+
+
+
+Cambios y funcionalidades implementados:
+
+
+
+\- Bloqueo pesimista mediante \`with_for_update\` para controlar la concurrencia al autorizar movimientos y actualizar productos afectados.
+
+\- Validación de que el producto esté activo al crear y autorizar movimientos.
+
+\- Validación de que el lote pertenezca al producto correspondiente.
+
+\- Validación de existencia de las máquinas relacionadas.
+
+\- Gestión de alertas de stock mínimo: se activan cuando el stock es menor o igual al mínimo y se resuelven automáticamente cuando vuelve a superarlo.
+
+\- Endpoint \`GET /movements\` con filtros.
+
+\- Endpoint \`GET /movements/{id}\` con respuesta detallada mediante \`MovementResponse\`.
+
+\- Relación bidireccional SQLAlchemy entre \`Movement\` y \`MovementDetail\`.
+
+
+
+Pruebas realizadas previamente:
+
+
+
+\- Creación y autorización de movimientos contra la base de datos local.
+
+\- Cálculo de stock.
+
+\- Consultas de movimientos y productos con sesiones SQLAlchemy reales.
+
+
+
+**\*\*Pendiente:\*\*** verificar la integración completa de estos endpoints con las pantallas del frontend.
+
+
+
+**### F. Frontend**
+
+
+
+**\*\*Estado: integración parcial implementada y compilación de producción verificada.\*\***
+
+
+
+Archivos y funcionalidades:
+
+
+
+\- Dependencias instaladas mediante \`npm install\`.
+
+\- Proxy de Vite configurado en \`frontend/vite.config.js\` para redirigir \`/auth\`, \`/products\`, \`/movements\`, \`/users\`, \`/alerts\` y \`/public\` a \`http\://127.0.0.1:8000\`.
+
+\- Cliente API centralizado en \`frontend/src/services/api.js\`.
+
+\- Inyección automática de Bearer Token.
+
+\- Intercepción de respuestas HTTP 401 con mecanismo de renovación automática de tokens.
+
+\- Gestión de la sesión en el cliente.
+
+\- Formulario de inicio de sesión en \`frontend/login.html\`, con lógica en \`frontend/src/login.js\`, conectado a \`POST /auth/login\`.
+
+\- Soporte de \`remember_me\` y mensajes visuales de error en el login.
+
+\- Componente \`ProductTable.jsx\` conectado a \`GET /products\`, con estados de carga, manejo de errores y alertas de stock bajo.
+
+\- Control de sesión en \`frontend/src/main.js\` para redirigir al login cuando no existe token en páginas protegidas.
+
+\- Proxy y cliente API implementados para los endpoints enumerados; el funcionamiento completo de cada vista aún debe verificarse.
+
+
+
+**\*\*Compilación:\*\*** \`npm run build\` terminó exitosamente en una verificación anterior, en aproximadamente 461 ms. Debe repetirse después de cambios posteriores si los hubiera.
+
+
+
+**### G. Vistas pendientes de dinamizar o verificar**
+
+
+
+1\. **\*\*Movimientos:\*\*** conectar \`movimientos.html\` con \`GET /movements\` y permitir autorizar mediante \`PATCH /movements/{id}/authorize\`, verificando primero el contrato real del endpoint.
+
+2\. **\*\*Usuarios:\*\*** conectar \`usuarios.html\` con los endpoints existentes y revisar el modal de registro de usuario.
+
+3\. **\*\*Máquinas:\*\*** dinamizar el catálogo y verificar las operaciones disponibles.
+
+4\. **\*\*Préstamos:\*\*** conectar la interfaz con los endpoints correspondientes y comprobar las reglas del negocio.
+
+5\. **\*\*Autenticación:\*\*** probar el inicio de sesión desde el navegador con la contraseña restablecida, la protección de rutas, el refresco y la revocación de tokens.
+
+6\. **\*\*Autorización:\*\*** verificar que los permisos por rol se apliquen realmente en backend, no solamente en la interfaz.
+
+
+
+**## 4. Próximos pasos recomendados**
+
+
+
+Orden de trabajo sugerido:
+
+
+
+1\. Comprobar y eliminar \`backend/app/reset_password.py\` si todavía existe y ya no es necesario.
+
+2\. Iniciar el backend y el frontend localmente.
+
+3\. Probar el inicio de sesión con \`adriana01\`, utilizando \`adriana\@example.com\` y la contraseña restablecida, sin incluir la contraseña en comandos o documentación.
+
+4\. Verificar las rutas protegidas y el ciclo de renovación de tokens.
+
+5\. Revisar la autorización de operaciones según el rol del usuario.
+
+6\. Continuar con la integración de movimientos, usuarios, máquinas y préstamos.
+
+7\. Repetir las pruebas y la compilación del frontend después de cada bloque importante.
+
+
+
+**## 5. Instrucciones para la IA que continúe el proyecto**
+
+
+
+1\. **\*\*No revisar el proyecto desde cero.\*\*** Utilizar este documento como contexto inicial y consultar únicamente los archivos necesarios para el siguiente objetivo.
+
+2\. Diferenciar siempre entre:
+
+&#x20;  \- Implementación confirmada por el código revisado.
+
+&#x20;  \- Funcionalidad probada en ejecución.
+
+&#x20;  \- Funcionalidad pendiente de verificar.
+
+3\. Antes de modificar archivos, explicar el problema, el cambio propuesto y su justificación.
+
+4\. Realizar cambios pequeños, atómicos y compatibles con el stack existente.
+
+5\. Dar comandos compatibles con CachyOS y la terminal Fish.
+
+6\. Explicar qué archivos se modificaron, qué hace cada cambio y cómo verificarlo.
+
+7\. En bloques importantes, presentar los resultados y solicitar confirmación antes de continuar cuando corresponda.
+
+8\. Actualizar este documento cuando se complete un bloque relevante.
+
+9\. No ejecutar \`git push\`, publicar credenciales ni subir archivos \`.env\` sin autorización expresa.
+
+10\. No mostrar, almacenar ni registrar contraseñas en texto plano.
+
+11\. No asumir que una funcionalidad está probada únicamente porque el código existe o compila.
+
+12\. Antes de hacer cambios en la base de datos, verificar el esquema y la configuración real de conexión.
+
+
+---
+
+## 6. Nueva visión del producto: sistema configurable para distintas empresas
+
+**Este requisito forma parte de la dirección estratégica del proyecto y debe influir en las decisiones futuras de diseño.**
+
+Aroma Cacao es la primera empresa donde se desarrolla y valida el sistema, pero la solución debe evolucionar para que pueda adaptarse a otras empresas que la adquieran. No debe quedar acoplada innecesariamente a los nombres, catálogos, procesos, roles o reglas particulares de Aroma Cacao.
+
+### Objetivo
+
+Desarrollar un sistema de inventario configurable, reutilizable y mantenible que permita adaptar, dentro de límites definidos, su comportamiento y presentación a las necesidades de cada empresa sin tener que modificar el código fuente para cada cliente.
+
+**Importante:** “configurable para distintas empresas” no significa automáticamente que ya exista una arquitectura multiempresa. Antes de implementar soporte para varias empresas dentro de una misma instalación, se debe analizar y decidir si el producto necesitará:
+- una instalación independiente por empresa;
+- varias empresas aisladas dentro de una misma instalación (multi-tenant); o
+- una estrategia distinta según el despliegue previsto.
+
+Esta decisión debe documentarse antes de introducir cambios de arquitectura o de base de datos. Si se implementa multi-tenancy, la separación de datos entre empresas debe aplicarse y verificarse en el backend y la base de datos, no solo en la interfaz.
+
+### Qué conviene hacer configurable
+
+Evaluar progresivamente qué aspectos deben ser configurables por empresa, por ejemplo:
+
+- Nombre comercial, identidad visual y datos generales de la empresa.
+- Catálogos de categorías, unidades de medida, ubicaciones y otros valores que hoy puedan estar fijos.
+- Roles y permisos, sin permitir que una configuración elimine controles de seguridad esenciales.
+- Umbrales de stock mínimo y reglas de alertas.
+- Flujos de aprobación, responsables y estados, cuando el negocio permita variaciones.
+- Funciones habilitadas según las necesidades de cada empresa.
+- Campos adicionales o datos específicos del inventario, únicamente cuando exista una necesidad real y se defina cómo validarlos, consultarlos y mantenerlos.
+- Preferencias de idioma, formatos y otros parámetros de presentación, si se requieren.
+
+Esta lista es una dirección de análisis, no una afirmación de que esas opciones ya estén implementadas ni una orden de convertirlas todas en configuración desde el inicio.
+
+### Principios para evitar el acoplamiento a Aroma Cacao
+
+1. Separar las reglas comunes del inventario de los datos y preferencias propios de cada empresa.
+2. Evitar codificar nombres de empresas, correos, catálogos, umbrales o reglas particulares directamente en los componentes cuando deban ser configurables.
+3. Mantener una configuración predeterminada que permita ejecutar y probar el producto con Aroma Cacao.
+4. Preferir configuraciones explícitas y validadas frente a condiciones dispersas por el código.
+5. No convertir cada regla en una opción configurable sin una necesidad justificada: la flexibilidad debe tener límites y ser fácil de mantener.
+6. Mantener la autorización y validación críticas en el backend, aunque la interfaz o las opciones visibles cambien por empresa.
+7. Diseñar cambios de esquema con migraciones reproducibles y compatibles con los datos existentes.
+8. Definir cómo se crean, actualizan, respaldan y restauran los datos y la configuración de cada empresa.
+9. No realizar una migración a multiempresa ni alterar tablas existentes hasta haber revisado el esquema real, los modelos, las relaciones y los requisitos de aislamiento.
+
+---
+
+## 7. Documentación obligatoria de flujos y procesos
+
+**Todo flujo de negocio importante debe documentarse antes o durante su implementación y mantenerse actualizado cuando cambie el comportamiento.** No basta con documentar los endpoints: hay que describir el proceso completo, desde la acción del usuario hasta los efectos en el sistema.
+
+### Contenido mínimo de cada documento de flujo
+
+Cada flujo debe explicar, según corresponda:
+
+1. **Objetivo y alcance:** qué resuelve y qué queda fuera del proceso.
+2. **Actores y permisos:** quién inicia, consulta, aprueba, cancela o administra el proceso.
+3. **Precondiciones:** qué debe existir o cumplirse antes de comenzar.
+4. **Flujo principal:** pasos ordenados desde la acción inicial hasta el resultado final.
+5. **Alternativas y errores:** validaciones fallidas, permisos insuficientes, datos duplicados, recursos inexistentes, conflictos y fallos de base de datos.
+6. **Estados y transiciones:** estados posibles, transiciones permitidas y quién puede ejecutarlas.
+7. **Reglas de negocio:** cálculos, límites, condiciones y excepciones.
+8. **Datos afectados:** tablas, modelos, relaciones y cambios persistidos.
+9. **API:** endpoint, método HTTP, parámetros, esquema de entrada y respuesta, códigos de estado y requisitos de autenticación.
+10. **Interfaz:** pantalla, acción del usuario, estados de carga, mensajes de éxito y error.
+11. **Seguridad y trazabilidad:** autorización en backend, actor responsable y eventos que deban quedar registrados.
+12. **Alertas y efectos secundarios:** notificaciones, actualizaciones de stock u otras consecuencias.
+13. **Configuración por empresa:** qué reglas o valores pueden variar y cuáles son invariantes del sistema.
+14. **Pruebas verificables:** casos normales, límites, permisos, errores y escenarios concurrentes cuando apliquen.
+
+No todos los flujos necesitan el mismo nivel de detalle, pero las excepciones relevantes y los controles de seguridad no deben omitirse.
+
+### Flujos que deben documentarse progresivamente
+
+- Inicio de sesión, registro, renovación y revocación de tokens.
+- Gestión de usuarios, roles y permisos.
+- Alta, consulta, edición y desactivación de productos.
+- Entradas, salidas, ajustes y autorización de movimientos de inventario.
+- Validación de stock, lotes y máquinas vinculadas a movimientos.
+- Activación y resolución de alertas de stock.
+- Gestión de préstamos y devolución de artículos, según las reglas reales del sistema.
+- Gestión de proveedores y relaciones entre proveedores y productos.
+- Configuración inicial de una empresa, catálogos y parámetros.
+- Administración de la configuración y, si se aprueba esa arquitectura, aislamiento de datos entre empresas.
+
+### Organización propuesta de la documentación
+
+Antes de crear o mover archivos, revisar qué documentación ya existe para evitar duplicados. Como estructura objetivo se puede considerar:
+
+- `docs/flows/`: flujos de negocio y diagramas de proceso.
+- `docs/architecture/`: componentes, límites del sistema y decisiones de arquitectura.
+- `docs/configuration.md`: opciones configurables, valores predeterminados y sus restricciones.
+- `docs/decisions/`: decisiones técnicas importantes, alternativas consideradas y motivos.
+
+Se puede usar Markdown y diagramas Mermaid cuando ayuden a entender el proceso. Los diagramas deben coincidir con el comportamiento real del código; no deben presentar como implementados pasos que solo estén planificados.
+
+### Criterio de finalización de una funcionalidad
+
+Una funcionalidad importante no se considerará completamente terminada solo porque compile. Se debe procurar que tenga:
+- implementación revisada;
+- pruebas ejecutadas y resultados documentados;
+- permisos y errores relevantes verificados;
+- flujo documentado;
+- configuración identificada (configurable o deliberadamente fija);
+- instrucciones de verificación actualizadas.
+
+Si alguna parte no puede verificarse, debe quedar indicada explícitamente como pendiente.
+
+---
+
+## 8. Forma de trabajo ampliada para los próximos bloques
+
+Además de las instrucciones de la sección 5, aplicar estas reglas:
+
+1. **Documentar el flujo junto con la funcionalidad.** Antes de programar una funcionalidad nueva, describir brevemente el flujo esperado y confirmar las reglas que aún sean ambiguas. Para una funcionalidad existente, documentar el comportamiento real a partir del código y las pruebas.
+2. **Diseñar para reutilización sin sobrearquitectura.** Identificar qué es común a todas las empresas y qué podría variar; implementar solo los puntos de configuración justificados por requisitos reales.
+3. **No asumir que multiempresa ya está implementado.** Analizar primero el modelo de despliegue y aislamiento necesario. No agregar `company_id`, tablas de empresas ni filtros multi-tenant sin revisar las consecuencias en todas las entidades, consultas, permisos, restricciones y pruebas.
+4. **Proteger la integridad de los datos.** Antes de cambiar esquemas o relaciones, revisar las tablas y los datos existentes; definir migración, compatibilidad y forma de rollback.
+5. **Verificar cada flujo de extremo a extremo cuando sea posible.** Incluir interfaz, API, permisos y persistencia real. Distinguir siempre entre una prueba unitaria, una prueba de integración, una compilación y una prueba manual.
+6. **Mantener ejemplos y documentación sin secretos.** Nunca registrar contraseñas, tokens reales, claves JWT ni valores privados del archivo `.env`.
+7. **Registrar las decisiones relevantes.** Cuando se elija una estrategia de configuración, permisos, multi-tenancy o flujo de aprobación, documentar la razón y las alternativas principales para que futuras personas desarrolladoras puedan entenderla.
+8. **Actualizar el contexto al cerrar cada bloque importante.** Resumir qué cambió, archivos afectados, pruebas realizadas, resultados, limitaciones, decisiones pendientes y siguiente paso. No declarar terminado lo que solo se haya implementado o compilado.
+9. **Seguir trabajando localmente.** No ejecutar `git push` ni publicar cambios en GitHub sin autorización expresa del usuario.
+10. **Prioridad de implementación:** entender y documentar el flujo actual; confirmar reglas de negocio; identificar qué debe ser configurable; proponer el cambio mínimo; implementarlo; probarlo; actualizar la documentación y el contexto.
+
+### Próximo paso estratégico
+
+Antes de realizar una refactorización amplia para convertir el proyecto en un producto configurable, se recomienda:
+
+1. Revisar el estado actual del repositorio y la documentación existente, sin repetir la auditoría completa del proyecto.
+2. Elegir un flujo representativo —por ejemplo, autorización de movimientos de inventario— y documentar su comportamiento real.
+3. Identificar qué partes de ese flujo son reglas comunes y cuáles podrían variar entre empresas.
+4. Proponer una primera estrategia de configuración, indicando sus implicaciones para los modelos, API, permisos e interfaz.
+5. Validar el enfoque con el usuario antes de introducir cambios estructurales.

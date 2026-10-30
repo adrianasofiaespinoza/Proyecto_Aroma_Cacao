@@ -17,7 +17,9 @@
       <p class="text-sm text-muted-foreground">Inventario de Mantenimiento</p>
     </div>
 
-    <form action="dashboard.html" class="space-y-4">
+    <div id="login-error" class="hidden mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3"></div>
+
+    <form id="login-form" class="space-y-4">
       <div>
         <label for="email" class="text-sm font-medium block mb-1.5">Correo electrónico</label>
         <input type="email" id="email" required placeholder="usuario@aromacacao.com"
@@ -26,11 +28,18 @@
 
       <div>
         <label for="password" class="text-sm font-medium block mb-1.5">Contraseña</label>
-        <input type="password" id="password" required
+        <input type="password" id="password" required placeholder="••••••••"
           class="w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
       </div>
 
-      <button type="submit"
+      <div class="flex items-center justify-between text-xs text-muted-foreground">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="remember-me" class="rounded border-border text-primary focus:ring-ring">
+          <span>Recordar sesión (30 días)</span>
+        </label>
+      </div>
+
+      <button id="login-submit" type="submit"
         class="w-full rounded-lg bg-primary text-primary-foreground py-2 text-sm font-medium hover:opacity-90 transition">
         Ingresar
       </button>
@@ -38,6 +47,6 @@
 
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/login.js"></script>
 </body>
 </html>

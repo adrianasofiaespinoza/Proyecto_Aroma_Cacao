@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     DateTime,
@@ -10,7 +10,7 @@ from sqlalchemy import (
 
 from decimal import Decimal
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -31,7 +31,7 @@ class Movement(Base):
     date: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
 
     requesting_user_id: Mapped[int] = mapped_column(
@@ -58,6 +58,13 @@ class Movement(Base):
     work_order_number: Mapped[str | None] = mapped_column(
         String(30),
         nullable=True
+    )
+
+    details: Mapped[list["MovementDetail"]] = relationship(
+        "MovementDetail",
+        back_populates="movement",
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
 
@@ -92,4 +99,9 @@ class MovementDetail(Base):
     machine_id: Mapped[int | None] = mapped_column(
         ForeignKey("machine.id"),
         nullable=True
+    )
+
+    movement: Mapped["Movement"] = relationship(
+        "Movement",
+        back_populates="details"
     )
