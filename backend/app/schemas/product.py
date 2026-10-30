@@ -3,6 +3,7 @@ from decimal import Decimal
 from pydantic import (
     BaseModel,
     ConfigDict,
+    Field,
 )
 
 
@@ -13,9 +14,9 @@ class ProductCreate(BaseModel):
     model: str | None = None
     part_number: str | None = None
 
-    current_stock: Decimal = Decimal("0")
-    minimum_stock: Decimal = Decimal("0")
-    maximum_stock: Decimal | None = None
+    current_stock: Decimal = Field(default=Decimal("0"), ge=0)
+    minimum_stock: Decimal = Field(default=Decimal("0"), ge=0)
+    maximum_stock: Decimal | None = Field(default=None, ge=0)
 
     physical_location: str | None = None
 
@@ -30,9 +31,8 @@ class ProductUpdate(BaseModel):
     model: str | None = None
     part_number: str | None = None
 
-    current_stock: Decimal
-    minimum_stock: Decimal
-    maximum_stock: Decimal | None = None
+    minimum_stock: Decimal = Field(ge=0)
+    maximum_stock: Decimal | None = Field(default=None, ge=0)
 
     physical_location: str | None = None
 

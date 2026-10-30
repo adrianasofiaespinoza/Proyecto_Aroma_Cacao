@@ -17,3 +17,4 @@ dist/
 .vscode/
 .idea/
 
+backend/app/reset_password.py
