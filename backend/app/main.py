@@ -53,3 +53,4 @@ def health_check():
     return {
         "status": "ok"
     }
+print(variable_que_no_existe)
