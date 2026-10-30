@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/test
+      JWT_SECRET: ci-only-dummy-secret-key-0123456789abcdef
     defaults:
       run:
         working-directory: backend
