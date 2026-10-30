@@ -14,7 +14,7 @@ class TestStockAlerts(unittest.TestCase):
         # Use an in-memory SQLite database for isolated testing
         self.engine = create_engine("sqlite:///:memory:")
         
-        Alert.date_generated.default = lambda: None        
+           
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
