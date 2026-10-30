@@ -18,7 +18,7 @@ class Alert(Base):
     date_generated: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
-        server_default=func.now,
+        server_default=func.now(),
     )
     stock_at_alert: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
