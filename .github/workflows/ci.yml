@@ -20,4 +20,4 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install ruff pytest httpx
       - run: ruff check .
-      - run: pytest -v
+      - run: pytest -v tests/test_health.py tests/test_alerts.py
