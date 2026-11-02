@@ -16,6 +16,8 @@ from app.routers.public import router as public_router
 from app.routers.movements import router as movements_router
 from app.routers.alerts import router as alerts_router
 from app.routers.catalogs import router as catalogs_router
+from app.routers.machines import router as machines_router
+from app.routers.loans import router as loans_router
 
 app = FastAPI(
     title="Aroma Cacao Inventory API",
@@ -41,6 +43,8 @@ app.include_router(public_router)
 app.include_router(movements_router)
 app.include_router(alerts_router)
 app.include_router(catalogs_router)
+app.include_router(machines_router)
+app.include_router(loans_router)
 
 
 @app.get("/")

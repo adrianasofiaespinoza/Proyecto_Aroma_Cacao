@@ -56,7 +56,7 @@ Verificado en el navegador (2026-11-01) como `Coordinator` y `Read-only`, sin es
 
 ## 7. Pendiente
 
-- Probar manualmente la creación, edición y desactivación con credenciales reales.
+- La creación y la edición se verificaron en el navegador con el backend en modo sandbox (transacción revertida). Falta la desactivación desde el navegador y la prueba con credenciales reales.
 - Reactivación de productos: no está definida.
 - Paginación: el listado devuelve todos los productos, lo que es suficiente para el volumen actual.
 - La BD local contiene 6 productos `LIMIT_*` que dejó `test_inventory_limits.py` (su limpieza falla). Hay que decidir si se eliminan y corregir esa prueba.

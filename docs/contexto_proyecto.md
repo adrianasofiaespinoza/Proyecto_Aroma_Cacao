@@ -153,6 +153,17 @@ La implementación revisada incluye validaciones de productos y lotes, bloqueo p
 
 Detalle completo en `docs/flows/movimientos-inventario.md`.
 
+### E2. Usuarios, máquinas y préstamos
+
+**Estado: backend e interfaz implementados y probados (2026-11-01); pendiente de publicar.**
+
+- Usuarios: `GET/POST /users` y `PUT /users/{id}`, solo para `Coordinator`. Incluye protección contra el autobloqueo y revoca los refresh tokens al desactivar. Sin campo "Cargo". Detalle en `docs/flows/usuarios.md`.
+- Máquinas: CRUD sin eliminación y repuestos compatibles (`product_machine`). La máquina destino se puede elegir en las salidas. Detalle en `docs/flows/maquinas.md`.
+- Préstamos: `GET/POST /loans`, `PATCH /loans/{id}/return` y `GET /workers`. **No modifican `current_stock`**: disponible = stock − prestado. Los registran y devuelven `Operator` y `Coordinator` sin autorización. El trabajador se crea por nombre. Detalle en `docs/flows/prestamos.md`.
+- Sin cambios de esquema: se mapearon las tablas existentes (`ProductMachine`, `Worker`, `Loan`).
+- Pruebas: `backend/tests/test_users_machines_loans.py` (fixtures compartidos en `tests/conftest.py`). Total local: 59 pruebas aprobadas.
+- **Decisión abierta:** ¿un `EXIT` debe validarse contra la cantidad disponible (stock − prestado) en lugar de contra `current_stock`?
+
 ### F. Roles y permisos
 
 Las reglas acordadas para los movimientos son:
@@ -167,7 +178,14 @@ Un `Coordinator` puede autorizar una solicitud creada por él mismo.
 
 **Importante:** `Read-only` debe tener permisos estrictamente de solo lectura. Las restricciones deben aplicarse en el backend, no únicamente ocultando botones en el frontend.
 
-Verificado el 2026-11-01 en productos, movimientos y catálogos (`test_movements_flow.py`): `Read-only` recibe `403` en todas las operaciones de escritura. Falta verificar los módulos que aún no existen (usuarios, máquinas, préstamos).
+Verificado el 2026-11-01 en productos, movimientos, catálogos, usuarios, máquinas y préstamos (`test_movements_flow.py`, `test_users_machines_loans.py`): `Read-only` recibe `403` en todas las operaciones de escritura.
+
+| Módulo | Coordinator | Operator | Read-only |
+|---|---|---|---|
+| Productos, máquinas (escritura) | Sí | No | No |
+| Usuarios (listar y escribir) | Sí | No | No |
+| Préstamos y devoluciones | Sí | Sí | No |
+| Consultas (productos, movimientos, máquinas, préstamos) | Sí | Sí | Sí |
 
 ### G. Alertas de stock mínimo
 
@@ -217,9 +235,9 @@ La compilación de producción terminó correctamente en una verificación anter
 
 **Pendiente:**
 
-- Integrar las vistas de usuarios, máquinas, préstamos, proveedores y el dashboard (aún con datos de ejemplo; además, faltan sus endpoints en el backend).
+- (2026-11-01) Usuarios, máquinas y préstamos integrados (`UsersPage.jsx`, `MachinesPage.jsx`, `LoansPage.jsx`). Escrituras verificadas en el navegador con el backend en modo sandbox (transacción revertida; la BD quedó sin cambios).
+- Pendiente: proveedores y dashboard (siguen con datos de ejemplo; faltan endpoints de proveedores).
 - Comprobar el inicio de sesión real y la renovación de sesión desde el navegador (requiere credenciales reales).
-- Probar manualmente las operaciones de escritura de productos y movimientos.
 - `favicon.ico` devuelve `404` (las páginas no enlazan `public/favicon.svg`).
 
 ### I. Pruebas automatizadas, CI/CD y despliegue (Workshop 6)
@@ -351,7 +369,7 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 El plan de trabajo se establece en el siguiente orden:
 
-> Actualización 2026-11-01: los pasos 1 y 2 están completados y la parte del paso 3 correspondiente a productos y movimientos está integrada. Lo siguiente es la prueba manual de escritura desde el navegador y después usuarios, máquinas y préstamos.
+> Actualización 2026-11-01: los pasos 1 a 3 están implementados (productos, movimientos, usuarios, máquinas y préstamos). Quedan proveedores y dashboard, y el paso 4 con credenciales reales (inicio de sesión, renovación y prueba manual).
 
 1. **Productos e inventario (paso D):** revisar las validaciones de productos, la protección de `current_stock`, las reglas de stock mínimo y su coherencia con los movimientos. Identificar los casos pendientes y corregir únicamente los problemas confirmados.
 2. **Movimientos de inventario:** verificar entradas, salidas, ajustes, solicitudes pendientes, autorización, persistencia, errores y permisos. Mantener las reglas de negocio acordadas y señalar las decisiones que necesiten confirmación.

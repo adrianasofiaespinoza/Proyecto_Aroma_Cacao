@@ -89,3 +89,21 @@ def get_current_user(
         )
 
     return user
+
+
+def require_roles(*roles: str):
+    """Dependencia que exige uno de los roles indicados (403 si no)."""
+
+    def checker(
+        current_user: User = Depends(get_current_user)
+    ):
+
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires role: {', '.join(roles)}"
+            )
+
+        return current_user
+
+    return checker
