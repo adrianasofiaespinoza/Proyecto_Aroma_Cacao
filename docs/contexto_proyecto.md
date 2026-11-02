@@ -28,6 +28,10 @@ El trabajo se realiza y prueba localmente. No ejecutar `git push` ni publicar ca
 | Pydantic                | Validación de datos                   |
 | `python-jose`           | Autenticación mediante JWT            |
 | `pwdlib` con Argon2id   | Hashing de contraseñas                |
+| pytest                  | Pruebas automatizadas del backend     |
+| Ruff 0.9.2              | Linting y análisis estático           |
+| GitHub Actions          | Integración continua (CI)             |
+| Render                  | Despliegue público de la API          |
 
 - **Contenedor:** aroma-postgres
 - **Usuario PostgreSQL:** aroma_user
@@ -174,6 +178,7 @@ La lógica está integrada transaccionalmente en:
 **Verificación:**
 - Ocho casos funcionales (A-H) aprobados en PostgreSQL 17 (`aroma_inventory`), incluyendo la validación de rollback transaccional.
 - Limitación: la prevención de duplicados bajo concurrencia extrema depende de la serialización de transacciones (no existe restricción `UNIQUE` en la base de datos).
+- Corrección posterior (Workshop 6): en el modelo `Alert`, `date_generated` usaba `server_default="CURRENT_TIMESTAMP"` como cadena literal; se cambió a `server_default=func.now()` y se eliminó el parche de `Alert.date_generated.default` en `backend/tests/test_alerts.py`. Las 8 pruebas de alertas pasan localmente y en CI.
 
 El flujo detallado se encuentra documentado en `docs/flows/alertas-stock.md`.
 
@@ -198,6 +203,56 @@ La compilación de producción terminó correctamente en una verificación anter
 - Comprobar el inicio de sesión y las rutas protegidas desde el navegador.
 - Verificar la autorización por rol tanto en frontend como en backend.
 - Comprobar los estados de carga, los mensajes de error y la renovación de sesión.
+
+### I. Pruebas automatizadas, CI/CD y despliegue (Workshop 6)
+
+**Estado: implementado, verificado en GitHub Actions y desplegado en Render (solo backend).**
+
+Realizado en la rama `feature/health-endpoint`, integrada en `main` mediante el PR #1 ([enlace](https://github.com/adrianasofiaespinoza/Proyecto_Aroma_Cacao/pull/1)).
+
+**Endpoint de salud:**
+
+- `GET /health` en `backend/app/main.py`, devuelve `{"status": "ok"}`. No depende de la base de datos ni de la autenticación.
+- Prueba en `backend/tests/test_health.py`.
+
+**Integración continua** (`.github/workflows/ci.yml`, job `validate`):
+
+- Se ejecuta en pull requests hacia `main` y en pushes a `main`.
+- Ubuntu, Python 3.12 con caché de pip, `working-directory: backend`.
+- Pasos: instalar `requirements.txt`, instalar `ruff==0.9.2 pytest httpx`, `ruff check .` y `pytest -v tests/test_health.py tests/test_alerts.py` (9 pruebas).
+- `DATABASE_URL` y `JWT_SECRET` se definen en el workflow con valores ficticios, solo para CI, porque la aplicación falla al importar si no existen. No se publicaron credenciales reales.
+- `backend/ruff.toml`: conjunto mínimo de reglas (`E9`, `F63`, `F7`, `F82`).
+- `backend/pytest.ini`: `pythonpath = .` para importar el paquete `app`.
+
+**Verificación realizada:**
+
+- Primer CI en verde (run #6), tras corregir los fallos iniciales de configuración (Ruff sin configurar, `ModuleNotFoundError: app`, variables de entorno faltantes y el `server_default` del modelo `Alert`).
+- Fallo intencional de lint (`F821`, run #7) y de prueba (`AssertionError`, run #9), ambos detectados por CI y revertidos (runs #8 y #10 en verde).
+- Tras el merge, CI en `main` aprobado (run #11, commit `50df7a9`).
+
+**Protección de la rama `main`:**
+
+- Requiere pull request antes del merge (con una aprobación), el check `validate` en verde y la rama actualizada.
+- El repositorio tiene una sola cuenta propietaria, por lo que el PR #1 fue integrado por la propietaria sin un segundo revisor.
+
+**Despliegue en Render** (plan gratuito):
+
+- URL pública: [https://aroma-cacao.onrender.com](https://aroma-cacao.onrender.com) (`/health` responde `{"status":"ok"}`).
+- Rama `main`, directorio raíz `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, `PYTHON_VERSION=3.12.8`.
+- `JWT_SECRET` y `DATABASE_URL` configurados como variables de entorno en Render, no en el repositorio.
+- Auto-Deploy: "After CI Checks Pass".
+- El primer despliegue falló porque `JWT_SECRET` tenía menos de 32 caracteres; se corrigió generando un secreto nuevo en Render, sin cambios de código. Un despliegue manual del mismo commit quedó en estado Live.
+
+**Limitaciones y pendientes:**
+
+- `test_inventory_limits.py` no se ejecuta en CI porque requiere PostgreSQL; se podría agregar un servicio PostgreSQL al workflow.
+- Ruff usa un conjunto mínimo de reglas; el código existente tiene otros hallazgos (por ejemplo, `E402` y `F401`) sin corregir.
+- Pendiente de confirmar: en el informe no se confirmó si se aprovisionó PostgreSQL en Render. Si no existe, solo están garantizados el arranque y `/health`, y los endpoints que dependen de la base de datos no funcionarán en el despliegue público.
+- El plan gratuito de Render suspende la instancia por inactividad; la primera solicitud puede tardar cerca de un minuto.
+- El frontend no está cubierto por el pipeline de CI.
+- Desarrollo local con Python 3.14; CI y Render usan Python 3.12.
+
+**Implicaciones para el trabajo:** los cambios a `main` deben pasar por pull request con el check `validate` en verde. Antes de publicar, ejecutar localmente `ruff check .` y las pruebas incluidas en CI desde `backend/`. Todo merge a `main` se despliega automáticamente en Render tras pasar CI.
 
 ## 4. Reglas de trabajo y continuidad
 
@@ -289,6 +344,7 @@ El plan de trabajo se establece en el siguiente orden:
 - La integración del frontend y backend es parcial y todavía necesita pruebas funcionales.
 - La autenticación tiene verificaciones de integración y casos límite pendientes, pero no constituye una razón para iniciar ahora una auditoría independiente.
 - No se debe repetir la configuración inicial de PostgreSQL ni las verificaciones ya confirmadas, salvo que aparezca un problema concreto.
+- El pipeline de CI (GitHub Actions) y el despliegue en Render del Workshop 6 ya están implementados y verificados. Mantenerlos funcionando, pero no ampliarlos salvo que se solicite.
 - El objetivo sigue siendo completar el sistema de inventario de Aroma Cacao; no ampliar el alcance hacia DevOps, multiempresa ni nuevas funcionalidades no solicitadas.
 
 ## 8. Criterio para dar por terminado un bloque
