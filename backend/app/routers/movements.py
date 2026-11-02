@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -42,8 +44,8 @@ router = APIRouter(
     summary="List all movements"
 )
 def list_movements(
-    status_filter: str | None = None,
-    type_filter: str | None = None,
+    status_filter: Literal["pending", "authorized", "rejected"] | None = None,
+    type_filter: Literal["ENTRY", "EXIT", "ADJUSTMENT"] | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -279,6 +281,55 @@ def authorize_movement(
     # Finalize authorization
     # --------------------------------------------------------
     movement.status = "authorized"
+    movement.authorizing_user_id = current_user.id
+
+    db.commit()
+    db.refresh(movement)
+
+    return movement
+
+
+# ============================================================
+# REJECT MOVEMENT
+# ============================================================
+
+@router.patch(
+    "/{movement_id}/reject",
+    response_model=MovementResponse,
+    summary="Reject a movement"
+)
+def reject_movement(
+    movement_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Coordinator":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Coordinators can reject movements"
+        )
+
+    # Same lock as authorization so both cannot run at once
+    movement = db.scalar(
+        select(Movement)
+        .where(Movement.id == movement_id)
+        .with_for_update()
+    )
+
+    if not movement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movement not found"
+        )
+
+    if movement.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Movement is already {movement.status}"
+        )
+
+    # Rejection never touches stock or alerts
+    movement.status = "rejected"
     movement.authorizing_user_id = current_user.id
 
     db.commit()

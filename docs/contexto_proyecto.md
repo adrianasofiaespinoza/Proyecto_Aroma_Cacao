@@ -28,6 +28,10 @@ El trabajo se realiza y prueba localmente. No ejecutar `git push` ni publicar ca
 | Pydantic                | Validación de datos                   |
 | `python-jose`           | Autenticación mediante JWT            |
 | `pwdlib` con Argon2id   | Hashing de contraseñas                |
+| pytest                  | Pruebas automatizadas del backend     |
+| Ruff 0.9.2              | Linting y análisis estático           |
+| GitHub Actions          | Integración continua (CI)             |
+| Render                  | Despliegue público de la API          |
 
 - **Contenedor:** aroma-postgres
 - **Usuario PostgreSQL:** aroma_user
@@ -98,6 +102,8 @@ El procedimiento anterior de restablecimiento funcionó según lo confirmado por
 - Los esquemas de productos incorporan validaciones numéricas.
 - `current_stock` no se modifica directamente mediante `ProductUpdate`.
 - Los cambios de existencias deben realizarse mediante movimientos de inventario para conservar la trazabilidad.
+- (2026-11-01) Los esquemas validan longitudes y rangos según las columnas de la BD: los datos fuera de rango devuelven `422` en lugar de `500`. Se agregaron `GET /categories` y `GET /units` (`backend/app/routers/catalogs.py`).
+- Flujo documentado en `docs/flows/productos.md`.
 
 Archivos principales:
 
@@ -107,7 +113,7 @@ Archivos principales:
 
 ### E. Movimientos de inventario
 
-**Estado: lógica de backend implementada y parcialmente probada con la base de datos local.**
+**Estado: backend implementado y probado (47 pruebas locales); interfaz integrada; falta la prueba manual de escritura desde el navegador.**
 
 Endpoints revisados:
 
@@ -115,6 +121,7 @@ Endpoints revisados:
 - `GET /movements/{movement_id}`: detalle.
 - `POST /movements`: creación de solicitudes pendientes.
 - `PATCH /movements/{movement_id}/authorize`: autorización y actualización del inventario.
+- `PATCH /movements/{movement_id}/reject`: rechazo (`pending → rejected`), sin efecto en el stock. Agregado el 2026-11-01.
 
 Reglas de negocio acordadas:
 
@@ -124,17 +131,27 @@ Reglas de negocio acordadas:
 | `EXIT`             | Resta existencias si hay suficiente stock |
 | `ADJUSTMENT`       | Establece el stock final indicado         |
 
+Decisiones confirmadas por la usuaria el 2026-11-01:
+
+- Una salida que supera el stock **siempre se rechaza** (no hay autorización de emergencia; se descarta lo que planteaba el README).
+- El motivo es **obligatorio** en `EXIT` y `ADJUSTMENT`.
+- Se permite un `ADJUSTMENT` con cantidad 0.
+- Existe un flujo de rechazo (estado `rejected`).
+
+Cambio de esquema aplicado en la BD local: `database/migrations/001_movement_reject_and_zero_adjustment.sql` (`chk_movement_status` incluye `rejected`; `chk_movement_quantity` pasa a `>= 0`). `database/schema.sql` está actualizado. Si existe una BD en Render, hay que aplicarle la migración.
+
 La creación de una solicitud no modifica el stock. La autorización aplica los cambios y actualiza el estado del movimiento.
 
 La implementación revisada incluye validaciones de productos y lotes, bloqueo pesimista de filas y gestión de alertas dentro del flujo transaccional.
 
 **Pendiente:**
 
-- Verificar el flujo completo desde la interfaz hasta la persistencia.
-- Probar errores, permisos y operaciones concurrentes.
-- Confirmar que todas las rutas respeten las mismas reglas de inventario.
-- Determinar si los ajustes de stock con cantidad cero deben permitirse.
-- Revisar la validación del estado de lotes y máquinas.
+- Probar manualmente en el navegador, con credenciales reales, crear → autorizar y crear → rechazar. Ya están cubiertos por `test_movements_flow.py`.
+- Probar la concurrencia real (el bloqueo pesimista está implementado, pero no se ha probado con transacciones simultáneas).
+- `EXIT` con lote no descuenta `lot.remaining_quantity`.
+- Lotes y máquinas no tienen un campo de estado; no hay nada que validar mientras no exista.
+
+Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### F. Roles y permisos
 
@@ -150,7 +167,7 @@ Un `Coordinator` puede autorizar una solicitud creada por él mismo.
 
 **Importante:** `Read-only` debe tener permisos estrictamente de solo lectura. Las restricciones deben aplicarse en el backend, no únicamente ocultando botones en el frontend.
 
-La implementación efectiva de los permisos en todas las rutas todavía debe verificarse.
+Verificado el 2026-11-01 en productos, movimientos y catálogos (`test_movements_flow.py`): `Read-only` recibe `403` en todas las operaciones de escritura. Falta verificar los módulos que aún no existen (usuarios, máquinas, préstamos).
 
 ### G. Alertas de stock mínimo
 
@@ -174,12 +191,13 @@ La lógica está integrada transaccionalmente en:
 **Verificación:**
 - Ocho casos funcionales (A-H) aprobados en PostgreSQL 17 (`aroma_inventory`), incluyendo la validación de rollback transaccional.
 - Limitación: la prevención de duplicados bajo concurrencia extrema depende de la serialización de transacciones (no existe restricción `UNIQUE` en la base de datos).
+- Corrección posterior (Workshop 6): en el modelo `Alert`, `date_generated` usaba `server_default="CURRENT_TIMESTAMP"` como cadena literal; se cambió a `server_default=func.now()` y se eliminó el parche de `Alert.date_generated.default` en `backend/tests/test_alerts.py`. Las 8 pruebas de alertas pasan localmente y en CI.
 
 El flujo detallado se encuentra documentado en `docs/flows/alertas-stock.md`.
 
 ### H. Frontend
 
-**Estado: integración parcial implementada; quedan flujos por verificar.**
+**Estado: productos y movimientos integrados con la API y verificados en el navegador (lectura y validaciones); quedan los demás módulos.**
 
 Se han implementado o revisado:
 
@@ -189,15 +207,70 @@ Se han implementado o revisado:
 - Proxy de Vite para las rutas del backend.
 - Control de sesión en `frontend/src/main.js`.
 - Consulta de productos en `ProductTable.jsx`, con estados de carga y manejo de errores.
+- (2026-11-01) `ProductsPage.jsx` y `ProductFormModal.jsx`: búsqueda, filtros, creación, edición y desactivación según el rol.
+- (2026-11-01) `MovementsPage.jsx`: listado con filtros, nueva solicitud, revisión con autorización o rechazo y detalle de solo lectura.
+- (2026-11-01) `api.js`: errores `422` legibles, y las peticiones en espera ya no quedan colgadas si falla la renovación del token.
+- (2026-11-01) La cabecera de todas las páginas muestra el usuario real (antes mostraba "Carlos Mena" fijo).
+- La compilación de producción (`npm run build`) terminó correctamente el 2026-11-01.
 
 La compilación de producción terminó correctamente en una verificación anterior. Debe repetirse después de cambios que puedan afectarla.
 
 **Pendiente:**
 
-- Integrar y verificar las vistas de movimientos, usuarios, máquinas y préstamos.
-- Comprobar el inicio de sesión y las rutas protegidas desde el navegador.
-- Verificar la autorización por rol tanto en frontend como en backend.
-- Comprobar los estados de carga, los mensajes de error y la renovación de sesión.
+- Integrar las vistas de usuarios, máquinas, préstamos, proveedores y el dashboard (aún con datos de ejemplo; además, faltan sus endpoints en el backend).
+- Comprobar el inicio de sesión real y la renovación de sesión desde el navegador (requiere credenciales reales).
+- Probar manualmente las operaciones de escritura de productos y movimientos.
+- `favicon.ico` devuelve `404` (las páginas no enlazan `public/favicon.svg`).
+
+### I. Pruebas automatizadas, CI/CD y despliegue (Workshop 6)
+
+**Estado: implementado, verificado en GitHub Actions y desplegado en Render (solo backend).**
+
+Realizado en la rama `feature/health-endpoint`, integrada en `main` mediante el PR #1 ([enlace](https://github.com/adrianasofiaespinoza/Proyecto_Aroma_Cacao/pull/1)).
+
+**Endpoint de salud:**
+
+- `GET /health` en `backend/app/main.py`, devuelve `{"status": "ok"}`. No depende de la base de datos ni de la autenticación.
+- Prueba en `backend/tests/test_health.py`.
+
+**Integración continua** (`.github/workflows/ci.yml`, job `validate`):
+
+- Se ejecuta en pull requests hacia `main` y en pushes a `main`.
+- Ubuntu, Python 3.12 con caché de pip, `working-directory: backend`.
+- Pasos: instalar `requirements.txt`, instalar `ruff==0.9.2 pytest httpx`, `ruff check .` y `pytest -v tests/test_health.py tests/test_alerts.py` (9 pruebas).
+- `DATABASE_URL` y `JWT_SECRET` se definen en el workflow con valores ficticios, solo para CI, porque la aplicación falla al importar si no existen. No se publicaron credenciales reales.
+- `backend/ruff.toml`: conjunto mínimo de reglas (`E9`, `F63`, `F7`, `F82`).
+- `backend/pytest.ini`: `pythonpath = .` para importar el paquete `app`.
+
+**Verificación realizada:**
+
+- Primer CI en verde (run #6), tras corregir los fallos iniciales de configuración (Ruff sin configurar, `ModuleNotFoundError: app`, variables de entorno faltantes y el `server_default` del modelo `Alert`).
+- Fallo intencional de lint (`F821`, run #7) y de prueba (`AssertionError`, run #9), ambos detectados por CI y revertidos (runs #8 y #10 en verde).
+- Tras el merge, CI en `main` aprobado (run #11, commit `50df7a9`).
+
+**Protección de la rama `main`:**
+
+- Requiere pull request antes del merge (con una aprobación), el check `validate` en verde y la rama actualizada.
+- El repositorio tiene una sola cuenta propietaria, por lo que el PR #1 fue integrado por la propietaria sin un segundo revisor.
+
+**Despliegue en Render** (plan gratuito):
+
+- URL pública: [https://aroma-cacao.onrender.com](https://aroma-cacao.onrender.com) (`/health` responde `{"status":"ok"}`).
+- Rama `main`, directorio raíz `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, `PYTHON_VERSION=3.12.8`.
+- `JWT_SECRET` y `DATABASE_URL` configurados como variables de entorno en Render, no en el repositorio.
+- Auto-Deploy: "After CI Checks Pass".
+- El primer despliegue falló porque `JWT_SECRET` tenía menos de 32 caracteres; se corrigió generando un secreto nuevo en Render, sin cambios de código. Un despliegue manual del mismo commit quedó en estado Live.
+
+**Limitaciones y pendientes:**
+
+- `test_inventory_limits.py` no se ejecuta en CI porque requiere PostgreSQL; se podría agregar un servicio PostgreSQL al workflow.
+- Ruff usa un conjunto mínimo de reglas; el código existente tiene otros hallazgos (por ejemplo, `E402` y `F401`) sin corregir.
+- Pendiente de confirmar: en el informe no se confirmó si se aprovisionó PostgreSQL en Render. Si no existe, solo están garantizados el arranque y `/health`, y los endpoints que dependen de la base de datos no funcionarán en el despliegue público.
+- El plan gratuito de Render suspende la instancia por inactividad; la primera solicitud puede tardar cerca de un minuto.
+- El frontend no está cubierto por el pipeline de CI.
+- Desarrollo local con Python 3.14; CI y Render usan Python 3.12.
+
+**Implicaciones para el trabajo:** los cambios a `main` deben pasar por pull request con el check `validate` en verde. Antes de publicar, ejecutar localmente `ruff check .` y las pruebas incluidas en CI desde `backend/`. Todo merge a `main` se despliega automáticamente en Render tras pasar CI.
 
 ## 4. Reglas de trabajo y continuidad
 
@@ -278,6 +351,8 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 El plan de trabajo se establece en el siguiente orden:
 
+> Actualización 2026-11-01: los pasos 1 y 2 están completados y la parte del paso 3 correspondiente a productos y movimientos está integrada. Lo siguiente es la prueba manual de escritura desde el navegador y después usuarios, máquinas y préstamos.
+
 1. **Productos e inventario (paso D):** revisar las validaciones de productos, la protección de `current_stock`, las reglas de stock mínimo y su coherencia con los movimientos. Identificar los casos pendientes y corregir únicamente los problemas confirmados.
 2. **Movimientos de inventario:** verificar entradas, salidas, ajustes, solicitudes pendientes, autorización, persistencia, errores y permisos. Mantener las reglas de negocio acordadas y señalar las decisiones que necesiten confirmación.
 3. **Integración frontend-backend:** completar y probar las vistas de productos y movimientos utilizando los endpoints existentes. Después continuar con usuarios, máquinas y préstamos, respetando las prioridades y los requisitos originales.
@@ -289,6 +364,7 @@ El plan de trabajo se establece en el siguiente orden:
 - La integración del frontend y backend es parcial y todavía necesita pruebas funcionales.
 - La autenticación tiene verificaciones de integración y casos límite pendientes, pero no constituye una razón para iniciar ahora una auditoría independiente.
 - No se debe repetir la configuración inicial de PostgreSQL ni las verificaciones ya confirmadas, salvo que aparezca un problema concreto.
+- El pipeline de CI (GitHub Actions) y el despliegue en Render del Workshop 6 ya están implementados y verificados. Mantenerlos funcionando, pero no ampliarlos salvo que se solicite.
 - El objetivo sigue siendo completar el sistema de inventario de Aroma Cacao; no ampliar el alcance hacia DevOps, multiempresa ni nuevas funcionalidades no solicitadas.
 
 ## 8. Criterio para dar por terminado un bloque
