@@ -30,6 +30,27 @@ export const tokenStorage = {
   isAuthenticated: () => Boolean(localStorage.getItem(TOKEN_KEY)),
 }
 
+// FastAPI devuelve detail como texto (400/403/404/409) o como lista de
+// errores de validación (422); se convierte siempre a un mensaje legible.
+async function errorFromResponse(res, fallback) {
+  const err = await res.json().catch(() => ({}))
+  let message = fallback
+  if (typeof err.detail === 'string') {
+    message = err.detail
+  } else if (Array.isArray(err.detail) && err.detail.length > 0) {
+    message = err.detail
+      .map((d) => {
+        const field = Array.isArray(d.loc) ? d.loc.filter((l) => l !== 'body').join('.') : ''
+        const msg = (d.msg || '').replace(/^Value error, /, '')
+        return field ? `${field}: ${msg}` : msg
+      })
+      .join(' · ')
+  }
+  const error = new Error(message)
+  error.status = res.status
+  return error
+}
+
 let isRefreshing = false
 let refreshSubscribers = []
 
@@ -87,6 +108,7 @@ export async function apiFetch(endpoint, options = {}) {
         if (!refreshRes.ok) {
           tokenStorage.clearSession()
           isRefreshing = false
+          onRefreshed(null)
           if (!window.location.pathname.endsWith('login.html')) {
             window.location.href = 'login.html'
           }
@@ -108,6 +130,7 @@ export async function apiFetch(endpoint, options = {}) {
       } catch (err) {
         tokenStorage.clearSession()
         isRefreshing = false
+        onRefreshed(null)
         if (!window.location.pathname.endsWith('login.html')) {
           window.location.href = 'login.html'
         }
@@ -118,6 +141,10 @@ export async function apiFetch(endpoint, options = {}) {
     // Wait for the in-progress refresh to finish
     return new Promise((resolve) => {
       addRefreshSubscriber((newToken) => {
+        if (!newToken) {
+          resolve(response)
+          return
+        }
         headers.set('Authorization', `Bearer ${newToken}`)
         resolve(fetch(url, { ...options, headers }))
       })
@@ -137,10 +164,7 @@ export async function login({ email, password, remember_me = false }) {
     body: JSON.stringify({ email, password, remember_me }),
   })
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al iniciar sesión')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al iniciar sesión')
 
   const tokenData = await res.json()
 
@@ -193,10 +217,7 @@ export async function getMe() {
 
 export async function getProducts() {
   const res = await apiFetch('/products')
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al cargar productos')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar productos')
   return res.json()
 }
 
@@ -205,10 +226,7 @@ export async function createProduct(productData) {
     method: 'POST',
     body: JSON.stringify(productData),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al crear producto')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al crear producto')
   return res.json()
 }
 
@@ -217,10 +235,29 @@ export async function updateProduct(id, productData) {
     method: 'PUT',
     body: JSON.stringify(productData),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar producto')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al actualizar producto')
+  return res.json()
+}
+
+export async function deactivateProduct(id) {
+  const res = await apiFetch(`/products/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al desactivar producto')
+  return res.json()
+}
+
+// ------------------------------------------------------------
+// Catalogs API Endpoints
+// ------------------------------------------------------------
+
+export async function getCategories() {
+  const res = await apiFetch('/categories')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar categorías')
+  return res.json()
+}
+
+export async function getUnits() {
+  const res = await apiFetch('/units')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar unidades de medida')
   return res.json()
 }
 
@@ -235,10 +272,7 @@ export async function getMovements(params = {}) {
 
   const url = `/movements${query.toString() ? '?' + query.toString() : ''}`
   const res = await apiFetch(url)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al cargar movimientos')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar movimientos')
   return res.json()
 }
 
@@ -246,9 +280,23 @@ export async function authorizeMovement(movementId) {
   const res = await apiFetch(`/movements/${movementId}/authorize`, {
     method: 'PATCH',
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al autorizar movimiento')
-  }
+  if (!res.ok) throw await errorFromResponse(res, 'Error al autorizar movimiento')
+  return res.json()
+}
+
+export async function createMovement(movementData) {
+  const res = await apiFetch('/movements', {
+    method: 'POST',
+    body: JSON.stringify(movementData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al registrar movimiento')
+  return res.json()
+}
+
+export async function rejectMovement(movementId) {
+  const res = await apiFetch(`/movements/${movementId}/reject`, {
+    method: 'PATCH',
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al rechazar movimiento')
   return res.json()
 }

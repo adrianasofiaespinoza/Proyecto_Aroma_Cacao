@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     DateTime,
@@ -13,6 +14,9 @@ from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Movement(Base):
@@ -66,6 +70,29 @@ class Movement(Base):
         cascade="all, delete-orphan",
         lazy="selectin"
     )
+
+    requesting_user: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[requesting_user_id],
+        lazy="selectin"
+    )
+
+    authorizing_user: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[authorizing_user_id],
+        lazy="selectin"
+    )
+
+    # Nombres expuestos en MovementResponse para la interfaz
+    @property
+    def requesting_user_name(self) -> str | None:
+        user = self.requesting_user
+        return user.full_name if user else None
+
+    @property
+    def authorizing_user_name(self) -> str | None:
+        user = self.authorizing_user
+        return user.full_name if user else None
 
 
 class MovementDetail(Base):

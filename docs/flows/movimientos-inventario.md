@@ -2,202 +2,142 @@
 
 ## 1. Propósito
 
-Documentar el funcionamiento actual de las solicitudes de movimientos de inventario, su autorización, la actualización del stock y la gestión de alertas.
+Documentar el funcionamiento de las solicitudes de movimientos de inventario, su autorización o rechazo, la actualización del stock, la gestión de alertas y la interfaz que las utiliza.
 
-Este documento distingue entre el comportamiento verificado en el código, las reglas de negocio definidas para Aroma Cacao y los aspectos que requieren comprobación adicional.
+Este documento distingue entre comportamiento implementado, comportamiento probado y aspectos pendientes.
 
 ## 2. Actores y permisos
 
-| Rol | Crear solicitudes | Autorizar solicitudes | Consultar movimientos |
+| Rol | Crear solicitudes | Autorizar / rechazar | Consultar movimientos |
 |---|---|---|---|
-| `Operator` | Sí | No | Mediante endpoints autenticados |
-| `Coordinator` | Sí | Sí | Mediante endpoints autenticados |
-| `Read-only` | No | No | Sí, solo lectura |
+| `Operator` | Sí | No (`403`) | Sí |
+| `Coordinator` | Sí | Sí | Sí |
+| `Read-only` | No (`403`) | No (`403`) | Sí, solo lectura |
 
-### Regla de autorización
-
-Solo un usuario con el rol `Coordinator` puede autorizar un movimiento pendiente.
-
-Un `Coordinator` puede autorizar una solicitud que él mismo haya creado. No se exige que el solicitante y el autorizador sean personas diferentes.
-
-El rol `Read-only` no debe tener permisos para crear, autorizar, modificar ni eliminar movimientos.
-
-**Nota sobre la implementación:** las rutas revisadas exigen autenticación para consultar movimientos, pero no aplican un filtro de visibilidad por rol. La restricción estricta de solo lectura debe verificarse también en los demás endpoints de la aplicación.
+- Un `Coordinator` puede autorizar o rechazar una solicitud creada por él mismo.
+- Los permisos se aplican en el backend. La interfaz además oculta los botones que el rol no puede usar.
+- **Probado** (`test_movements_flow.py`): `Read-only` recibe `403` al crear, autorizar, rechazar y desactivar productos, y `200` al consultar productos y movimientos.
 
 ## 3. Tipos de movimiento
 
-| Tipo | Efecto sobre el stock al autorizar |
-|---|---|
-| `ENTRY` | Suma la cantidad al stock actual. |
-| `EXIT` | Resta la cantidad, siempre que exista stock suficiente. |
-| `ADJUSTMENT` | Establece el stock actual en la cantidad indicada. |
+| Tipo | Cantidad | Motivo | Efecto al autorizar |
+|---|---|---|---|
+| `ENTRY` | `> 0` | Opcional | Suma la cantidad al stock. |
+| `EXIT` | `> 0` | **Obligatorio** | Resta la cantidad solo si hay stock suficiente. |
+| `ADJUSTMENT` | `>= 0` | **Obligatorio** | Establece el stock en la cantidad indicada (stock final contado). |
 
-En `ADJUSTMENT`, la cantidad representa el stock final deseado, no una cantidad que deba sumarse o restarse.
+En `ADJUSTMENT`, la cantidad es el stock final, no una diferencia. Se permite `0`, que corresponde a un conteo físico sin existencias.
 
-La implementación actual no exige que la cantidad de un ajuste sea mayor que cero; el esquema admite cantidades iguales a cero.
+**Regla acordada:** una salida que supera el stock disponible **siempre se rechaza** y el stock nunca queda negativo. No existe autorización de emergencia. El README mencionaba esa posibilidad; se decidió no implementarla.
 
 ## 4. Flujo principal
 
-### Paso 1. Crear una solicitud
+### Paso 1. Crear una solicitud — `POST /movements`
 
-El usuario autenticado envía una solicitud mediante:
+Cuerpo:
 
-`POST /movements`
+```json
+{
+  "type": "EXIT",
+  "reason": "Cambio de rodamiento en molino M-1",
+  "work_order_number": "OT-1234",
+  "details": [{ "product_id": 1, "quantity": "2", "lot_id": null, "machine_id": null }]
+}
+```
 
-El cuerpo debe incluir un tipo de movimiento válido y al menos un detalle.
+Validaciones (Pydantic, `422`):
 
-Cada detalle contiene:
+- `type` ∈ `ENTRY`, `EXIT`, `ADJUSTMENT`; al menos un detalle.
+- `quantity >= 0`, con un máximo de 10 dígitos y 2 decimales (`Numeric(10,2)`).
+- `reason` es obligatorio (sin contar espacios) en `EXIT` y `ADJUSTMENT`; máximo 150 caracteres.
+- `work_order_number`: máximo 30 caracteres.
 
-- `product_id`: identificador del producto.
-- `quantity`: cantidad solicitada.
-- `lot_id`: lote opcional.
-- `machine_id`: máquina opcional.
+Validaciones del router:
 
-El sistema comprueba que el usuario tenga el rol `Operator` o `Coordinator`, que el producto exista y esté activo, y que los datos del lote y de la máquina cumplan las validaciones implementadas.
+- El rol debe ser `Operator` o `Coordinator` (`403`).
+- `ENTRY`/`EXIT` con cantidad `<= 0` → `400`.
+- El producto debe existir (`404`) y estar activo (`400`).
+- El lote, si se envía, debe existir (`404`) y pertenecer al producto (`400`).
+- La máquina, si se envía, debe existir (`404`).
 
-Si se proporciona un lote, debe existir y pertenecer al producto indicado. Si se proporciona una máquina, debe existir.
+**Resultado:** `201`, estado `pending` y `requesting_user_id` igual al usuario autenticado. **El stock no cambia.**
 
-Para `ENTRY` y `EXIT`, la cantidad debe ser mayor que cero. El esquema impide cantidades negativas y exige al menos un detalle.
+### Paso 2. Consultar — `GET /movements`, `GET /movements/{id}`
 
-Si las validaciones pasan, el sistema crea el movimiento con estado `pending` y registra el identificador del solicitante en `requesting_user_id`.
+- Ordenado por `id` descendente.
+- Filtros opcionales: `status_filter` ∈ `pending | authorized | rejected` y `type_filter` ∈ `ENTRY | EXIT | ADJUSTMENT`. Un valor no válido devuelve `422`.
+- La respuesta incluye `requesting_user_name` y `authorizing_user_name` (nombre completo), para que la interfaz no necesite un listado de usuarios.
 
-**Resultado:** la solicitud queda pendiente. La creación de la solicitud no actualiza por sí misma el stock.
+### Paso 3a. Autorizar — `PATCH /movements/{id}/authorize`
 
-### Paso 2. Consultar la solicitud
+1. Rol `Coordinator` (`403`).
+2. El movimiento existe (`404`) y está `pending` (`400`). La fila se bloquea con `with_for_update()`.
+3. Por cada detalle: el producto se bloquea con `with_for_update()`, debe existir y estar activo, y se aplica el efecto del tipo de movimiento. Un `EXIT` sin stock suficiente devuelve `400` (`Insufficient stock ...`).
+4. `update_stock_alerts()` sincroniza las alertas de cada producto.
+5. Estado `authorized`, `authorizing_user_id` y un único `commit()`.
 
-Los endpoints de consulta son:
+Si cualquier paso falla, `get_db` revierte la transacción: no se guardan cambios parciales de stock, estado ni alertas.
 
-- `GET /movements`: lista movimientos y admite filtros por estado y tipo.
-- `GET /movements/{movement_id}`: consulta un movimiento específico.
+### Paso 3b. Rechazar — `PATCH /movements/{id}/reject`
 
-Ambos requieren autenticación. La ruta de listado ordena los movimientos por identificador descendente.
+1. Rol `Coordinator` (`403`).
+2. El movimiento existe (`404`) y está `pending` (`400`). Usa el mismo bloqueo de fila que la autorización, para que ambas no puedan ejecutarse a la vez.
+3. Estado `rejected`. `authorizing_user_id` registra quién rechazó.
+4. **No modifica el stock ni las alertas.**
 
-En las rutas revisadas no se observa un filtro de visibilidad según el rol o el usuario solicitante.
+## 5. Estados
 
-### Paso 3. Autorizar la solicitud
+```
+pending ──authorize──▶ authorized
+   │
+   └──────reject─────▶ rejected
+```
 
-El `Coordinator` utiliza:
+`authorized` y `rejected` son estados finales: cualquier nueva autorización o rechazo devuelve `400`. No existe cancelación por parte del solicitante.
 
-`PATCH /movements/{movement_id}/authorize`
+## 6. Base de datos
 
-La ruta no necesita un cuerpo de solicitud para esta operación.
+Restricciones reales de PostgreSQL relacionadas con este flujo:
 
-El sistema comprueba que:
-
-1. El usuario autenticado tenga el rol `Coordinator`.
-2. El movimiento exista.
-3. Su estado sea `pending`.
-4. Tenga detalles asociados.
-5. Los productos relacionados existan y estén activos.
-6. Las salidas no excedan el stock disponible.
-
-El sistema bloquea la fila del movimiento y las filas de los productos involucrados mediante `with_for_update()` durante la operación.
-
-No se impide que el coordinador autorice una solicitud propia.
-
-### Paso 4. Actualizar el inventario
-
-Si las validaciones se cumplen, el sistema aplica el efecto correspondiente a cada detalle:
-
-- `ENTRY`: suma la cantidad al stock actual.
-- `EXIT`: resta la cantidad, si el stock es suficiente.
-- `ADJUSTMENT`: reemplaza el stock actual por la cantidad indicada.
-
-Si una salida no dispone de stock suficiente, la operación debe rechazarse sin guardar parcialmente los cambios de esa transacción.
-
-### Paso 5. Gestionar las alertas de stock
-
-Después de calcular el stock, el sistema compara el resultado con el stock mínimo del producto.
-
-- Si el stock queda en el mínimo o por debajo de él, busca una alerta activa para el producto y crea una si no encuentra ninguna.
-- Si el stock queda por encima del mínimo, busca las alertas activas y las marca como resueltas.
-
-La alerta registra el producto, la fecha de generación, el stock observado y el estado.
-
-La prevención de duplicados depende actualmente de una consulta previa. La revisión del modelo no encontró una restricción única que garantice por sí sola que nunca existan dos alertas activas del mismo producto. Es necesario comprobar también las restricciones reales de la base de datos.
-
-### Paso 6. Confirmar la autorización
-
-Al finalizar la operación, el sistema:
-
-- Cambia el estado del movimiento a `authorized`.
-- Guarda el identificador del coordinador en `authorizing_user_id`.
-- Confirma la transacción mediante `commit()`.
-- Devuelve la representación del movimiento.
-
-La autorización, los cambios de stock y la gestión de alertas se realizan antes de ese `commit()` final, con la intención de guardar conjuntamente los cambios de la transacción.
-
-## 5. Estados del movimiento
-
-| Estado | Significado |
+| Restricción | Regla |
 |---|---|
-| `pending` | La solicitud se ha creado y está pendiente de autorización. |
-| `authorized` | Un coordinador ha autorizado la solicitud y se ha aplicado el proceso de actualización de inventario. |
+| `chk_movement_type` | `type IN ('ENTRY','EXIT','ADJUSTMENT')` |
+| `chk_movement_status` | `status IN ('pending','authorized','rejected')` |
+| `chk_movement_quantity` | `quantity >= 0` |
 
-Estos son los estados observados en el flujo revisado. No se ha verificado la implementación de estados adicionales, como rechazado o cancelado.
+`chk_movement_status` y `chk_movement_quantity` se modificaron mediante `database/migrations/001_movement_reject_and_zero_adjustment.sql`, aplicada en la BD local el 2026-11-01. Antes, el estado `rejected` y los ajustes a 0 fallaban con un `500`. **Pendiente:** aplicar la migración en cualquier otra base de datos, como la de Render si existe.
 
-## 6. Trazabilidad
+## 7. Trazabilidad
 
-El modelo `Movement` registra:
+`Movement` registra el tipo, la fecha (UTC), el solicitante, quien autorizó o rechazó, el estado, el motivo y la orden de trabajo. Cada detalle registra el producto, la cantidad, el lote y la máquina.
 
-- `requesting_user_id`: usuario que creó la solicitud.
-- `authorizing_user_id`: usuario que la autorizó; es nulo mientras no se haya autorizado.
-- `date`: fecha del movimiento.
-- `type`: tipo de movimiento.
-- `status`: estado actual.
-- `reason`: motivo opcional.
-- `work_order_number`: número de orden de trabajo opcional.
+## 8. Interfaz (`frontend/movimientos.html`)
 
-Cada detalle registra el producto, la cantidad y, cuando corresponda, el lote y la máquina.
+Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimientos-react.jsx`:
 
-Estos datos permiten identificar quién solicitó y quién autorizó un movimiento, incluso cuando ambas referencias corresponden al mismo usuario.
+- Lista los movimientos reales con filtros en el cliente (Todos, Pendientes con contador, Entradas, Salidas, Ajustes) y estados de carga, error con opción de reintentar y lista vacía.
+- **Nuevo movimiento** (solo `Operator` y `Coordinator`): tipo, producto activo con su stock, cantidad (en un ajuste, "Stock final contado"), orden de trabajo y motivo (obligatorio en salidas y ajustes). Valida en el cliente y muestra los errores del servidor. Avisa si una salida supera el stock.
+- **Revisar** (solo `Coordinator`, movimientos pendientes): muestra los detalles con el stock actual y el resultante, y ofrece Autorizar o Rechazar. Autorizar se deshabilita si una salida supera el stock. Tras la acción, recarga los movimientos y productos.
+- **Ver detalle** (resto de casos): solo lectura, incluido quién autorizó o rechazó.
+- Limitaciones actuales: la interfaz crea solicitudes de un solo detalle, y los selectores de lote y máquina no están en el formulario porque todavía no existen endpoints de lotes ni máquinas. La fecha la asigna el servidor.
 
-## 7. Errores y caminos alternativos
+## 9. Pruebas
 
-El flujo debe contemplar, al menos, estos casos:
+| Archivo | Requiere BD | Cubre |
+|---|---|---|
+| `backend/tests/test_schema_validation.py` | No | Límites de longitud y numéricos, decimales, motivo, tipos válidos. |
+| `backend/tests/test_movements_flow.py` | Sí (transacción revertida) | Permisos por rol, pendiente sin cambio de stock, autorización propia, salida insuficiente sin cambios, alerta al llegar al mínimo, ajuste a 0, motivo obligatorio, rechazo, estados finales, `404`, filtros y catálogos. |
+| `backend/tests/test_inventory_limits.py` | Sí | Límites de ajustes. |
 
-- Usuario no autenticado: la solicitud no debe acceder a una ruta protegida.
-- Rol no autorizado: se devuelve un error de autorización; la ruta de autorización devuelve `403` cuando el usuario no es `Coordinator`.
-- Movimiento inexistente: la ruta de autorización devuelve `404`.
-- Movimiento que ya no está pendiente: la autorización se rechaza.
-- Solicitud sin detalles: la autorización se rechaza.
-- Producto inexistente o inactivo: no se debe aplicar el movimiento.
-- Lote inexistente o asociado a otro producto: no se debe aceptar el detalle.
-- Máquina inexistente: no se debe aceptar el detalle.
-- Salida superior al stock disponible: se rechaza la operación.
-- Error durante la operación: la transacción debe revertirse para evitar cambios parciales.
+Resultado local (2026-11-01): **47 pruebas aprobadas** y `ruff check .` sin hallazgos.
 
-Los códigos y mensajes exactos de todos estos errores deben contrastarse con la implementación completa y las pruebas.
+Verificación en el navegador (Playwright + Chromium contra el backend y la BD local, sin escrituras), como `Coordinator` y `Read-only`: listado, filtros, visibilidad de botones por rol, validaciones del formulario, modal de detalle y redirección a `login.html` con un token inválido. Los flujos de escritura (crear, autorizar, rechazar) están cubiertos por `test_movements_flow.py`, pero **no se han ejecutado manualmente desde el navegador**.
 
-## 8. Reglas de negocio de Aroma Cacao
+## 10. Pendiente
 
-1. Solo `Operator` y `Coordinator` pueden crear solicitudes.
-2. Solo `Coordinator` puede autorizar solicitudes.
-3. Un coordinador puede autorizar su propia solicitud.
-4. Crear una solicitud no modifica el stock.
-5. El stock se actualiza al autorizar el movimiento.
-6. Una salida no puede dejar el stock negativo.
-7. El stock mínimo determina cuándo se genera o resuelve una alerta.
-8. `Read-only` debe permanecer estrictamente en modo consulta.
-
-## 9. Aspectos pendientes de verificación
-
-- Confirmar que `Read-only` no puede modificar datos a través de ninguna otra ruta protegida.
-- Revisar las restricciones e índices reales de la base de datos para las alertas.
-- Comprobar el comportamiento ante errores y concurrencia mediante pruebas.
-- Determinar si deben validarse los estados de actividad de lotes y máquinas.
-- Verificar qué ocurre con tipos de movimiento inesperados si se introducen directamente en la base de datos.
-- Confirmar si existe un flujo de rechazo o cancelación; no se ha identificado en las rutas revisadas.
-- Verificar las reglas de autorización de los demás módulos para que los permisos sean coherentes en toda la aplicación.
-
-## 10. Criterios de aceptación del flujo
-
-- Una solicitud válida queda en estado `pending`.
-- Crear una solicitud no altera el stock.
-- Un `Operator` no puede autorizar movimientos.
-- Un `Read-only` no puede crear ni modificar movimientos.
-- Un `Coordinator` puede autorizar una solicitud propia o ajena.
-- Una salida con stock insuficiente no se confirma.
-- Una autorización válida registra al coordinador y actualiza el estado.
-- Los cambios de stock, estado y alertas se guardan de manera coherente.
-- Las pruebas comprueban tanto los casos válidos como los errores.
+- Probar manualmente en el navegador, con credenciales reales, crear → autorizar y crear → rechazar.
+- `EXIT` con lote: `lot.remaining_quantity` no se descuenta al autorizar.
+- Lotes y máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Si se agrega, habrá que validarlo al crear y al autorizar.
+- Un `ADJUSTMENT` con dos detalles del mismo producto aplica el último; no se rechaza la duplicidad.
+- Concurrencia: el bloqueo pesimista está implementado, pero no se ha probado con transacciones concurrentes reales.
+- `test_movements_flow.py` y `test_inventory_limits.py` no se ejecutan en CI porque requieren PostgreSQL. `test_schema_validation.py` podría agregarse a CI, ya que no la necesita.
