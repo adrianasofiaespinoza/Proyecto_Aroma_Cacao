@@ -96,11 +96,6 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <div class="hidden md:flex items-center gap-2 bg-accent/60 rounded-lg px-3 py-2 min-w-64">
-            <i class="bi bi-search text-muted-foreground"></i>
-            <input type="text" placeholder="Buscar productos, movimientos..." class="bg-transparent border-none outline-none text-sm flex-1">
-          </div>
-
           <button class="relative text-muted-foreground">
             <i class="bi bi-bell text-lg"></i>
             <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full"></span>
@@ -115,103 +110,12 @@
     </header>
 
     <main class="flex-1 p-4 lg:p-6">
-
-      <!-- Tarjetas resumen -->
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <div class="bg-card border border-border rounded-xl p-4">
-          <p class="text-sm text-muted-foreground mb-1">Productos activos</p>
-          <p class="text-2xl font-medium">184</p>
-        </div>
-        <div class="bg-card border border-border rounded-xl p-4">
-          <p class="text-sm text-muted-foreground mb-1">Stock bajo</p>
-          <p class="text-2xl font-medium text-destructive">4</p>
-        </div>
-        <div class="bg-card border border-border rounded-xl p-4">
-          <p class="text-sm text-muted-foreground mb-1">Movimientos pendientes</p>
-          <p class="text-2xl font-medium">3</p>
-        </div>
-        <div class="bg-card border border-border rounded-xl p-4">
-          <p class="text-sm text-muted-foreground mb-1">Herramientas prestadas</p>
-          <p class="text-2xl font-medium">7</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 2xl:grid-cols-7 gap-4">
-
-        <!-- Alertas -->
-        <div class="2xl:col-span-4 bg-card border border-border rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-border font-medium flex items-center gap-2">
-            <i class="bi bi-exclamation-triangle text-destructive"></i>Alertas de stock bajo
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="bg-accent/40 text-muted-foreground">
-                <tr>
-                  <th class="text-left font-medium px-4 py-2">Código</th>
-                  <th class="text-left font-medium px-4 py-2">Producto</th>
-                  <th class="text-right font-medium px-4 py-2">Stock</th>
-                  <th class="text-left font-medium px-4 py-2">Estado</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-border">
-                <tr>
-                  <td class="px-4 py-2">REP-014</td>
-                  <td class="px-4 py-2">Rodamiento 6205</td>
-                  <td class="px-4 py-2 text-right">0</td>
-                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-destructive/10 text-destructive text-xs px-2 py-0.5">Agotado</span></td>
-                </tr>
-                <tr>
-                  <td class="px-4 py-2">REP-032</td>
-                  <td class="px-4 py-2">Banda transportadora B-48</td>
-                  <td class="px-4 py-2 text-right">1</td>
-                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-chart-4/20 text-foreground text-xs px-2 py-0.5">Stock bajo</span></td>
-                </tr>
-                <tr>
-                  <td class="px-4 py-2">INS-007</td>
-                  <td class="px-4 py-2">Grasa multipropósito (kg)</td>
-                  <td class="px-4 py-2 text-right">3</td>
-                  <td class="px-4 py-2"><span class="inline-flex items-center rounded-full bg-chart-4/20 text-foreground text-xs px-2 py-0.5">Stock bajo</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Movimientos pendientes -->
-        <div class="2xl:col-span-3 bg-card border border-border rounded-xl overflow-hidden">
-          <div class="px-4 py-3 border-b border-border font-medium flex items-center gap-2">
-            <i class="bi bi-hourglass-split text-chart-4"></i>Pendientes de autorización
-          </div>
-          <div class="divide-y divide-border">
-            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
-              <div>
-                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">EXIT</span>
-                Luis Pozo
-              </div>
-              <span class="text-muted-foreground">28/09</span>
-            </a>
-            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
-              <div>
-                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">ENTRY</span>
-                Ana Toapanta
-              </div>
-              <span class="text-muted-foreground">28/09</span>
-            </a>
-            <a href="movimientos.html" class="flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/40">
-              <div>
-                <span class="inline-flex items-center rounded-full bg-muted text-xs px-2 py-0.5 mr-2">EXIT</span>
-                Luis Pozo
-              </div>
-              <span class="text-muted-foreground">27/09</span>
-            </a>
-          </div>
-        </div>
-
-      </div>
+      <div id="react-dashboard"></div>
     </main>
   </div>
 </div>
 
 <script type="module" src="/src/main.js"></script>
+<script type="module" src="/src/dashboard-react.jsx"></script>
 </body>
 </html>

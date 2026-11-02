@@ -395,3 +395,58 @@ export async function returnLoan(loanId) {
   if (!res.ok) throw await errorFromResponse(res, 'Error al registrar devolución')
   return res.json()
 }
+
+// ------------------------------------------------------------
+// Suppliers API Endpoints
+// ------------------------------------------------------------
+
+export async function getSuppliers() {
+  const res = await apiFetch('/suppliers')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar proveedores')
+  return res.json()
+}
+
+export async function saveSupplier(id, supplierData) {
+  const res = await apiFetch(id ? `/suppliers/${id}` : '/suppliers', {
+    method: id ? 'PUT' : 'POST',
+    body: JSON.stringify(supplierData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al guardar proveedor')
+  return res.json()
+}
+
+export async function addSupplierProduct(supplierId, productId, referencePrice) {
+  const res = await apiFetch(`/suppliers/${supplierId}/products`, {
+    method: 'POST',
+    body: JSON.stringify({ product_id: productId, reference_price: referencePrice }),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al asociar producto')
+  return res.json()
+}
+
+export async function updateSupplierProductPrice(supplierId, productId, referencePrice) {
+  const res = await apiFetch(`/suppliers/${supplierId}/products/${productId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reference_price: referencePrice }),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al actualizar precio')
+  return res.json()
+}
+
+export async function removeSupplierProduct(supplierId, productId) {
+  const res = await apiFetch(`/suppliers/${supplierId}/products/${productId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al quitar producto')
+  return res.json()
+}
+
+// ------------------------------------------------------------
+// Alerts API Endpoints
+// ------------------------------------------------------------
+
+export async function getAlerts() {
+  const res = await apiFetch('/alerts')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar alertas')
+  return res.json()
+}

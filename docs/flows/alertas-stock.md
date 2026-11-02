@@ -44,3 +44,10 @@ La funcionalidad ha sido revisada mediante análisis estático de código y vali
 - [x] Desactivar producto $\rightarrow$ Alertas resueltas.
 - [x] Autorizar movimientos $\rightarrow$ Alertas creadas/resueltas según mutación de stock.
 - [x] Existencia de alertas duplicadas $\rightarrow$ Consolidación a una sola alerta activa.
+
+## Visualización en la interfaz (2026-11-01)
+
+- **Dashboard** (`frontend/src/components/DashboardPage.jsx`): la tarjeta "Stock bajo" y la tabla "Alertas de stock bajo" usan las alertas **activas** de `GET /alerts` como fuente de verdad, cruzadas con los productos. Un producto con stock `<= 0` aparece como "Agotado"; los demás, como "Stock bajo".
+- **Campana de la cabecera** (`frontend/src/main.js`, en todas las páginas): el punto rojo solo aparece si hay alertas activas, el título indica cuántas son y al hacer clic lleva al dashboard. Antes era un punto fijo.
+- Verificado en el navegador (sandbox): con REP-001 en stock 3 y mínimo 5, el dashboard muestra 1 alerta y la campana, "1 alerta(s) de stock bajo".
+
