@@ -233,3 +233,32 @@ def test_loan_validations_and_permissions(client, session, product):
     assert any(item["id"] == loan_id for item in loaned)
     assert client.get("/loans", params={"status_filter": "zzz"}).status_code == 422
     assert session.scalar(select(Product.current_stock).where(Product.id == product.id)) == Decimal("10")
+
+
+def authorize_exit(client, product, quantity):
+    movement = client.post("/movements", json={
+        "type": "EXIT",
+        "reason": "Salida con préstamos activos",
+        "details": [{"product_id": product.id, "quantity": str(quantity)}],
+    }).json()
+    return client.patch(f"/movements/{movement['id']}/authorize")
+
+
+def test_exit_validates_against_available_not_loaned(client, session, product):
+    # Stock 10, prestado 6 -> solo 4 pueden salir
+    loan_id = lend(client, product, 6).json()["id"]
+
+    blocked = authorize_exit(client, product, 5)
+    assert blocked.status_code == 400
+    assert "Loaned: 6" in blocked.json()["detail"]
+    assert "Available: 4" in blocked.json()["detail"]
+    session.expire_all()
+    assert session.get(Product, product.id).current_stock == Decimal("10")
+
+    assert authorize_exit(client, product, 4).status_code == 200
+    session.expire_all()
+    assert session.get(Product, product.id).current_stock == Decimal("6")
+
+    # Al devolver, lo prestado vuelve a estar disponible
+    client.patch(f"/loans/{loan_id}/return")
+    assert authorize_exit(client, product, 6).status_code == 200

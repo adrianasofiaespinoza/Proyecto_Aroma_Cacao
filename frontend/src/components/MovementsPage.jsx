@@ -3,6 +3,7 @@ import Modal, { ErrorBox, inputClass } from './Modal.jsx'
 import {
   authorizeMovement,
   createMovement,
+  getLoans,
   getMachines,
   getMovements,
   getProducts,
@@ -32,6 +33,15 @@ function formatDate(value) {
   return date.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+// Cantidad prestada por producto (préstamos activos)
+function loanedTotals(loans) {
+  const totals = {}
+  loans.filter((l) => l.status === 'loaned').forEach((l) => {
+    totals[l.product_id] = (totals[l.product_id] || 0) + Number(l.quantity)
+  })
+  return totals
+}
+
 // Stock resultante si se autorizara el detalle (misma regla que el backend)
 function resultingStock(type, current, quantity) {
   if (type === 'ENTRY') return current + quantity
@@ -57,6 +67,7 @@ export default function MovementsPage() {
   const [movements, setMovements] = useState([])
   const [products, setProducts] = useState([])
   const [machines, setMachines] = useState([])
+  const [loaned, setLoaned] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -68,14 +79,16 @@ export default function MovementsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [movementData, productData, machineData] = await Promise.all([
+      const [movementData, productData, machineData, loanData] = await Promise.all([
         getMovements(),
         getProducts(),
         getMachines(),
+        getLoans(),
       ])
       setMovements(movementData)
       setProducts(productData)
       setMachines(machineData)
+      setLoaned(loanedTotals(loanData))
     } catch (err) {
       setError(err.message || 'Error al conectar con el servidor')
     } finally {
@@ -244,6 +257,7 @@ export default function MovementsPage() {
         <NewMovementModal
           products={products.filter((p) => p.status === 'active')}
           machines={machines}
+          loaned={loaned}
           role={role}
           onClose={() => setCreating(false)}
           onCreated={handleCreated}
@@ -255,6 +269,7 @@ export default function MovementsPage() {
           movement={reviewing}
           productsById={productsById}
           machinesById={machinesById}
+          loaned={loaned}
           productLabel={productLabel}
           canAuthorize={canAuthorize}
           onClose={() => setReviewing(null)}
@@ -265,7 +280,7 @@ export default function MovementsPage() {
   )
 }
 
-function NewMovementModal({ products, machines, role, onClose, onCreated }) {
+function NewMovementModal({ products, machines, loaned, role, onClose, onCreated }) {
   const [form, setForm] = useState({
     type: 'ENTRY',
     product_id: '',
@@ -356,7 +371,7 @@ function NewMovementModal({ products, machines, role, onClose, onCreated }) {
               <option value="">Seleccione...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.internal_code} · {p.name} (Stock: {p.current_stock})
+                  {p.internal_code} · {p.name} (Stock: {p.current_stock}{loaned[p.id] ? `, prestado: ${loaned[p.id]}` : ''})
                 </option>
               ))}
             </select>
@@ -393,8 +408,9 @@ function NewMovementModal({ products, machines, role, onClose, onCreated }) {
             En un ajuste, la cantidad es el stock final resultante del conteo físico, no una diferencia.
           </p>
         )}
-        {form.type === 'EXIT' && selected && Number(form.quantity) > Number(selected.current_stock) && (
-          <ErrorBox message={`La cantidad supera el stock disponible (${selected.current_stock}). La solicitud no podrá autorizarse.`} />
+        {form.type === 'EXIT' && selected &&
+          Number(form.quantity) > Number(selected.current_stock) - (loaned[selected.id] || 0) && (
+          <ErrorBox message={`La cantidad supera lo disponible (${Number(selected.current_stock) - (loaned[selected.id] || 0)}; stock ${selected.current_stock}${loaned[selected.id] ? `, prestado ${loaned[selected.id]}` : ''}). La solicitud no podrá autorizarse.`} />
         )}
         <div>
           <label className="text-sm font-medium block mb-1.5">
@@ -415,7 +431,7 @@ function NewMovementModal({ products, machines, role, onClose, onCreated }) {
   )
 }
 
-function ReviewMovementModal({ movement, productsById, machinesById, productLabel, canAuthorize, onClose, onReviewed }) {
+function ReviewMovementModal({ movement, productsById, machinesById, loaned, productLabel, canAuthorize, onClose, onReviewed }) {
   const [working, setWorking] = useState(null)
   const [error, setError] = useState(null)
   const isPending = movement.status === 'pending'
@@ -423,7 +439,8 @@ function ReviewMovementModal({ movement, productsById, machinesById, productLabe
 
   const insufficient = movement.type === 'EXIT' && movement.details.some((d) => {
     const product = productsById[d.product_id]
-    return product && Number(d.quantity) > Number(product.current_stock)
+    // Lo prestado no puede salir (misma regla que el backend)
+    return product && Number(d.quantity) > Number(product.current_stock) - (loaned[d.product_id] || 0)
   })
 
   const run = async (action) => {
@@ -511,7 +528,14 @@ function ReviewMovementModal({ movement, productsById, machinesById, productLabe
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">{detail.quantity}</td>
-                  {isPending && <td className="px-3 py-2 text-right">{product?.current_stock ?? '—'}</td>}
+                  {isPending && (
+                    <td className="px-3 py-2 text-right">
+                      {product?.current_stock ?? '—'}
+                      {loaned[detail.product_id] > 0 && (
+                        <div className="text-xs text-muted-foreground">prestado: {loaned[detail.product_id]}</div>
+                      )}
+                    </td>
+                  )}
                   {isPending && (
                     <td className={`px-3 py-2 text-right font-medium ${after != null && after < 0 ? 'text-destructive' : ''}`}>
                       {after == null ? '—' : after.toFixed(2)}
@@ -525,7 +549,7 @@ function ReviewMovementModal({ movement, productsById, machinesById, productLabe
       </div>
 
       {canAct && insufficient && (
-        <ErrorBox message="La cantidad solicitada excede el stock disponible. Esta salida no puede autorizarse; puede rechazarla o esperar una entrada de stock." />
+        <ErrorBox message="La cantidad solicitada excede lo disponible (stock menos herramientas prestadas). Esta salida no puede autorizarse; puede rechazarla o esperar una entrada o una devolución." />
       )}
       <ErrorBox message={error} />
     </Modal>

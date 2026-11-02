@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Literal
 
 from fastapi import (
@@ -22,22 +21,12 @@ from app.schemas.loan import (
     WorkerResponse,
 )
 from app.security.auth import get_current_user, require_roles
+from app.services.stock import available_quantity
 
 
 router = APIRouter(
     tags=["Loans"]
 )
-
-
-def loaned_quantity(db: Session, product_id: int) -> Decimal:
-    """Cantidad actualmente prestada (préstamos en estado loaned)."""
-
-    return db.scalar(
-        select(func.coalesce(func.sum(Loan.quantity), 0)).where(
-            Loan.product_id == product_id,
-            Loan.status == "loaned"
-        )
-    )
 
 
 # ============================================================
@@ -118,7 +107,7 @@ def create_loan(
             detail=f"Product '{product.name}' ({product.internal_code}) is inactive"
         )
 
-    available = product.current_stock - loaned_quantity(db, product.id)
+    available = available_quantity(db, product)
 
     if loan_data.quantity > available:
         raise HTTPException(

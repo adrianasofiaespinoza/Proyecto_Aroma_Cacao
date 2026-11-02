@@ -14,6 +14,7 @@ from app.models.alert import Alert
 from app.models.lot import Lot
 from app.models.machine import Machine
 from app.services.alerts import update_stock_alerts
+from app.services.stock import available_quantity, loaned_quantity
 from app.models.movement import (
     Movement,
     MovementDetail,
@@ -256,12 +257,16 @@ def authorize_movement(
             product.current_stock += detail.quantity
 
         elif movement.type == "EXIT":
-            if product.current_stock < detail.quantity:
+            # Las herramientas prestadas no pueden salir del inventario
+            available = available_quantity(db, product)
+            if available < detail.quantity:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
                         f"Insufficient stock for product '{product.name}'. "
-                        f"Current: {product.current_stock}, Requested: {detail.quantity}"
+                        f"Current: {product.current_stock}, "
+                        f"Loaned: {loaned_quantity(db, product.id)}, "
+                        f"Available: {available}, Requested: {detail.quantity}"
                     )
                 )
             product.current_stock -= detail.quantity

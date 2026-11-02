@@ -128,7 +128,7 @@ Reglas de negocio acordadas:
 | Tipo de movimiento | Efecto al autorizar                       |
 | ------------------ | ----------------------------------------- |
 | `ENTRY`            | Suma existencias                          |
-| `EXIT`             | Resta existencias si hay suficiente stock |
+| `EXIT`             | Resta existencias si hay suficiente disponible (stock − prestado) |
 | `ADJUSTMENT`       | Establece el stock final indicado         |
 
 Decisiones confirmadas por la usuaria el 2026-11-01:
@@ -162,7 +162,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - Préstamos: `GET/POST /loans`, `PATCH /loans/{id}/return` y `GET /workers`. **No modifican `current_stock`**: disponible = stock − prestado. Los registran y devuelven `Operator` y `Coordinator` sin autorización. El trabajador se crea por nombre. Detalle en `docs/flows/prestamos.md`.
 - Sin cambios de esquema: se mapearon las tablas existentes (`ProductMachine`, `Worker`, `Loan`).
 - Pruebas: `backend/tests/test_users_machines_loans.py` (fixtures compartidos en `tests/conftest.py`). Total local: 59 pruebas aprobadas.
-- **Decisión abierta:** ¿un `EXIT` debe validarse contra la cantidad disponible (stock − prestado) en lugar de contra `current_stock`?
+- **Decisión (2026-11-01):** un `EXIT` se valida contra lo disponible (stock − prestado), no contra `current_stock` (`backend/app/services/stock.py`). Total local: 60 pruebas aprobadas.
 
 ### F. Roles y permisos
 
