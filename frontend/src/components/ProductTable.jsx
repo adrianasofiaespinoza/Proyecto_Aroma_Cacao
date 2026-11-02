@@ -1,28 +1,16 @@
-import React, { useEffect, useState } from 'react'
-import { getProducts } from '../services/api.js'
+import React from 'react'
 
-export default function ProductTable() {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const loadProducts = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await getProducts()
-      setProducts(data)
-    } catch (err) {
-      setError(err.message || 'Error al conectar con el servidor')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadProducts()
-  }, [])
-
+export default function ProductTable({
+  products,
+  loading,
+  error,
+  onRetry,
+  categoriesById,
+  unitsById,
+  canManage,
+  onEdit,
+  onDeactivate,
+}) {
   if (loading) {
     return (
       <tr>
@@ -41,7 +29,7 @@ export default function ProductTable() {
           <div className="flex flex-col items-center gap-2">
             <span>{error}</span>
             <button
-              onClick={loadProducts}
+              onClick={onRetry}
               className="text-xs underline text-primary hover:opacity-80"
             >
               Reintentar
@@ -56,7 +44,7 @@ export default function ProductTable() {
     return (
       <tr>
         <td colSpan="7" className="px-4 py-6 text-center text-muted-foreground">
-          No se encontraron productos registrados en el inventario.
+          No se encontraron productos con los filtros seleccionados.
         </td>
       </tr>
     )
@@ -65,33 +53,35 @@ export default function ProductTable() {
   return (
     <>
       {products.map((product) => {
-        const isLowStock = Number(product.current_stock) <= Number(product.minimum_stock)
         const isActive = product.status === 'active'
+        const isLowStock = isActive && Number(product.current_stock) <= Number(product.minimum_stock)
+        const unit = unitsById[product.unit_of_measure_id]
 
         return (
           <tr key={product.id} className="hover:bg-accent/30 transition-colors">
             <td className="px-4 py-3 font-mono text-xs">{product.internal_code}</td>
             <td className="px-4 py-3">
               <div className="font-medium">{product.name}</div>
-              {product.brand && (
-                <div className="text-xs text-muted-foreground">
-                  {product.brand} {product.model ? `- ${product.model}` : ''}
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground">
+                {[product.brand, product.model].filter(Boolean).join(' - ')}
+                {(product.brand || product.model) && ' · '}
+                {product.physical_location || 'Sin ubicación'}
+              </div>
             </td>
             <td className="px-4 py-3 text-muted-foreground">
-              {product.physical_location || 'Sin ubicación'}
+              {categoriesById[product.category_id]?.name || '—'}
             </td>
             <td
-              className={`px-4 py-3 text-right font-medium ${
+              className={`px-4 py-3 text-right font-medium whitespace-nowrap ${
                 isLowStock ? 'text-destructive' : ''
               }`}
             >
               {product.current_stock}
+              {unit && <span className="ml-1 text-xs text-muted-foreground">{unit.abbreviation}</span>}
               {isLowStock && (
                 <i
                   className="bi bi-exclamation-triangle-fill ml-1 text-xs text-destructive"
-                  title="Stock en nivel crítico o inferior al mínimo"
+                  title="Stock en el mínimo o por debajo de él"
                 ></i>
               )}
             </td>
@@ -109,18 +99,27 @@ export default function ProductTable() {
                 {isActive ? 'Activo' : 'Inactivo'}
               </span>
             </td>
-            <td className="px-4 py-3 text-right">
-              <button
-                onClick={() => {
-                  document
-                    .getElementById('modalProducto')
-                    ?.classList.remove('hidden')
-                }}
-                className="text-muted-foreground hover:text-foreground p-1 transition"
-                title="Editar producto"
-              >
-                <i className="bi bi-pencil"></i>
-              </button>
+            <td className="px-4 py-3 text-right whitespace-nowrap">
+              {canManage && (
+                <>
+                  <button
+                    onClick={() => onEdit(product)}
+                    className="text-muted-foreground hover:text-foreground p-1 transition"
+                    title="Editar producto"
+                  >
+                    <i className="bi bi-pencil"></i>
+                  </button>
+                  {isActive && (
+                    <button
+                      onClick={() => onDeactivate(product)}
+                      className="text-muted-foreground hover:text-destructive p-1 transition"
+                      title="Desactivar producto"
+                    >
+                      <i className="bi bi-slash-circle"></i>
+                    </button>
+                  )}
+                </>
+              )}
             </td>
           </tr>
         )

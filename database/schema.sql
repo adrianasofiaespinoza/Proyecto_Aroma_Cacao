@@ -305,7 +305,8 @@ CREATE TABLE movement (
         CHECK (
             status IN (
                 'pending',
-                'authorized'
+                'authorized',
+                'rejected'
             )
         ),
 
@@ -336,9 +337,10 @@ CREATE TABLE movement_detail (
 
     machine_id INTEGER,
 
+    -- >= 0 permite ADJUSTMENT a cero; ENTRY/EXIT > 0 lo valida el backend
     CONSTRAINT chk_movement_quantity
         CHECK (
-            quantity > 0
+            quantity >= 0
         ),
 
     CONSTRAINT fk_detail_movement
