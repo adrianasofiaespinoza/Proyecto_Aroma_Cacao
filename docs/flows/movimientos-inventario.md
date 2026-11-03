@@ -23,7 +23,7 @@ Este documento distingue entre comportamiento implementado, comportamiento proba
 | Tipo | Cantidad | Motivo | Efecto al autorizar |
 |---|---|---|---|
 | `ENTRY` | `> 0` | Opcional | Suma la cantidad al stock. |
-| `EXIT` | `> 0` | **Obligatorio** | Resta la cantidad solo si hay stock suficiente. |
+| `EXIT` | `> 0` | **Obligatorio** | Resta la cantidad solo si hay suficiente **disponible** (stock − prestado). |
 | `ADJUSTMENT` | `>= 0` | **Obligatorio** | Establece el stock en la cantidad indicada (stock final contado). |
 
 En `ADJUSTMENT`, la cantidad es el stock final, no una diferencia. Se permite `0`, que corresponde a un conteo físico sin existencias.
@@ -72,7 +72,7 @@ Validaciones del router:
 
 1. Rol `Coordinator` (`403`).
 2. El movimiento existe (`404`) y está `pending` (`400`). La fila se bloquea con `with_for_update()`.
-3. Por cada detalle: el producto se bloquea con `with_for_update()`, debe existir y estar activo, y se aplica el efecto del tipo de movimiento. Un `EXIT` sin stock suficiente devuelve `400` (`Insufficient stock ...`).
+3. Por cada detalle: el producto se bloquea con `with_for_update()`, debe existir y estar activo, y se aplica el efecto del tipo de movimiento. Un `EXIT` mayor que lo disponible (stock − herramientas prestadas, ver `prestamos.md`) devuelve `400` (`Insufficient stock ... Loaned ... Available ...`).
 4. `update_stock_alerts()` sincroniza las alertas de cada producto.
 5. Estado `authorized`, `authorizing_user_id` y un único `commit()`.
 
@@ -117,9 +117,10 @@ Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimie
 
 - Lista los movimientos reales con filtros en el cliente (Todos, Pendientes con contador, Entradas, Salidas, Ajustes) y estados de carga, error con opción de reintentar y lista vacía.
 - **Nuevo movimiento** (solo `Operator` y `Coordinator`): tipo, producto activo con su stock, cantidad (en un ajuste, "Stock final contado"), orden de trabajo y motivo (obligatorio en salidas y ajustes). Valida en el cliente y muestra los errores del servidor. Avisa si una salida supera el stock.
-- **Revisar** (solo `Coordinator`, movimientos pendientes): muestra los detalles con el stock actual y el resultante, y ofrece Autorizar o Rechazar. Autorizar se deshabilita si una salida supera el stock. Tras la acción, recarga los movimientos y productos.
+- **Revisar** (solo `Coordinator`, movimientos pendientes): muestra los detalles con el stock actual (y lo prestado, si hay) y el resultante, y ofrece Autorizar o Rechazar. Autorizar se deshabilita si una salida supera lo disponible. El formulario de nueva solicitud también muestra lo prestado y avisa con el mismo criterio. Tras la acción, recarga los movimientos y productos.
 - **Ver detalle** (resto de casos): solo lectura, incluido quién autorizó o rechazó.
-- Limitaciones actuales: la interfaz crea solicitudes de un solo detalle, y los selectores de lote y máquina no están en el formulario porque todavía no existen endpoints de lotes ni máquinas. La fecha la asigna el servidor.
+- En las salidas, el selector "Máquina destino (opcional)" lista primero las máquinas compatibles con el producto (ver `maquinas.md`). El detalle muestra la máquina.
+- Limitaciones actuales: la interfaz crea solicitudes de un solo detalle y no tiene selector de lote, porque no existe un endpoint de lotes. La fecha la asigna el servidor.
 
 ## 9. Pruebas
 
@@ -131,11 +132,13 @@ Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimie
 
 Resultado local (2026-11-01): **47 pruebas aprobadas** y `ruff check .` sin hallazgos.
 
-Verificación en el navegador (Playwright + Chromium contra el backend y la BD local, sin escrituras), como `Coordinator` y `Read-only`: listado, filtros, visibilidad de botones por rol, validaciones del formulario, modal de detalle y redirección a `login.html` con un token inválido. Los flujos de escritura (crear, autorizar, rechazar) están cubiertos por `test_movements_flow.py`, pero **no se han ejecutado manualmente desde el navegador**.
+Verificación en el navegador (Playwright + Chromium), como `Coordinator` y `Read-only`: listado, filtros, visibilidad de botones por rol, validaciones del formulario, modal de detalle y redirección a `login.html` con un token inválido.
+
+El 2026-11-01 también se verificaron las escrituras desde el navegador, con el backend en **modo sandbox**: una única transacción de PostgreSQL que se revierte al detener el servidor. Se probó crear un `EXIT` con máquina destino, revisarlo (stock actual y resultante), autorizarlo (el stock baja) y crear y rechazar un `ENTRY` (el stock no cambia). Como `Operator`: crea solicitudes, pero no ve "Revisar". Al terminar se comprobó que la BD no había cambiado.
 
 ## 10. Pendiente
 
-- Probar manualmente en el navegador, con credenciales reales, crear → autorizar y crear → rechazar.
+- Probar el inicio de sesión real (con contraseña) y luego crear → autorizar y crear → rechazar con credenciales reales. El flujo ya se verificó en el sandbox con tokens generados localmente.
 - `EXIT` con lote: `lot.remaining_quantity` no se descuenta al autorizar.
 - Lotes y máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Si se agrega, habrá que validarlo al crear y al autorizar.
 - Un `ADJUSTMENT` con dos detalles del mismo producto aplica el último; no se rechaza la duplicidad.

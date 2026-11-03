@@ -300,3 +300,98 @@ export async function rejectMovement(movementId) {
   if (!res.ok) throw await errorFromResponse(res, 'Error al rechazar movimiento')
   return res.json()
 }
+
+// ------------------------------------------------------------
+// Users API Endpoints (Coordinator)
+// ------------------------------------------------------------
+
+export async function getUsers() {
+  const res = await apiFetch('/users')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar usuarios')
+  return res.json()
+}
+
+export async function createUser(userData) {
+  const res = await apiFetch('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al crear usuario')
+  return res.json()
+}
+
+export async function updateUser(id, userData) {
+  const res = await apiFetch(`/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(userData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al actualizar usuario')
+  return res.json()
+}
+
+// ------------------------------------------------------------
+// Machines API Endpoints
+// ------------------------------------------------------------
+
+export async function getMachines() {
+  const res = await apiFetch('/machines')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar máquinas')
+  return res.json()
+}
+
+export async function saveMachine(id, machineData) {
+  const res = await apiFetch(id ? `/machines/${id}` : '/machines', {
+    method: id ? 'PUT' : 'POST',
+    body: JSON.stringify(machineData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al guardar máquina')
+  return res.json()
+}
+
+export async function addMachineProduct(machineId, productId) {
+  const res = await apiFetch(`/machines/${machineId}/products`, {
+    method: 'POST',
+    body: JSON.stringify({ product_id: productId }),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al asociar repuesto')
+  return res.json()
+}
+
+export async function removeMachineProduct(machineId, productId) {
+  const res = await apiFetch(`/machines/${machineId}/products/${productId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al quitar repuesto')
+  return res.json()
+}
+
+// ------------------------------------------------------------
+// Loans API Endpoints
+// ------------------------------------------------------------
+
+export async function getLoans() {
+  const res = await apiFetch('/loans')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar préstamos')
+  return res.json()
+}
+
+export async function getWorkers() {
+  const res = await apiFetch('/workers')
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar trabajadores')
+  return res.json()
+}
+
+export async function createLoan(loanData) {
+  const res = await apiFetch('/loans', {
+    method: 'POST',
+    body: JSON.stringify(loanData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al registrar préstamo')
+  return res.json()
+}
+
+export async function returnLoan(loanId) {
+  const res = await apiFetch(`/loans/${loanId}/return`, { method: 'PATCH' })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al registrar devolución')
+  return res.json()
+}

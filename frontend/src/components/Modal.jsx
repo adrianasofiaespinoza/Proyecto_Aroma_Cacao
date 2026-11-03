@@ -45,3 +45,48 @@ export function ErrorBox({ message }) {
 
 export const inputClass =
   'w-full rounded-lg bg-input-background border border-border px-3 py-2 text-sm disabled:opacity-60'
+
+export function Notice({ message, onClose }) {
+  if (!message) return null
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg bg-chart-2/10 border border-chart-2/30 p-3 text-sm mb-4">
+      <span><i className="bi bi-check-circle-fill mr-2"></i>{message}</span>
+      <button onClick={onClose} className="text-muted-foreground" aria-label="Cerrar aviso">
+        <i className="bi bi-x"></i>
+      </button>
+    </div>
+  )
+}
+
+// Filas de estado para tablas: carga, error con reintento o lista vacía
+export function TableStatusRow({ colSpan, loading, error, empty, emptyText, onRetry }) {
+  if (loading) {
+    return (
+      <tr>
+        <td colSpan={colSpan} className="px-4 py-8 text-center text-muted-foreground">
+          <i className="bi bi-arrow-repeat animate-spin mr-2"></i>Cargando...
+        </td>
+      </tr>
+    )
+  }
+  if (error) {
+    return (
+      <tr>
+        <td colSpan={colSpan} className="px-4 py-6 text-center text-destructive">
+          <div className="flex flex-col items-center gap-2">
+            <span>{error}</span>
+            <button onClick={onRetry} className="text-xs underline text-primary hover:opacity-80">Reintentar</button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+  if (empty) {
+    return (
+      <tr>
+        <td colSpan={colSpan} className="px-4 py-6 text-center text-muted-foreground">{emptyText}</td>
+      </tr>
+    )
+  }
+  return null
+}

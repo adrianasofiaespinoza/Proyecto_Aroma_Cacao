@@ -3,6 +3,8 @@ import Modal, { ErrorBox, inputClass } from './Modal.jsx'
 import {
   authorizeMovement,
   createMovement,
+  getLoans,
+  getMachines,
   getMovements,
   getProducts,
   rejectMovement,
@@ -31,6 +33,15 @@ function formatDate(value) {
   return date.toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+// Cantidad prestada por producto (préstamos activos)
+function loanedTotals(loans) {
+  const totals = {}
+  loans.filter((l) => l.status === 'loaned').forEach((l) => {
+    totals[l.product_id] = (totals[l.product_id] || 0) + Number(l.quantity)
+  })
+  return totals
+}
+
 // Stock resultante si se autorizara el detalle (misma regla que el backend)
 function resultingStock(type, current, quantity) {
   if (type === 'ENTRY') return current + quantity
@@ -55,6 +66,8 @@ export default function MovementsPage() {
 
   const [movements, setMovements] = useState([])
   const [products, setProducts] = useState([])
+  const [machines, setMachines] = useState([])
+  const [loaned, setLoaned] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -66,9 +79,16 @@ export default function MovementsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [movementData, productData] = await Promise.all([getMovements(), getProducts()])
+      const [movementData, productData, machineData, loanData] = await Promise.all([
+        getMovements(),
+        getProducts(),
+        getMachines(),
+        getLoans(),
+      ])
       setMovements(movementData)
       setProducts(productData)
+      setMachines(machineData)
+      setLoaned(loanedTotals(loanData))
     } catch (err) {
       setError(err.message || 'Error al conectar con el servidor')
     } finally {
@@ -81,6 +101,7 @@ export default function MovementsPage() {
   }, [])
 
   const productsById = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products])
+  const machinesById = useMemo(() => Object.fromEntries(machines.map((m) => [m.id, m])), [machines])
   const pendingCount = movements.filter((m) => m.status === 'pending').length
   const activeFilter = FILTERS.find((f) => f.key === filter)
   const visible = movements.filter(activeFilter.match)
@@ -235,6 +256,8 @@ export default function MovementsPage() {
       {creating && (
         <NewMovementModal
           products={products.filter((p) => p.status === 'active')}
+          machines={machines}
+          loaned={loaned}
           role={role}
           onClose={() => setCreating(false)}
           onCreated={handleCreated}
@@ -245,6 +268,8 @@ export default function MovementsPage() {
         <ReviewMovementModal
           movement={reviewing}
           productsById={productsById}
+          machinesById={machinesById}
+          loaned={loaned}
           productLabel={productLabel}
           canAuthorize={canAuthorize}
           onClose={() => setReviewing(null)}
@@ -255,10 +280,11 @@ export default function MovementsPage() {
   )
 }
 
-function NewMovementModal({ products, role, onClose, onCreated }) {
+function NewMovementModal({ products, machines, loaned, role, onClose, onCreated }) {
   const [form, setForm] = useState({
     type: 'ENTRY',
     product_id: '',
+    machine_id: '',
     quantity: '',
     reason: '',
     work_order_number: '',
@@ -269,6 +295,11 @@ function NewMovementModal({ products, role, onClose, onCreated }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
   const reasonRequired = form.type === 'EXIT' || form.type === 'ADJUSTMENT'
   const selected = products.find((p) => String(p.id) === form.product_id)
+  // Máquinas con este repuesto asociado primero
+  const sortedMachines = [...machines].sort((a, b) => {
+    const id = Number(form.product_id)
+    return Number(b.product_ids.includes(id)) - Number(a.product_ids.includes(id))
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -292,7 +323,11 @@ function NewMovementModal({ products, role, onClose, onCreated }) {
         type: form.type,
         reason: form.reason.trim() || null,
         work_order_number: form.work_order_number.trim() || null,
-        details: [{ product_id: Number(form.product_id), quantity: form.quantity }],
+        details: [{
+          product_id: Number(form.product_id),
+          quantity: form.quantity,
+          machine_id: form.type === 'EXIT' && form.machine_id ? Number(form.machine_id) : null,
+        }],
       })
       onCreated(movement)
     } catch (err) {
@@ -336,7 +371,7 @@ function NewMovementModal({ products, role, onClose, onCreated }) {
               <option value="">Seleccione...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.internal_code} · {p.name} (Stock: {p.current_stock})
+                  {p.internal_code} · {p.name} (Stock: {p.current_stock}{loaned[p.id] ? `, prestado: ${loaned[p.id]}` : ''})
                 </option>
               ))}
             </select>
@@ -354,13 +389,28 @@ function NewMovementModal({ products, role, onClose, onCreated }) {
             <input type="text" maxLength={30} placeholder="Opcional" value={form.work_order_number} onChange={set('work_order_number')} className={inputClass} />
           </div>
         </div>
+        {form.type === 'EXIT' && (
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Máquina destino (opcional)</label>
+            <select value={form.machine_id} onChange={set('machine_id')} className={inputClass}>
+              <option value="">No aplica</option>
+              {sortedMachines.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.identification_code} · {m.name}
+                  {m.product_ids.includes(Number(form.product_id)) ? ' (compatible)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {form.type === 'ADJUSTMENT' && (
           <p className="text-xs text-muted-foreground">
             En un ajuste, la cantidad es el stock final resultante del conteo físico, no una diferencia.
           </p>
         )}
-        {form.type === 'EXIT' && selected && Number(form.quantity) > Number(selected.current_stock) && (
-          <ErrorBox message={`La cantidad supera el stock disponible (${selected.current_stock}). La solicitud no podrá autorizarse.`} />
+        {form.type === 'EXIT' && selected &&
+          Number(form.quantity) > Number(selected.current_stock) - (loaned[selected.id] || 0) && (
+          <ErrorBox message={`La cantidad supera lo disponible (${Number(selected.current_stock) - (loaned[selected.id] || 0)}; stock ${selected.current_stock}${loaned[selected.id] ? `, prestado ${loaned[selected.id]}` : ''}). La solicitud no podrá autorizarse.`} />
         )}
         <div>
           <label className="text-sm font-medium block mb-1.5">
@@ -381,7 +431,7 @@ function NewMovementModal({ products, role, onClose, onCreated }) {
   )
 }
 
-function ReviewMovementModal({ movement, productsById, productLabel, canAuthorize, onClose, onReviewed }) {
+function ReviewMovementModal({ movement, productsById, machinesById, loaned, productLabel, canAuthorize, onClose, onReviewed }) {
   const [working, setWorking] = useState(null)
   const [error, setError] = useState(null)
   const isPending = movement.status === 'pending'
@@ -389,7 +439,8 @@ function ReviewMovementModal({ movement, productsById, productLabel, canAuthoriz
 
   const insufficient = movement.type === 'EXIT' && movement.details.some((d) => {
     const product = productsById[d.product_id]
-    return product && Number(d.quantity) > Number(product.current_stock)
+    // Lo prestado no puede salir (misma regla que el backend)
+    return product && Number(d.quantity) > Number(product.current_stock) - (loaned[d.product_id] || 0)
   })
 
   const run = async (action) => {
@@ -467,9 +518,24 @@ function ReviewMovementModal({ movement, productsById, productLabel, canAuthoriz
               const after = current == null ? null : resultingStock(movement.type, current, Number(detail.quantity))
               return (
                 <tr key={detail.id}>
-                  <td className="px-3 py-2">{productLabel(detail.product_id)}</td>
+                  <td className="px-3 py-2">
+                    {productLabel(detail.product_id)}
+                    {detail.machine_id && (
+                      <div className="text-xs text-muted-foreground">
+                        <i className="bi bi-gear-wide-connected mr-1"></i>
+                        {machinesById[detail.machine_id]?.name || `Máquina #${detail.machine_id}`}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right">{detail.quantity}</td>
-                  {isPending && <td className="px-3 py-2 text-right">{product?.current_stock ?? '—'}</td>}
+                  {isPending && (
+                    <td className="px-3 py-2 text-right">
+                      {product?.current_stock ?? '—'}
+                      {loaned[detail.product_id] > 0 && (
+                        <div className="text-xs text-muted-foreground">prestado: {loaned[detail.product_id]}</div>
+                      )}
+                    </td>
+                  )}
                   {isPending && (
                     <td className={`px-3 py-2 text-right font-medium ${after != null && after < 0 ? 'text-destructive' : ''}`}>
                       {after == null ? '—' : after.toFixed(2)}
@@ -483,7 +549,7 @@ function ReviewMovementModal({ movement, productsById, productLabel, canAuthoriz
       </div>
 
       {canAct && insufficient && (
-        <ErrorBox message="La cantidad solicitada excede el stock disponible. Esta salida no puede autorizarse; puede rechazarla o esperar una entrada de stock." />
+        <ErrorBox message="La cantidad solicitada excede lo disponible (stock menos herramientas prestadas). Esta salida no puede autorizarse; puede rechazarla o esperar una entrada o una devolución." />
       )}
       <ErrorBox message={error} />
     </Modal>

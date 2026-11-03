@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, StringConstraints
 
 
 class UserRegister(BaseModel):
@@ -43,3 +44,36 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: str
+
+
+# ============================================================
+# USER MANAGEMENT (Coordinator)
+# ============================================================
+
+Role = Literal["Coordinator", "Operator", "Read-only"]
+
+FullName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+
+
+class UserCreate(BaseModel):
+    username: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=50)
+    ]
+    full_name: FullName
+    email: EmailStr = Field(max_length=100)
+    # Contraseña inicial; se guarda solo como hash Argon2id
+    password: str = Field(min_length=8, max_length=128)
+    role: Role = "Operator"
+    is_active: bool = True
+
+
+class UserUpdate(BaseModel):
+    full_name: FullName
+    email: EmailStr = Field(max_length=100)
+    role: Role
+    is_active: bool
+
