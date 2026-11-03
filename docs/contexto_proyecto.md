@@ -62,14 +62,16 @@ Se han revisado los siguientes aspectos:
 - Endpoints `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh` y `POST /auth/logout`.
 - Sustitución de endpoints de prueba inseguros por `/health`.
 
+**Verificado con credenciales reales (2026-11-03):** inicio de sesión desde `login.html` con la cuenta `Coordinator` y "Recordarme" (refresh token con vencimiento a 30 días), y cierre de sesión (el refresh token queda revocado en `refresh_tokens`). La usuaria lo confirmó en el navegador y se comprobó en la BD.
+
+Los permisos y las rutas protegidas se verificaron con pruebas automáticas en todos los módulos (ver sección F).
+
 **Pendiente:**
 
-- Verificar la integración completa entre frontend y backend.
 - Revisar la renovación concurrente de refresh tokens.
 - Comprobar la correspondencia entre el usuario del token y el registro persistido.
 - Verificar la conservación de `remember_me` durante la rotación.
-- Confirmar el comportamiento de los tokens de acceso después del cierre de sesión.
-- Revisar los permisos y las rutas protegidas.
+- Confirmar el comportamiento de los tokens de acceso después del cierre de sesión (siguen siendo válidos hasta que vencen; solo se revoca el refresh token).
 
 No se identificó un endpoint de recuperación de contraseña en el archivo de autenticación revisado.
 
@@ -146,7 +148,7 @@ La implementación revisada incluye validaciones de productos y lotes, bloqueo p
 
 **Pendiente:**
 
-- Probar manualmente en el navegador, con credenciales reales, crear → autorizar y crear → rechazar. Ya están cubiertos por `test_movements_flow.py`.
+- Prueba manual con datos reales de crear → autorizar y crear → rechazar: cubierta por `test_movements_flow.py` y por el navegador en modo sandbox, pero no ejecutada con datos persistentes.
 - Probar la concurrencia real (el bloqueo pesimista está implementado, pero no se ha probado con transacciones simultáneas).
 - `EXIT` con lote no descuenta `lot.remaining_quantity`.
 - Lotes y máquinas no tienen un campo de estado; no hay nada que validar mientras no exista.
@@ -155,7 +157,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E2. Usuarios, máquinas y préstamos
 
-**Estado: backend e interfaz implementados y probados (2026-11-01); pendiente de publicar.**
+**Estado: implementado, probado y publicado en `main` (PR #3, 2026-11-03).**
 
 - Usuarios: `GET/POST /users` y `PUT /users/{id}`, solo para `Coordinator`. Incluye protección contra el autobloqueo y revoca los refresh tokens al desactivar. Sin campo "Cargo". Detalle en `docs/flows/usuarios.md`.
 - Máquinas: CRUD sin eliminación y repuestos compatibles (`product_machine`). La máquina destino se puede elegir en las salidas. Detalle en `docs/flows/maquinas.md`.
@@ -167,12 +169,12 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E3. Proveedores y dashboard
 
-**Estado: backend e interfaz implementados y probados (2026-11-01); pendiente de publicar.**
+**Estado: implementado, probado y publicado en `main` (PR #5, 2026-11-03).**
 
 - Proveedores: `GET/POST /suppliers`, `PUT /suppliers/{id}` (sin eliminación) y productos por proveedor con precio de referencia (`POST/PATCH/DELETE /suppliers/{id}/products...`). Escritura solo para `Coordinator`. Detalle en `docs/flows/proveedores.md`.
 - Dashboard con datos reales: productos activos, stock bajo (alertas activas), movimientos pendientes y herramientas prestadas, más la tabla de alertas y la lista de pendientes. La campana de la cabecera refleja las alertas activas. Se quitó el buscador decorativo de la cabecera del dashboard.
 - Sin cambios de esquema (se mapearon `supplier` y `product_supplier`). Pruebas en `backend/tests/test_suppliers.py`. Total local: 64 pruebas aprobadas.
-- Nota de publicación (2026-11-03): la PR #4 se mergeó en `feature/users-machines-loans` en lugar de `main` (se mergeó antes de que GitHub cambiara su base), así que este código llega a `main` con una PR nueva.
+- Nota de publicación: la PR #4 se mergeó por error en `feature/users-machines-loans` (antes de que GitHub cambiara su base a `main`); su contenido llegó a `main` con la PR #5. Conviene evitar PRs apiladas.
 - `test_inventory_limits.py` ya no escribe en la BD real (transacción revertida).
 
 ### F. Roles y permisos
@@ -248,7 +250,8 @@ La compilación de producción terminó correctamente en una verificación anter
 
 - (2026-11-01) Usuarios, máquinas y préstamos integrados (`UsersPage.jsx`, `MachinesPage.jsx`, `LoansPage.jsx`). Escrituras verificadas en el navegador con el backend en modo sandbox (transacción revertida; la BD quedó sin cambios).
 - (2026-11-01) Proveedores (`SuppliersPage.jsx`) y dashboard (`DashboardPage.jsx`) integrados. Todas las vistas usan ya datos reales.
-- Comprobar el inicio de sesión real y la renovación de sesión desde el navegador (requiere credenciales reales).
+- (2026-11-03) Inicio de sesión, "Recordarme" y cierre de sesión verificados en el navegador con credenciales reales.
+- Pendiente: renovación automática del token de acceso al vencer (los 401 que se recuperan con el refresh token) observada en uso real.
 - `favicon.ico` devuelve `404` (las páginas no enlazan `public/favicon.svg`).
 
 ### I. Pruebas automatizadas, CI/CD y despliegue (Workshop 6)
@@ -340,6 +343,8 @@ Se deben evaluar progresivamente opciones como:
 
 No convertir cada regla en una opción configurable sin justificación. Primero hay que entender el negocio, distinguir las reglas comunes de las variables y elegir la solución mínima mantenible.
 
+**Decisión tomada el 2026-11-03:** una instalación por empresa, con configuración por empresa (nombre, marca, moneda, catálogos editables, módulos activables) y un script de instalación. No se usa `company_id`. Detalle en `docs/decisions/001-una-instalacion-por-empresa.md`. El plan hasta producción está en `docs/plan/` (backlog para Jira y guía).
+
 **No asumir que existe una arquitectura multiempresa.** Antes de incorporar `company_id`, tablas nuevas o filtros multi-tenant, decidir si el sistema tendrá instalaciones independientes por empresa o varias empresas aisladas dentro de una misma instalación. Cualquier decisión debe documentarse y considerar el aislamiento de datos, los permisos, las migraciones y las pruebas.
 
 ## 6. Documentación obligatoria de los flujos
@@ -380,7 +385,7 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 El plan de trabajo se establece en el siguiente orden:
 
-> Actualización 2026-11-01: los pasos 1 a 3 están implementados en todas las vistas (productos, movimientos, usuarios, máquinas, préstamos, proveedores y dashboard). Queda el paso 4 con credenciales reales (inicio de sesión, renovación y prueba manual).
+> Actualización 2026-11-01: los pasos 1 a 3 están implementados en todas las vistas (productos, movimientos, usuarios, máquinas, préstamos, proveedores y dashboard). Del paso 4, con credenciales reales se verificaron el inicio de sesión, "Recordarme" y el cierre de sesión (2026-11-03); los flujos de escritura están verificados con pruebas automáticas y en el navegador en modo sandbox. Todo está publicado en `main` (PRs #2, #3 y #5).
 
 1. **Productos e inventario (paso D):** revisar las validaciones de productos, la protección de `current_stock`, las reglas de stock mínimo y su coherencia con los movimientos. Identificar los casos pendientes y corregir únicamente los problemas confirmados.
 2. **Movimientos de inventario:** verificar entradas, salidas, ajustes, solicitudes pendientes, autorización, persistencia, errores y permisos. Mantener las reglas de negocio acordadas y señalar las decisiones que necesiten confirmación.

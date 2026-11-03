@@ -1,0 +1,90 @@
+Issue ID,Issue Type,Summary,Status,Priority,Parent,Description,Labels,Labels,Labels
+1,Epic,Base de datos y entorno,To Do,High,,"PostgreSQL en Docker, esquema y migraciones.",,,
+2,Epic,Autenticación y seguridad,To Do,High,,"Login, sesiones, tokens y protección de acceso. Ver docs/authentication.md.",,,
+3,Epic,Productos y catálogos,To Do,High,,"Productos, categorías y unidades de medida. Ver docs/flows/productos.md.",,,
+4,Epic,Movimientos de inventario,To Do,High,,"Entradas, salidas, ajustes, autorización y rechazo. Ver docs/flows/movimientos-inventario.md.",,,
+5,Epic,Lotes y vencimientos,To Do,High,,"Lotes, fechas de vencimiento y cantidades restantes (requisito del README).",,,
+6,Epic,Alertas de stock,To Do,High,,Alertas de stock mínimo y su visualización. Ver docs/flows/alertas-stock.md.,,,
+7,Epic,Usuarios y roles,To Do,High,,Gestión de usuarios y permisos por rol. Ver docs/flows/usuarios.md.,,,
+8,Epic,Máquinas y repuestos,Done,High,,Máquinas de planta y repuestos compatibles. Ver docs/flows/maquinas.md.,,,
+9,Epic,Préstamos de herramientas,To Do,High,,Préstamos y devoluciones. Ver docs/flows/prestamos.md.,,,
+10,Epic,Proveedores,To Do,High,,Proveedores y precios de referencia. Ver docs/flows/proveedores.md.,,,
+11,Epic,Dashboard,Done,High,,Resumen en vivo del inventario.,,,
+12,Epic,Configuración por empresa,To Do,High,,Personalizar el sistema para cada empresa cliente. Ver docs/decisions/001-una-instalacion-por-empresa.md.,,,
+13,Epic,Infraestructura y despliegue,To Do,High,,Publicar el sistema completo de forma segura y mantenible.,,,
+14,Epic,Calidad y pruebas,To Do,High,,"Pruebas automatizadas, integración continua y robustez.",,,
+15,Epic,Datos y puesta en producción,To Do,High,,"Carga de datos reales, aceptación de usuarios y salida a producción.",,,
+16,Epic,Documentación,To Do,High,,"Contexto, flujos, decisiones y guías.",,,
+101,Task,Base de datos PostgreSQL en Docker con esquema inicial,Done,High,1,Contenedor aroma-postgres y database/schema.sql.,trabajo-previo,database,
+102,Task,Migración 001: estado rejected y ajustes con cantidad 0,Done,Medium,1,database/migrations/001_movement_reject_and_zero_adjustment.sql.,trabajo-previo,database,
+103,Story,Registro e inicio de sesión con contraseñas Argon2id,Done,High,2,POST /auth/register y POST /auth/login.,trabajo-previo,backend,
+104,Story,Tokens JWT con refresh tokens rotados y revocables,Done,High,2,"POST /auth/refresh y /auth/logout, opción Recordarme.",trabajo-previo,backend,
+105,Story,Pantalla de login y renovación automática de la sesión,Done,High,2,login.html y src/services/api.js.,trabajo-previo,frontend,
+106,Task,"Inicio de sesión, Recordarme y cierre de sesión verificados con credenciales reales",Done,High,2,Verificado el 2026-11-03.,trabajo-previo,manual-test,
+107,Story,Gestión de productos con desactivación lógica,Done,High,3,"Búsqueda, filtros, crear, editar y desactivar.",trabajo-previo,backend,frontend
+108,Bug,Datos fuera de rango devolvían error 500,Done,High,3,Ahora se validan y devuelven 422.,trabajo-previo,backend,
+109,Story,Consulta de categorías y unidades de medida,Done,Medium,3,GET /categories y GET /units.,trabajo-previo,backend,
+110,Story,"Solicitud, autorización y rechazo de movimientos",Done,High,4,Bloqueo pesimista; motivo obligatorio en salidas y ajustes.,trabajo-previo,backend,frontend
+111,Story,Salidas validadas contra lo disponible (stock menos prestado),Done,High,4,,trabajo-previo,backend,frontend
+112,Story,Ajustes con lo contado en bodega más lo prestado,Done,Medium,4,,trabajo-previo,backend,frontend
+113,Story,Máquina destino en las salidas,Done,Low,4,,trabajo-previo,frontend,
+114,Story,Alertas de stock mínimo centralizadas,Done,High,6,backend/app/services/alerts.py.,trabajo-previo,backend,
+115,Story,Campana de alertas real en la cabecera,Done,Low,6,,trabajo-previo,frontend,
+116,Story,Gestión de usuarios por el Coordinator,Done,High,7,Protección contra autobloqueo; revoca sesiones al desactivar.,trabajo-previo,backend,frontend
+117,Task,Permisos por rol verificados en todos los módulos,Done,High,7,Read-only recibe 403 en todas las escrituras.,trabajo-previo,tests,
+118,Story,Máquinas y repuestos compatibles,Done,Medium,8,,trabajo-previo,backend,frontend
+119,Story,Préstamos y devoluciones de herramientas,Done,High,9,No modifican el stock registrado.,trabajo-previo,backend,frontend
+120,Story,Proveedores con productos y precio de referencia,Done,Medium,10,,trabajo-previo,backend,frontend
+121,Story,Dashboard con datos en vivo,Done,Medium,11,,trabajo-previo,frontend,
+122,Task,Backend publicado en Render con despliegue automático,Done,High,13,Solo backend; la BD de Render está sin confirmar.,trabajo-previo,deploy,
+123,Task,Integración continua con Ruff y pytest,Done,High,14,GitHub Actions y protección de main.,trabajo-previo,ci,
+124,Task,Pruebas de integración con transacciones revertidas,Done,High,14,64 pruebas locales que no dejan datos.,trabajo-previo,tests,
+125,Task,Documentar los flujos de cada módulo,Done,Medium,16,docs/flows/*.md.,trabajo-previo,docs,
+126,Task,Decidir la arquitectura para varias empresas,Done,High,12,Una instalación por empresa. docs/decisions/001-una-instalacion-por-empresa.md.,trabajo-previo,docs,
+201,Story,Registrar lotes con fecha de vencimiento,To Do,Highest,5,"Endpoint y pantalla de lotes por producto (número, vencimiento, cantidad restante).",sprint-1,backend,frontend
+202,Story,Las entradas y salidas con lote actualizan la cantidad del lote,To Do,Highest,5,Hoy una salida con lote no descuenta lot.remaining_quantity.,sprint-1,backend,
+203,Story,Seleccionar lote al registrar movimientos,To Do,High,5,,sprint-1,frontend,
+204,Story,Aviso de lotes próximos a vencer,To Do,Medium,5,En el dashboard.,sprint-1,frontend,
+205,Story,Crear y editar categorías y unidades de medida,To Do,Highest,3,Requisito del README: catálogo ampliable. Solo Coordinator.,sprint-1,backend,frontend
+206,Story,Movimientos con varios productos desde la pantalla,To Do,Medium,4,El backend ya lo admite.,sprint-1,frontend,
+207,Task,Rechazar ajustes con el mismo producto repetido,To Do,Low,4,,sprint-1,backend,
+208,Story,Reactivar productos desactivados,To Do,Low,3,,sprint-1,backend,frontend
+301,Story,Cerrar el registro público,To Do,Highest,2,Solo el Coordinator crea usuarios; el primer Coordinator lo crea el script de instalación.,sprint-2,backend,
+302,Story,Invalidar el token de acceso al cerrar sesión,To Do,High,2,Hoy sigue siendo válido hasta que vence.,sprint-2,backend,
+303,Story,Limitar los intentos de inicio de sesión,To Do,High,2,Protección contra fuerza bruta.,sprint-2,backend,
+304,Story,Cambio de contraseña por el propio usuario,To Do,High,7,Pide la contraseña actual; mínimo 8 caracteres.,sprint-2,backend,frontend
+305,Task,Garantizar que siempre exista al menos un Coordinator activo,To Do,Medium,7,,sprint-2,backend,
+306,Task,Revisar la renovación concurrente de refresh tokens,To Do,Medium,2,,sprint-2,backend,tests
+307,Task,Prueba de que Recordarme se conserva al rotar tokens,To Do,Low,2,,sprint-2,tests,
+401,Task,Migraciones versionadas con Alembic,To Do,Highest,1,Necesarias para actualizar todas las instalaciones igual. Incluir la migración 001 existente.,sprint-3,database,
+402,Story,Configuración de la empresa en la BD y su endpoint,To Do,Highest,12,"Nombre, subtítulo, logo, colores, moneda, formato de fecha, identificación fiscal.",sprint-3,backend,
+403,Story,Pantalla de configuración de la empresa,To Do,High,12,Solo Coordinator.,sprint-3,frontend,
+404,Task,Quitar el nombre Aroma Cacao fijo del código,To Do,High,12,"9 páginas HTML, título de la API y /public/info usan la configuración.",sprint-3,frontend,backend
+405,Task,Moneda y formato de fecha según la configuración,To Do,Medium,12,Hoy fijos en es-EC y $.,sprint-3,frontend,
+406,Story,Activar o desactivar módulos por empresa,To Do,Medium,12,"Préstamos, máquinas y proveedores; el backend también lo aplica.",sprint-3,backend,frontend
+407,Story,Autoaprobación configurable de solicitudes del Coordinator,To Do,Low,12,,sprint-3,backend,
+408,Story,Script de instalación para una empresa nueva,To Do,Highest,12,"Crea la BD, aplica migraciones, crea el primer Coordinator y los catálogos básicos.",sprint-3,backend,database
+409,Bug,favicon.ico devuelve 404,To Do,Lowest,12,Usar el logo configurado.,sprint-3,frontend,
+501,Task,Elegir el hosting de producción,To Do,Highest,13,El plan gratuito de Render se suspende y su BD caduca. Decisión pendiente.,sprint-4,deploy,
+502,Story,Publicar el frontend junto con la API,To Do,Highest,13,Mismo dominio o URL de la API configurable; hoy depende del proxy de Vite.,sprint-4,deploy,frontend
+503,Task,Orígenes de CORS por variable de entorno,To Do,High,13,Hoy fijos a localhost.,sprint-4,backend,
+504,Task,BD de producción con migraciones aplicadas,To Do,Highest,13,,sprint-4,deploy,database
+505,Story,Copias de seguridad automáticas de la BD,To Do,High,13,Con prueba de restauración.,sprint-4,deploy,database
+506,Task,Registros de errores y monitoreo de /health,To Do,Medium,13,,sprint-4,backend,deploy
+507,Task,Agregar al CI el build del frontend y las pruebas sin BD,To Do,Medium,14,npm run build y test_schema_validation.py.,sprint-4,ci,
+508,Task,PostgreSQL en el CI para las pruebas de integración,To Do,Medium,14,,sprint-4,ci,
+509,Task,Guía de instalación para una empresa nueva,To Do,High,16,,sprint-4,docs,
+510,Task,Limpiar archivos residuales y ramas ya mergeadas,To Do,Lowest,14,,sprint-4,cleanup,
+601,Story,Importar el inventario desde Excel o CSV,To Do,Highest,15,"Productos, stock inicial, máquinas y proveedores, con validación y reporte de errores.",sprint-5,backend,frontend
+602,Task,Limpiar los datos de prueba de la BD,To Do,High,15,"Productos, usuarios y catálogos de prueba.",sprint-5,database,
+603,Task,Cargar los datos reales de Aroma Cacao,To Do,Highest,15,,sprint-5,database,
+604,Task,Pruebas de concurrencia de autorizaciones y préstamos,To Do,Medium,14,,sprint-5,tests,
+605,Task,Índice único para evitar alertas activas duplicadas,To Do,Medium,6,,sprint-5,database,
+606,Task,Prueba de aceptación con el personal por rol,To Do,Highest,15,"Coordinator, Operator y Read-only con datos reales.",sprint-5,manual-test,
+607,Task,Guía de uso por rol,To Do,High,16,,sprint-5,docs,
+608,Task,Salida a producción,To Do,Highest,15,"Lista de verificación final, publicación y seguimiento de la primera semana.",sprint-5,deploy,
+701,Story,Paginación en los listados,To Do,Low,14,,backend,frontend,
+702,Story,Pantalla de gestión de trabajadores,To Do,Low,9,,frontend,backend,
+703,Story,Mostrar los proveedores de cada producto,To Do,Low,10,,frontend,,
+704,Task,Ampliar las reglas de Ruff y corregir hallazgos,To Do,Low,14,,ci,,
+705,Task,"Unificar la versión de Python en local, CI y producción",To Do,Low,14,,ci,,
