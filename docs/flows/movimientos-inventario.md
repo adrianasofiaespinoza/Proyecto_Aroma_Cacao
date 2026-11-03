@@ -24,9 +24,9 @@ Este documento distingue entre comportamiento implementado, comportamiento proba
 |---|---|---|---|
 | `ENTRY` | `> 0` | Opcional | Suma la cantidad al stock. |
 | `EXIT` | `> 0` | **Obligatorio** | Resta la cantidad solo si hay suficiente **disponible** (stock − prestado). |
-| `ADJUSTMENT` | `>= 0` | **Obligatorio** | Establece el stock en la cantidad indicada (stock final contado). |
+| `ADJUSTMENT` | `>= 0` | **Obligatorio** | Establece el stock en **lo contado en bodega + lo prestado**. |
 
-En `ADJUSTMENT`, la cantidad es el stock final, no una diferencia. Se permite `0`, que corresponde a un conteo físico sin existencias.
+En `ADJUSTMENT`, la cantidad es **lo contado físicamente en bodega**, no una diferencia. Las herramientas prestadas no están en bodega, así que el sistema las suma: `stock final = contado + prestado` (decisión de la usuaria del 2026-11-03). Sin préstamos activos, equivale al stock final. Se permite `0`.
 
 **Regla acordada:** una salida que supera el stock disponible **siempre se rechaza** y el stock nunca queda negativo. No existe autorización de emergencia. El README mencionaba esa posibilidad; se decidió no implementarla.
 

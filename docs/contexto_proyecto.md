@@ -129,7 +129,7 @@ Reglas de negocio acordadas:
 | ------------------ | ----------------------------------------- |
 | `ENTRY`            | Suma existencias                          |
 | `EXIT`             | Resta existencias si hay suficiente disponible (stock − prestado) |
-| `ADJUSTMENT`       | Establece el stock final indicado         |
+| `ADJUSTMENT`       | Establece el stock en lo contado en bodega + lo prestado |
 
 Decisiones confirmadas por la usuaria el 2026-11-01:
 
@@ -162,7 +162,8 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - Préstamos: `GET/POST /loans`, `PATCH /loans/{id}/return` y `GET /workers`. **No modifican `current_stock`**: disponible = stock − prestado. Los registran y devuelven `Operator` y `Coordinator` sin autorización. El trabajador se crea por nombre. Detalle en `docs/flows/prestamos.md`.
 - Sin cambios de esquema: se mapearon las tablas existentes (`ProductMachine`, `Worker`, `Loan`).
 - Pruebas: `backend/tests/test_users_machines_loans.py` (fixtures compartidos en `tests/conftest.py`). Total local: 59 pruebas aprobadas.
-- **Decisión (2026-11-01):** un `EXIT` se valida contra lo disponible (stock − prestado), no contra `current_stock` (`backend/app/services/stock.py`). Total local: 60 pruebas aprobadas.
+- **Decisión (2026-11-01):** un `EXIT` se valida contra lo disponible (stock − prestado), no contra `current_stock` (`backend/app/services/stock.py`).
+- **Decisión (2026-11-03):** en un `ADJUSTMENT` se registra solo lo contado en bodega; al autorizarlo, `stock = contado + prestado`.
 
 ### E3. Proveedores y dashboard
 
@@ -170,7 +171,9 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 - Proveedores: `GET/POST /suppliers`, `PUT /suppliers/{id}` (sin eliminación) y productos por proveedor con precio de referencia (`POST/PATCH/DELETE /suppliers/{id}/products...`). Escritura solo para `Coordinator`. Detalle en `docs/flows/proveedores.md`.
 - Dashboard con datos reales: productos activos, stock bajo (alertas activas), movimientos pendientes y herramientas prestadas, más la tabla de alertas y la lista de pendientes. La campana de la cabecera refleja las alertas activas. Se quitó el buscador decorativo de la cabecera del dashboard.
-- Sin cambios de esquema (se mapearon `supplier` y `product_supplier`). Pruebas en `backend/tests/test_suppliers.py`. Total local: 63 pruebas aprobadas.
+- Sin cambios de esquema (se mapearon `supplier` y `product_supplier`). Pruebas en `backend/tests/test_suppliers.py`. Total local: 64 pruebas aprobadas.
+- Nota de publicación (2026-11-03): la PR #4 se mergeó en `feature/users-machines-loans` en lugar de `main` (se mergeó antes de que GitHub cambiara su base), así que este código llega a `main` con una PR nueva.
+- `test_inventory_limits.py` ya no escribe en la BD real (transacción revertida).
 
 ### F. Roles y permisos
 
