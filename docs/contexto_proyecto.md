@@ -343,6 +343,8 @@ Se deben evaluar progresivamente opciones como:
 
 No convertir cada regla en una opción configurable sin justificación. Primero hay que entender el negocio, distinguir las reglas comunes de las variables y elegir la solución mínima mantenible.
 
+**Decisión tomada el 2026-11-03:** una instalación por empresa, con configuración por empresa (nombre, marca, moneda, catálogos editables, módulos activables) y un script de instalación. No se usa `company_id`. Detalle en `docs/decisions/001-una-instalacion-por-empresa.md`. El plan hasta producción está en `docs/plan/` (backlog para Jira y guía).
+
 **No asumir que existe una arquitectura multiempresa.** Antes de incorporar `company_id`, tablas nuevas o filtros multi-tenant, decidir si el sistema tendrá instalaciones independientes por empresa o varias empresas aisladas dentro de una misma instalación. Cualquier decisión debe documentarse y considerar el aislamiento de datos, los permisos, las migraciones y las pruebas.
 
 ## 6. Documentación obligatoria de los flujos
