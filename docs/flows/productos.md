@@ -59,4 +59,4 @@ Verificado en el navegador (2026-11-01) como `Coordinator` y `Read-only`, sin es
 - La creación y la edición se verificaron en el navegador con el backend en modo sandbox (transacción revertida). Falta la desactivación desde el navegador y la prueba con credenciales reales.
 - Reactivación de productos: no está definida.
 - Paginación: el listado devuelve todos los productos, lo que es suficiente para el volumen actual.
-- La BD local contiene 6 productos `LIMIT_*` que dejó `test_inventory_limits.py` (su limpieza falla). Hay que decidir si se eliminan y corregir esa prueba.
+- `test_inventory_limits.py` dejaba productos `LIMIT_*` en la BD porque escribía en ella y su limpieza fallaba sin avisar. Desde el 2026-11-03 usa una transacción revertida y ya no deja residuos. Los 6 productos existentes se eliminan con un script SQL que ejecuta la usuaria (el borrado directo requiere su permiso). La categoría "Test Category" que creó esa prueba sigue existiendo.
