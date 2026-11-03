@@ -272,13 +272,14 @@ def authorize_movement(
             product.current_stock -= detail.quantity
 
         elif movement.type == "ADJUSTMENT":
-            # Establishes the real counted physical stock
+            # quantity = lo contado en bodega; las herramientas prestadas
+            # no están físicamente allí, así que se suman al stock final
             if detail.quantity < 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Adjustment quantity for product '{product.name}' cannot be negative"
                 )
-            product.current_stock = detail.quantity
+            product.current_stock = detail.quantity + loaned_quantity(db, product.id)
 
         update_stock_alerts(db, product)
 

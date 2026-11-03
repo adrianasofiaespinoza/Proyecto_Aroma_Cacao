@@ -1,9 +1,9 @@
 import unittest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
+from app.database import engine
 from app.models.product import Product, Category, UnitOfMeasure
 from app.models.movement import Movement, MovementDetail
 from app.models.user import User
@@ -12,7 +12,12 @@ from fastapi import HTTPException
 
 class TestInventoryLimits(unittest.TestCase):
     def setUp(self):
-        self.session = SessionLocal()
+        # Todo ocurre en una transacción externa que se revierte en tearDown,
+        # así la prueba no deja datos en aroma_inventory. Los commit() del
+        # router solo confirman savepoints dentro de ella.
+        self.connection = engine.connect()
+        self.transaction = self.connection.begin()
+        self.session = Session(bind=self.connection, join_transaction_mode="create_savepoint")
 
         # Ensure mandatory dependencies exist
         self.category = self.session.scalar(select(Category).where(Category.name == "Test Category"))
@@ -41,6 +46,8 @@ class TestInventoryLimits(unittest.TestCase):
 
     def tearDown(self):
         self.session.close()
+        self.transaction.rollback()
+        self.connection.close()
 
     def create_test_product(self, stock=10, minimum=5):
         import uuid
@@ -56,21 +63,6 @@ class TestInventoryLimits(unittest.TestCase):
         self.session.add(product)
         self.session.commit()
         return product
-
-    def cleanup_test_data(self, product_id, movement_id=None):
-        """Ensures all related records are cleaned up, even after failures."""
-        try:
-            if movement_id:
-                self.session.execute(delete(MovementDetail).where(MovementDetail.movement_id == movement_id))
-                self.session.execute(delete(Movement).where(Movement.id == movement_id))
-
-            self.session.execute(delete(MovementDetail).where(MovementDetail.product_id == product_id))
-            product = self.session.get(Product, product_id)
-            if product:
-                self.session.delete(product)
-            self.session.commit()
-        except Exception:
-            self.session.rollback()
 
     def test_adjustment_negative_rejected(self):
         """
@@ -107,8 +99,6 @@ class TestInventoryLimits(unittest.TestCase):
         self.session.refresh(product)
         self.assertEqual(product.current_stock, initial_stock)
 
-        self.cleanup_test_data(product.id)
-
     def test_adjustment_valid(self):
         """Verify that a valid ADJUSTMENT updates stock correctly."""
         product = self.create_test_product(stock=10)
@@ -133,7 +123,6 @@ class TestInventoryLimits(unittest.TestCase):
 
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("25"))
-        self.cleanup_test_data(product.id, movement.id)
 
     def test_entry_valid(self):
         """Verify that ENTRY increases stock."""
@@ -159,7 +148,6 @@ class TestInventoryLimits(unittest.TestCase):
 
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("15"))
-        self.cleanup_test_data(product.id, movement.id)
 
     def test_exit_valid(self):
         """Verify that EXIT decreases stock."""
@@ -185,7 +173,6 @@ class TestInventoryLimits(unittest.TestCase):
 
         self.session.refresh(product)
         self.assertEqual(product.current_stock, Decimal("7"))
-        self.cleanup_test_data(product.id, movement.id)
 
 if __name__ == "__main__":
     unittest.main()

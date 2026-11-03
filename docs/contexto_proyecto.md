@@ -129,7 +129,7 @@ Reglas de negocio acordadas:
 | ------------------ | ----------------------------------------- |
 | `ENTRY`            | Suma existencias                          |
 | `EXIT`             | Resta existencias si hay suficiente disponible (stock − prestado) |
-| `ADJUSTMENT`       | Establece el stock final indicado         |
+| `ADJUSTMENT`       | Establece el stock en lo contado en bodega + lo prestado |
 
 Decisiones confirmadas por la usuaria el 2026-11-01:
 
@@ -162,7 +162,18 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - Préstamos: `GET/POST /loans`, `PATCH /loans/{id}/return` y `GET /workers`. **No modifican `current_stock`**: disponible = stock − prestado. Los registran y devuelven `Operator` y `Coordinator` sin autorización. El trabajador se crea por nombre. Detalle en `docs/flows/prestamos.md`.
 - Sin cambios de esquema: se mapearon las tablas existentes (`ProductMachine`, `Worker`, `Loan`).
 - Pruebas: `backend/tests/test_users_machines_loans.py` (fixtures compartidos en `tests/conftest.py`). Total local: 59 pruebas aprobadas.
-- **Decisión (2026-11-01):** un `EXIT` se valida contra lo disponible (stock − prestado), no contra `current_stock` (`backend/app/services/stock.py`). Total local: 60 pruebas aprobadas.
+- **Decisión (2026-11-01):** un `EXIT` se valida contra lo disponible (stock − prestado), no contra `current_stock` (`backend/app/services/stock.py`).
+- **Decisión (2026-11-03):** en un `ADJUSTMENT` se registra solo lo contado en bodega; al autorizarlo, `stock = contado + prestado`.
+
+### E3. Proveedores y dashboard
+
+**Estado: backend e interfaz implementados y probados (2026-11-01); pendiente de publicar.**
+
+- Proveedores: `GET/POST /suppliers`, `PUT /suppliers/{id}` (sin eliminación) y productos por proveedor con precio de referencia (`POST/PATCH/DELETE /suppliers/{id}/products...`). Escritura solo para `Coordinator`. Detalle en `docs/flows/proveedores.md`.
+- Dashboard con datos reales: productos activos, stock bajo (alertas activas), movimientos pendientes y herramientas prestadas, más la tabla de alertas y la lista de pendientes. La campana de la cabecera refleja las alertas activas. Se quitó el buscador decorativo de la cabecera del dashboard.
+- Sin cambios de esquema (se mapearon `supplier` y `product_supplier`). Pruebas en `backend/tests/test_suppliers.py`. Total local: 64 pruebas aprobadas.
+- Nota de publicación (2026-11-03): la PR #4 se mergeó en `feature/users-machines-loans` en lugar de `main` (se mergeó antes de que GitHub cambiara su base), así que este código llega a `main` con una PR nueva.
+- `test_inventory_limits.py` ya no escribe en la BD real (transacción revertida).
 
 ### F. Roles y permisos
 
@@ -182,10 +193,10 @@ Verificado el 2026-11-01 en productos, movimientos, catálogos, usuarios, máqui
 
 | Módulo | Coordinator | Operator | Read-only |
 |---|---|---|---|
-| Productos, máquinas (escritura) | Sí | No | No |
+| Productos, máquinas, proveedores (escritura) | Sí | No | No |
 | Usuarios (listar y escribir) | Sí | No | No |
 | Préstamos y devoluciones | Sí | Sí | No |
-| Consultas (productos, movimientos, máquinas, préstamos) | Sí | Sí | Sí |
+| Consultas (productos, movimientos, máquinas, préstamos, proveedores, dashboard) | Sí | Sí | Sí |
 
 ### G. Alertas de stock mínimo
 
@@ -236,7 +247,7 @@ La compilación de producción terminó correctamente en una verificación anter
 **Pendiente:**
 
 - (2026-11-01) Usuarios, máquinas y préstamos integrados (`UsersPage.jsx`, `MachinesPage.jsx`, `LoansPage.jsx`). Escrituras verificadas en el navegador con el backend en modo sandbox (transacción revertida; la BD quedó sin cambios).
-- Pendiente: proveedores y dashboard (siguen con datos de ejemplo; faltan endpoints de proveedores).
+- (2026-11-01) Proveedores (`SuppliersPage.jsx`) y dashboard (`DashboardPage.jsx`) integrados. Todas las vistas usan ya datos reales.
 - Comprobar el inicio de sesión real y la renovación de sesión desde el navegador (requiere credenciales reales).
 - `favicon.ico` devuelve `404` (las páginas no enlazan `public/favicon.svg`).
 
@@ -369,7 +380,7 @@ No documentar como implementado algo que solo está propuesto. Distinguir compor
 
 El plan de trabajo se establece en el siguiente orden:
 
-> Actualización 2026-11-01: los pasos 1 a 3 están implementados (productos, movimientos, usuarios, máquinas y préstamos). Quedan proveedores y dashboard, y el paso 4 con credenciales reales (inicio de sesión, renovación y prueba manual).
+> Actualización 2026-11-01: los pasos 1 a 3 están implementados en todas las vistas (productos, movimientos, usuarios, máquinas, préstamos, proveedores y dashboard). Queda el paso 4 con credenciales reales (inicio de sesión, renovación y prueba manual).
 
 1. **Productos e inventario (paso D):** revisar las validaciones de productos, la protección de `current_stock`, las reglas de stock mínimo y su coherencia con los movimientos. Identificar los casos pendientes y corregir únicamente los problemas confirmados.
 2. **Movimientos de inventario:** verificar entradas, salidas, ajustes, solicitudes pendientes, autorización, persistencia, errores y permisos. Mantener las reglas de negocio acordadas y señalar las decisiones que necesiten confirmación.

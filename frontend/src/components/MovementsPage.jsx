@@ -43,10 +43,11 @@ function loanedTotals(loans) {
 }
 
 // Stock resultante si se autorizara el detalle (misma regla que el backend)
-function resultingStock(type, current, quantity) {
+// En ADJUSTMENT, quantity es lo contado en bodega y se suma lo prestado
+function resultingStock(type, current, quantity, loanedQty = 0) {
   if (type === 'ENTRY') return current + quantity
   if (type === 'EXIT') return current - quantity
-  return quantity
+  return quantity + loanedQty
 }
 
 function TypeBadge({ type }) {
@@ -380,7 +381,7 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium block mb-1.5">
-              {form.type === 'ADJUSTMENT' ? 'Stock final contado' : 'Cantidad'}
+              {form.type === 'ADJUSTMENT' ? 'Contado en bodega' : 'Cantidad'}
             </label>
             <input type="number" min="0" step="0.01" value={form.quantity} onChange={set('quantity')} className={inputClass} />
           </div>
@@ -405,7 +406,13 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
         )}
         {form.type === 'ADJUSTMENT' && (
           <p className="text-xs text-muted-foreground">
-            En un ajuste, la cantidad es el stock final resultante del conteo físico, no una diferencia.
+            Registre solo lo contado físicamente en bodega, sin las herramientas prestadas; el sistema las suma.
+            {selected && form.quantity !== '' && (
+              <>
+                {' '}Contado: {Number(form.quantity)} · Prestado: {loaned[selected.id] || 0} ·{' '}
+                <strong>Stock resultante: {(Number(form.quantity) + (loaned[selected.id] || 0)).toFixed(2)}</strong>
+              </>
+            )}
           </p>
         )}
         {form.type === 'EXIT' && selected &&
@@ -515,7 +522,7 @@ function ReviewMovementModal({ movement, productsById, machinesById, loaned, pro
             {movement.details.map((detail) => {
               const product = productsById[detail.product_id]
               const current = product ? Number(product.current_stock) : null
-              const after = current == null ? null : resultingStock(movement.type, current, Number(detail.quantity))
+              const after = current == null ? null : resultingStock(movement.type, current, Number(detail.quantity), loaned[detail.product_id] || 0)
               return (
                 <tr key={detail.id}>
                   <td className="px-3 py-2">

@@ -39,7 +39,9 @@ Registrar el préstamo de herramientas a trabajadores, que no necesitan una cuen
 
 **Regla confirmada por la usuaria el 2026-11-01:** al autorizar un `EXIT`, la cantidad se valida contra lo **disponible** (`current_stock − prestado`), no contra `current_stock`. Las herramientas prestadas no pueden salir del inventario; si no alcanza, la autorización devuelve `400` con `Current`, `Loaned`, `Available` y `Requested`. El cálculo está en `backend/app/services/stock.py`, que comparten préstamos y movimientos.
 
-`ENTRY` y `ADJUSTMENT` no tienen en cuenta los préstamos.
+**Ajustes (decisión del 2026-11-03):** en un `ADJUSTMENT` se registra solo lo contado en bodega, sin las herramientas prestadas. Al autorizarlo, `current_stock = contado + prestado`. La interfaz muestra "Contado · Prestado · Stock resultante".
+
+`ENTRY` no tiene en cuenta los préstamos.
 
 ## 5. Interfaz (`frontend/prestamos.html`)
 
@@ -53,11 +55,12 @@ Registrar el préstamo de herramientas a trabajadores, que no necesitan una cuen
 
 - `test_users_machines_loans.py`: el stock no cambia, límite de disponibilidad, la devolución libera disponibilidad, doble devolución (`400`), reutilización del trabajador sin distinguir mayúsculas, validaciones, producto inactivo y permisos por rol.
 - `test_exit_validates_against_available_not_loaned`: con stock 10 y 6 prestados, una salida de 5 se rechaza y una de 4 se autoriza; tras la devolución, lo prestado vuelve a poder salir.
+- `test_adjustment_counts_warehouse_and_adds_loaned`: con 4 prestados, un conteo de 5 deja el stock en 9 y lo disponible para salir en 5.
+- Navegador (sandbox): con 2 prestados, un ajuste con 1 contado muestra "Stock resultante: 3.00" y al autorizarlo el stock queda en 3.
 - Navegador (sandbox): con stock 3 y 2 prestados, una salida de 2 muestra el aviso y deja deshabilitado "Autorizar".
 - Navegador (sandbox): préstamo a un trabajador nuevo, rechazo de una cantidad mayor a la disponible, devolución como `Operator` y ausencia de acciones para `Read-only`.
 
 ## 7. Pendiente
 
-- `ADJUSTMENT` con préstamos activos: no está definido si el conteo físico debe incluir las herramientas prestadas. Hoy el ajuste fija `current_stock` sin considerarlas.
 - No hay restricción de categoría: cualquier producto activo se puede prestar. No se fijó la categoría "Tools" para no acoplar el sistema a un catálogo concreto.
 - No existe vista ni gestión de trabajadores (cargo, edición) aparte del autocompletado.

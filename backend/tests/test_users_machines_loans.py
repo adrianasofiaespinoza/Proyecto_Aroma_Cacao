@@ -262,3 +262,21 @@ def test_exit_validates_against_available_not_loaned(client, session, product):
     # Al devolver, lo prestado vuelve a estar disponible
     client.patch(f"/loans/{loan_id}/return")
     assert authorize_exit(client, product, 6).status_code == 200
+
+
+def test_adjustment_counts_warehouse_and_adds_loaned(client, session, product):
+    # Stock 10 con 4 prestados; en bodega se cuentan 5 -> stock final 9
+    lend(client, product, 4)
+    movement = client.post("/movements", json={
+        "type": "ADJUSTMENT",
+        "reason": "Conteo físico",
+        "details": [{"product_id": product.id, "quantity": "5"}],
+    }).json()
+
+    assert client.patch(f"/movements/{movement['id']}/authorize").status_code == 200
+    session.expire_all()
+    assert session.get(Product, product.id).current_stock == Decimal("9")
+
+    # Lo prestado sigue sin poder salir: disponible = 9 - 4 = 5
+    assert authorize_exit(client, product, 6).status_code == 400
+    assert authorize_exit(client, product, 5).status_code == 200

@@ -1,6 +1,6 @@
 import './style.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
-import { logout, tokenStorage } from './services/api.js'
+import { getAlerts, logout, tokenStorage } from './services/api.js'
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Session verification on protected pages
@@ -49,7 +49,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
-  // 4. Sidebar mobile toggle
+  // 4. Alert bell: dot only when there are active low-stock alerts
+  document.querySelectorAll('button .bi-bell').forEach((icon) => {
+    const bell = icon.closest('button')
+    const dot = bell.querySelector('span')
+    dot?.classList.add('hidden')
+    bell.title = 'Alertas de stock bajo'
+    bell.addEventListener('click', () => {
+      window.location.href = 'dashboard.html'
+    })
+    getAlerts()
+      .then((alerts) => {
+        const active = alerts.filter((a) => a.status === 'active').length
+        if (active > 0) {
+          dot?.classList.remove('hidden')
+          bell.title = `${active} alerta(s) de stock bajo`
+        }
+      })
+      .catch(() => {})
+  })
+
+  // 5. Sidebar mobile toggle
   const trigger = document.getElementById('mobile-menu-trigger')
   const sidebar = document.getElementById('mobile-sidebar')
   const overlay = document.getElementById('mobile-sidebar-overlay')
@@ -68,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   closeBtn?.addEventListener('click', closeSidebar)
   overlay?.addEventListener('click', closeSidebar)
 
-  // 5. Modal targets
+  // 6. Modal targets
   document.querySelectorAll('[data-modal-target]').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.getElementById(btn.dataset.modalTarget)?.classList.remove('hidden')
