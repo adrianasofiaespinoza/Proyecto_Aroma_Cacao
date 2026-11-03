@@ -138,7 +138,7 @@ El 2026-11-01 también se verificaron las escrituras desde el navegador, con el 
 
 ## 10. Pendiente
 
-- Probar el inicio de sesión real (con contraseña) y luego crear → autorizar y crear → rechazar con credenciales reales. El flujo ya se verificó en el sandbox con tokens generados localmente.
+- Crear → autorizar y crear → rechazar con datos persistentes: verificado solo en el sandbox (con tokens generados localmente) y en las pruebas automáticas. El inicio de sesión real ya se verificó el 2026-11-03.
 - `EXIT` con lote: `lot.remaining_quantity` no se descuenta al autorizar.
 - Lotes y máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Si se agrega, habrá que validarlo al crear y al autorizar.
 - Un `ADJUSTMENT` con dos detalles del mismo producto aplica el último; no se rechaza la duplicidad.
