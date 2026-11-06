@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductTable from './ProductTable.jsx'
 import ProductFormModal from './ProductFormModal.jsx'
+import LotsModal from './LotsModal.jsx'
 import { deactivateProduct, getCategories, getProducts, getUnits, tokenStorage } from '../services/api.js'
 
 const byId = (items) => Object.fromEntries(items.map((item) => [item.id, item]))
@@ -22,6 +23,7 @@ export default function ProductsPage() {
 
   // null = cerrado, { product: null } = nuevo, { product } = edición
   const [editing, setEditing] = useState(null)
+  const [lotsOf, setLotsOf] = useState(null)
 
   const loadData = async () => {
     setLoading(true)
@@ -159,6 +161,7 @@ export default function ProductsPage() {
                 canManage={canManage}
                 onEdit={(product) => setEditing({ product })}
                 onDeactivate={handleDeactivate}
+                onLots={setLotsOf}
               />
             </tbody>
           </table>
@@ -169,6 +172,8 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+
+      {lotsOf && <LotsModal product={lotsOf} onClose={() => setLotsOf(null)} />}
 
       {editing && (
         <ProductFormModal

@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Modal, { ErrorBox, inputClass } from './Modal.jsx'
+import { formatExpiration, isLotExpired, lotOptionLabel } from './lotUtils.js'
 import {
   authorizeMovement,
+  createLot,
   createMovement,
   getLoans,
+  getLots,
   getMachines,
   getMovements,
   getProducts,
@@ -69,6 +72,7 @@ export default function MovementsPage() {
   const [products, setProducts] = useState([])
   const [machines, setMachines] = useState([])
   const [loaned, setLoaned] = useState({})
+  const [lots, setLots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
@@ -80,16 +84,18 @@ export default function MovementsPage() {
     setLoading(true)
     setError(null)
     try {
-      const [movementData, productData, machineData, loanData] = await Promise.all([
+      const [movementData, productData, machineData, loanData, lotData] = await Promise.all([
         getMovements(),
         getProducts(),
         getMachines(),
         getLoans(),
+        getLots(),
       ])
       setMovements(movementData)
       setProducts(productData)
       setMachines(machineData)
       setLoaned(loanedTotals(loanData))
+      setLots(lotData)
     } catch (err) {
       setError(err.message || 'Error al conectar con el servidor')
     } finally {
@@ -259,6 +265,8 @@ export default function MovementsPage() {
           products={products.filter((p) => p.status === 'active')}
           machines={machines}
           loaned={loaned}
+          lots={lots}
+          onLotCreated={(lot) => setLots((list) => [...list, lot])}
           role={role}
           onClose={() => setCreating(false)}
           onCreated={handleCreated}
@@ -271,6 +279,7 @@ export default function MovementsPage() {
           productsById={productsById}
           machinesById={machinesById}
           loaned={loaned}
+          lotsById={Object.fromEntries(lots.map((lot) => [lot.id, lot]))}
           productLabel={productLabel}
           canAuthorize={canAuthorize}
           onClose={() => setReviewing(null)}
@@ -281,11 +290,14 @@ export default function MovementsPage() {
   )
 }
 
-function NewMovementModal({ products, machines, loaned, role, onClose, onCreated }) {
+function NewMovementModal({ products, machines, loaned, lots, onLotCreated, role, onClose, onCreated }) {
   const [form, setForm] = useState({
     type: 'ENTRY',
     product_id: '',
     machine_id: '',
+    lot_id: '',
+    new_lot_number: '',
+    new_lot_expiration: '',
     quantity: '',
     reason: '',
     work_order_number: '',
@@ -294,8 +306,13 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
   const [error, setError] = useState(null)
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  // El lote depende del producto y del tipo: al cambiarlos se elige de nuevo
+  const setAndResetLot = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value, lot_id: '' }))
   const reasonRequired = form.type === 'EXIT' || form.type === 'ADJUSTMENT'
   const selected = products.find((p) => String(p.id) === form.product_id)
+  const productLots = selected?.requires_lot ? lots.filter((lot) => lot.product_id === selected.id) : []
+  const selectedLot = productLots.find((lot) => String(lot.id) === form.lot_id)
+  const isNewLot = form.lot_id === 'new'
   // Máquinas con este repuesto asociado primero
   const sortedMachines = [...machines].sort((a, b) => {
     const id = Number(form.product_id)
@@ -316,10 +333,24 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
     if (reasonRequired && !form.reason.trim()) {
       return setError('El motivo es obligatorio para salidas y ajustes.')
     }
+    if (selected.requires_lot && !form.lot_id) return setError('Seleccione un lote.')
+    if (isNewLot && !form.new_lot_number.trim()) return setError('Indique el número del lote nuevo.')
 
     setSaving(true)
     setError(null)
     try {
+      let lotId = selected.requires_lot ? Number(form.lot_id) : null
+      if (isNewLot) {
+        const lot = await createLot(selected.id, {
+          lot_number: form.new_lot_number.trim(),
+          expiration_date: form.new_lot_expiration || null,
+        })
+        lotId = lot.id
+        onLotCreated(lot)
+        // Si la solicitud fallara, el lote ya existe y queda seleccionado
+        setForm((f) => ({ ...f, lot_id: String(lot.id) }))
+      }
+
       const movement = await createMovement({
         type: form.type,
         reason: form.reason.trim() || null,
@@ -327,6 +358,7 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
         details: [{
           product_id: Number(form.product_id),
           quantity: form.quantity,
+          lot_id: lotId,
           machine_id: form.type === 'EXIT' && form.machine_id ? Number(form.machine_id) : null,
         }],
       })
@@ -360,7 +392,7 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-sm font-medium block mb-1.5">Tipo</label>
-            <select value={form.type} onChange={set('type')} className={inputClass}>
+            <select value={form.type} onChange={setAndResetLot('type')} className={inputClass}>
               <option value="ENTRY">Entrada</option>
               <option value="EXIT">Salida</option>
               <option value="ADJUSTMENT">Ajuste</option>
@@ -368,7 +400,7 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm font-medium block mb-1.5">Producto</label>
-            <select value={form.product_id} onChange={set('product_id')} className={inputClass}>
+            <select value={form.product_id} onChange={setAndResetLot('product_id')} className={inputClass}>
               <option value="">Seleccione...</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -378,10 +410,40 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
             </select>
           </div>
         </div>
+        {selected?.requires_lot && (
+          <div>
+            <label className="text-sm font-medium block mb-1.5">Lote *</label>
+            <select value={form.lot_id} onChange={set('lot_id')} className={inputClass}>
+              <option value="">Seleccione...</option>
+              {productLots.map((lot) => {
+                const expired = isLotExpired(lot)
+                const unusable =
+                  (form.type !== 'ADJUSTMENT' && expired) ||
+                  (form.type === 'EXIT' && Number(lot.remaining_quantity) <= 0)
+                return (
+                  <option key={lot.id} value={lot.id} disabled={unusable}>{lotOptionLabel(lot)}</option>
+                )
+              })}
+              {form.type === 'ENTRY' && <option value="new">+ Registrar lote nuevo</option>}
+            </select>
+          </div>
+        )}
+        {selected?.requires_lot && isNewLot && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium block mb-1.5">Número de lote nuevo *</label>
+              <input type="text" maxLength={30} value={form.new_lot_number} onChange={set('new_lot_number')} className={inputClass} />
+            </div>
+            <div>
+              <label className="text-sm font-medium block mb-1.5">Vencimiento</label>
+              <input type="date" value={form.new_lot_expiration} onChange={set('new_lot_expiration')} className={inputClass} />
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium block mb-1.5">
-              {form.type === 'ADJUSTMENT' ? 'Contado en bodega' : 'Cantidad'}
+              {form.type !== 'ADJUSTMENT' ? 'Cantidad' : selected?.requires_lot ? 'Contado de este lote' : 'Contado en bodega'}
             </label>
             <input type="number" min="0" step="0.01" value={form.quantity} onChange={set('quantity')} className={inputClass} />
           </div>
@@ -404,7 +466,18 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
             </select>
           </div>
         )}
-        {form.type === 'ADJUSTMENT' && (
+        {form.type === 'ADJUSTMENT' && selected?.requires_lot && selectedLot && form.quantity !== '' && (
+          <p className="text-xs text-muted-foreground">
+            En el lote hay {selectedLot.remaining_quantity}; contado: {Number(form.quantity)} ·{' '}
+            <strong>
+              Stock resultante: {(Number(selected.current_stock) + Number(form.quantity) - Number(selectedLot.remaining_quantity)).toFixed(2)}
+            </strong>
+          </p>
+        )}
+        {form.type === 'EXIT' && selectedLot && Number(form.quantity) > Number(selectedLot.remaining_quantity) && (
+          <ErrorBox message={`La cantidad supera lo que queda en el lote ${selectedLot.lot_number} (${selectedLot.remaining_quantity}). La solicitud no podrá autorizarse.`} />
+        )}
+        {form.type === 'ADJUSTMENT' && !selected?.requires_lot && (
           <p className="text-xs text-muted-foreground">
             Registre solo lo contado físicamente en bodega, sin las herramientas prestadas; el sistema las suma.
             {selected && form.quantity !== '' && (
@@ -438,7 +511,7 @@ function NewMovementModal({ products, machines, loaned, role, onClose, onCreated
   )
 }
 
-function ReviewMovementModal({ movement, productsById, machinesById, loaned, productLabel, canAuthorize, onClose, onReviewed }) {
+function ReviewMovementModal({ movement, productsById, machinesById, loaned, lotsById, productLabel, canAuthorize, onClose, onReviewed }) {
   const [working, setWorking] = useState(null)
   const [error, setError] = useState(null)
   const isPending = movement.status === 'pending'
@@ -448,6 +521,16 @@ function ReviewMovementModal({ movement, productsById, machinesById, loaned, pro
     const product = productsById[d.product_id]
     // Lo prestado no puede salir (misma regla que el backend)
     return product && Number(d.quantity) > Number(product.current_stock) - (loaned[d.product_id] || 0)
+  })
+
+  // Mismas reglas de lote que el backend: lote vencido o sin cantidad suficiente
+  const expiredLot = movement.type !== 'ADJUSTMENT' && movement.details.some((d) => {
+    const lot = lotsById[d.lot_id]
+    return lot && isLotExpired(lot)
+  })
+  const insufficientLot = movement.type === 'EXIT' && movement.details.some((d) => {
+    const lot = lotsById[d.lot_id]
+    return lot && Number(d.quantity) > Number(lot.remaining_quantity)
   })
 
   const run = async (action) => {
@@ -483,7 +566,7 @@ function ReviewMovementModal({ movement, productsById, machinesById, loaned, pro
               </button>
               <button
                 onClick={() => run('authorize')}
-                disabled={Boolean(working) || insufficient}
+                disabled={Boolean(working) || insufficient || insufficientLot || expiredLot}
                 className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm hover:opacity-90 disabled:opacity-60"
               >
                 {working === 'authorize' ? 'Autorizando...' : 'Autorizar'}
@@ -522,11 +605,23 @@ function ReviewMovementModal({ movement, productsById, machinesById, loaned, pro
             {movement.details.map((detail) => {
               const product = productsById[detail.product_id]
               const current = product ? Number(product.current_stock) : null
-              const after = current == null ? null : resultingStock(movement.type, current, Number(detail.quantity), loaned[detail.product_id] || 0)
+              const lot = lotsById[detail.lot_id]
+              // Un ajuste de lote cambia el stock solo en la diferencia con ese lote
+              const after = current == null
+                ? null
+                : movement.type === 'ADJUSTMENT' && lot
+                  ? current + Number(detail.quantity) - Number(lot.remaining_quantity)
+                  : resultingStock(movement.type, current, Number(detail.quantity), loaned[detail.product_id] || 0)
               return (
                 <tr key={detail.id}>
                   <td className="px-3 py-2">
                     {productLabel(detail.product_id)}
+                    {lot && (
+                      <div className="text-xs text-muted-foreground">
+                        <i className="bi bi-layers mr-1"></i>
+                        Lote {lot.lot_number} · {formatExpiration(lot)} · quedan {lot.remaining_quantity}
+                      </div>
+                    )}
                     {detail.machine_id && (
                       <div className="text-xs text-muted-foreground">
                         <i className="bi bi-gear-wide-connected mr-1"></i>
@@ -557,6 +652,12 @@ function ReviewMovementModal({ movement, productsById, machinesById, loaned, pro
 
       {canAct && insufficient && (
         <ErrorBox message="La cantidad solicitada excede lo disponible (stock menos herramientas prestadas). Esta salida no puede autorizarse; puede rechazarla o esperar una entrada o una devolución." />
+      )}
+      {canAct && expiredLot && (
+        <ErrorBox message="El lote está vencido. Esta solicitud no puede autorizarse; para retirar el lote, registre un ajuste a 0." />
+      )}
+      {canAct && insufficientLot && (
+        <ErrorBox message="La cantidad solicitada supera lo que queda en el lote. Esta salida no puede autorizarse." />
       )}
       <ErrorBox message={error} />
     </Modal>

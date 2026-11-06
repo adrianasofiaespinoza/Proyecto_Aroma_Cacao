@@ -211,6 +211,21 @@ def create_product(
 
 
     # --------------------------------------------------------
+    # Lot-tracked products start empty: stock enters through lots
+    # --------------------------------------------------------
+
+    if product_data.requires_lot and product_data.current_stock > 0:
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "A product that requires lots must start with zero stock; "
+                "register its stock with ENTRY movements"
+            )
+        )
+
+
+    # --------------------------------------------------------
     # Create
     # --------------------------------------------------------
 
@@ -228,6 +243,7 @@ def create_product(
         physical_location=product_data.physical_location,
 
         status="active",
+        requires_lot=product_data.requires_lot,
 
         category_id=product_data.category_id,
         unit_of_measure_id=(
@@ -358,6 +374,29 @@ def update_product(
                 "than minimum stock"
             )
         )
+
+
+    # --------------------------------------------------------
+    # Lot tracking can only change while there is no stock,
+    # so the sum of the lots always matches current_stock
+    # --------------------------------------------------------
+
+    if (
+        product_data.requires_lot is not None
+        and product_data.requires_lot != product.requires_lot
+    ):
+
+        if product.current_stock != 0:
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Lot tracking can only change when the product "
+                    "has zero stock; adjust it to zero first"
+                )
+            )
+
+        product.requires_lot = product_data.requires_lot
 
 
     # --------------------------------------------------------

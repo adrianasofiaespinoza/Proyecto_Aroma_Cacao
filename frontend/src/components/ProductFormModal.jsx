@@ -12,6 +12,7 @@ const emptyForm = {
   minimum_stock: '0',
   maximum_stock: '',
   physical_location: '',
+  requires_lot: false,
   category_id: '',
   unit_of_measure_id: '',
 }
@@ -20,7 +21,7 @@ function toForm(product) {
   if (!product) return emptyForm
   const form = {}
   Object.keys(emptyForm).forEach((key) => {
-    form[key] = product[key] == null ? '' : String(product[key])
+    form[key] = key === 'requires_lot' ? product[key] : product[key] == null ? '' : String(product[key])
   })
   return form
 }
@@ -37,11 +38,12 @@ function toPayload(form, isEdit) {
     minimum_stock: form.minimum_stock || '0',
     maximum_stock: optional(form.maximum_stock),
     physical_location: optional(form.physical_location),
+    requires_lot: form.requires_lot,
     category_id: Number(form.category_id),
     unit_of_measure_id: Number(form.unit_of_measure_id),
   }
   // current_stock solo se define al crear; después cambia mediante movimientos
-  if (!isEdit) payload.current_stock = form.current_stock || '0'
+  if (!isEdit) payload.current_stock = form.requires_lot ? '0' : form.current_stock || '0'
   return payload
 }
 
@@ -152,7 +154,7 @@ export default function ProductFormModal({ product, categories, units, onClose, 
             <input
               type="number" min="0" step="0.01"
               value={form.current_stock} onChange={set('current_stock')}
-              disabled={isEdit}
+              disabled={isEdit || form.requires_lot}
               title={isEdit ? 'El stock solo cambia mediante movimientos autorizados' : undefined}
               className={inputClass}
             />
@@ -175,6 +177,26 @@ export default function ProductFormModal({ product, categories, units, onClose, 
           <label className="text-sm font-medium block mb-1.5">Ubicación física</label>
           <input type="text" maxLength={100} placeholder="Estante A-3" value={form.physical_location} onChange={set('physical_location')} className={inputClass} />
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.requires_lot}
+            disabled={isEdit && Number(product.current_stock) !== 0}
+            onChange={(e) => setForm((f) => ({ ...f, requires_lot: e.target.checked }))}
+            className="rounded border-border"
+          />
+          Este producto requiere trazabilidad por lote
+        </label>
+        {form.requires_lot && !isEdit && (
+          <p className="text-xs text-muted-foreground">
+            Empieza con stock 0: las existencias entran con movimientos asociados a un lote.
+          </p>
+        )}
+        {isEdit && Number(product.current_stock) !== 0 && (
+          <p className="text-xs text-muted-foreground">
+            La trazabilidad por lote solo se puede cambiar cuando el stock es 0.
+          </p>
+        )}
         <ErrorBox message={error} />
       </Modal>
     </form>

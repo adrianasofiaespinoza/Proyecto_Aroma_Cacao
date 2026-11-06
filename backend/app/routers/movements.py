@@ -14,7 +14,7 @@ from app.models.alert import Alert
 from app.models.lot import Lot
 from app.models.machine import Machine
 from app.services.alerts import update_stock_alerts
-from app.services.stock import available_quantity, loaned_quantity
+from app.services.stock import available_quantity, is_expired, loaned_quantity
 from app.models.movement import (
     Movement,
     MovementDetail,
@@ -33,6 +33,55 @@ router = APIRouter(
     prefix="/movements",
     tags=["Movements"]
 )
+
+
+# ============================================================
+# LOT RULES (shared by creation and authorization)
+# ============================================================
+
+def check_detail_lot(
+    lot: Lot | None,
+    lot_id: int | None,
+    product: Product,
+    movement_type: str
+):
+
+    if product.requires_lot and lot_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Product '{product.name}' requires a lot"
+        )
+
+    if not product.requires_lot and lot_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Product '{product.name}' is not tracked by lots"
+        )
+
+    if lot_id is None:
+        return
+
+    if not lot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Lot {lot_id} not found"
+        )
+
+    if lot.product_id != product.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Lot {lot.lot_number} does not belong to product '{product.name}'"
+        )
+
+    # Un lote vencido solo se puede retirar con un ajuste
+    if movement_type in ("ENTRY", "EXIT") and is_expired(lot):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Lot {lot.lot_number} expired on {lot.expiration_date}; "
+                "use an ADJUSTMENT to remove it"
+            )
+        )
 
 
 # ============================================================
@@ -136,18 +185,12 @@ def create_movement(
                 detail=f"Product '{product.name}' ({product.internal_code}) is inactive"
             )
 
-        if detail.lot_id is not None:
-            lot = db.get(Lot, detail.lot_id)
-            if not lot:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Lot {detail.lot_id} not found"
-                )
-            if lot.product_id != product.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Lot {lot.lot_number} does not belong to product '{product.name}'"
-                )
+        check_detail_lot(
+            db.get(Lot, detail.lot_id) if detail.lot_id is not None else None,
+            detail.lot_id,
+            product,
+            movement_data.type
+        )
 
         if detail.machine_id is not None:
             machine = db.get(Machine, detail.machine_id)
@@ -253,8 +296,21 @@ def authorize_movement(
                 detail=f"Cannot authorize: Product '{product.name}' ({product.internal_code}) is inactive"
             )
 
+        # Bloquea el lote y repite las reglas: pudo vencer mientras estaba pendiente
+        lot = None
+        if detail.lot_id is not None:
+            lot = db.scalar(
+                select(Lot)
+                .where(Lot.id == detail.lot_id)
+                .with_for_update()
+            )
+
+        check_detail_lot(lot, detail.lot_id, product, movement.type)
+
         if movement.type == "ENTRY":
             product.current_stock += detail.quantity
+            if lot:
+                lot.remaining_quantity += detail.quantity
 
         elif movement.type == "EXIT":
             # Las herramientas prestadas no pueden salir del inventario
@@ -269,7 +325,22 @@ def authorize_movement(
                         f"Available: {available}, Requested: {detail.quantity}"
                     )
                 )
+            if lot and lot.remaining_quantity < detail.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Insufficient quantity in lot {lot.lot_number}. "
+                        f"Remaining: {lot.remaining_quantity}, Requested: {detail.quantity}"
+                    )
+                )
             product.current_stock -= detail.quantity
+            if lot:
+                lot.remaining_quantity -= detail.quantity
+
+        elif movement.type == "ADJUSTMENT" and lot:
+            # quantity = lo contado de este lote; el stock cambia en la diferencia
+            product.current_stock += detail.quantity - lot.remaining_quantity
+            lot.remaining_quantity = detail.quantity
 
         elif movement.type == "ADJUSTMENT":
             # quantity = lo contado en bodega; las herramientas prestadas

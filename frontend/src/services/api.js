@@ -450,3 +450,32 @@ export async function getAlerts() {
   if (!res.ok) throw await errorFromResponse(res, 'Error al cargar alertas')
   return res.json()
 }
+
+// ------------------------------------------------------------
+// Lots API Endpoints
+// ------------------------------------------------------------
+
+export async function getLots({ expiringWithinDays } = {}) {
+  const query = expiringWithinDays != null ? `?expiring_within_days=${expiringWithinDays}` : ''
+  const res = await apiFetch(`/lots${query}`)
+  if (!res.ok) throw await errorFromResponse(res, 'Error al cargar lotes')
+  return res.json()
+}
+
+export async function createLot(productId, lotData) {
+  const res = await apiFetch(`/products/${productId}/lots`, {
+    method: 'POST',
+    body: JSON.stringify(lotData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al registrar lote')
+  return res.json()
+}
+
+export async function updateLot(lotId, lotData) {
+  const res = await apiFetch(`/lots/${lotId}`, {
+    method: 'PUT',
+    body: JSON.stringify(lotData),
+  })
+  if (!res.ok) throw await errorFromResponse(res, 'Error al actualizar lote')
+  return res.json()
+}

@@ -185,7 +185,7 @@ export default function LoansPage() {
 
       {creating && (
         <NewLoanModal
-          products={products.filter((p) => p.status === 'active')}
+          products={products.filter((p) => p.status === 'active' && !p.requires_lot)}
           loanedByProduct={loanedByProduct}
           workers={workers}
           onClose={() => setCreating(false)}

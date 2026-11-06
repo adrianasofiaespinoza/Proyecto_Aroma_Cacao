@@ -83,6 +83,7 @@ class TestInventoryLimits(unittest.TestCase):
         mock_detail = MagicMock(spec=MovementDetail)
         mock_detail.product_id = product.id
         mock_detail.quantity = Decimal("-10")
+        mock_detail.lot_id = None
         mock_movement.details = [mock_detail]
 
         # Mock db.scalar to return our mock_movement and then the real product
