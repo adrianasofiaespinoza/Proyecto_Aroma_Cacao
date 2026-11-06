@@ -107,6 +107,13 @@ def create_loan(
             detail=f"Product '{product.name}' ({product.internal_code}) is inactive"
         )
 
+    # La suma de los lotes debe coincidir con el stock; un préstamo la rompería
+    if product.requires_lot:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Product '{product.name}' is tracked by lots and cannot be loaned"
+        )
+
     available = available_quantity(db, product)
 
     if loan_data.quantity > available:

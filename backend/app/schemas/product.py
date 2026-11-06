@@ -34,6 +34,7 @@ class ProductCreate(BaseModel):
     maximum_stock: StockQuantity | None = None
 
     physical_location: str | None = Field(default=None, max_length=100)
+    requires_lot: bool = False
 
     category_id: int
     unit_of_measure_id: int
@@ -50,6 +51,8 @@ class ProductUpdate(BaseModel):
     maximum_stock: StockQuantity | None = None
 
     physical_location: str | None = Field(default=None, max_length=100)
+    # None = sin cambios
+    requires_lot: bool | None = None
 
     category_id: int
     unit_of_measure_id: int
@@ -70,6 +73,7 @@ class ProductResponse(BaseModel):
     physical_location: str | None
 
     status: str
+    requires_lot: bool
 
     category_id: int
     unit_of_measure_id: int

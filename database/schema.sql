@@ -114,6 +114,8 @@ CREATE TABLE product (
 
     status VARCHAR(10) NOT NULL DEFAULT 'active',
 
+    requires_lot BOOLEAN NOT NULL DEFAULT FALSE,
+
     category_id INTEGER NOT NULL,
 
     unit_of_measure_id INTEGER NOT NULL,
