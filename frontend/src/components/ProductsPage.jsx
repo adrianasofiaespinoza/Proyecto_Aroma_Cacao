@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductTable from './ProductTable.jsx'
 import ProductFormModal from './ProductFormModal.jsx'
-import { deactivateProduct, getCategories, getProducts, getUnits, tokenStorage } from '../services/api.js'
+import { deactivateProduct, reactivateProduct, getCategories, getProducts, getUnits, tokenStorage } from '../services/api.js'
 
 const byId = (items) => Object.fromEntries(items.map((item) => [item.id, item]))
 
@@ -78,6 +78,33 @@ export default function ProductsPage() {
       window.alert(err.message)
     }
   }
+
+
+  // AC-7: Reactivar un producto desactivado.
+  const handleReactivate = async (product) => {
+    const confirmed = window.confirm(
+      `¿Reactivar ${product.internal_code} · ${product.name}?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      // Solicitar la reactivación al backend.
+      const saved = await reactivateProduct(product.id)
+
+      // Actualizar el producto en la tabla.
+      setProducts((list) =>
+        list.map((p) => (p.id === saved.id ? saved : p))
+      )
+
+      // Mostrar un mensaje de confirmación.
+      setNotice(`Producto ${saved.internal_code} reactivado correctamente.`)
+    } catch (err) {
+      setNotice(null)
+      window.alert(err.message || 'Error al reactivar el producto')
+    }
+  }
+
 
   return (
     <>
@@ -159,6 +186,7 @@ export default function ProductsPage() {
                 canManage={canManage}
                 onEdit={(product) => setEditing({ product })}
                 onDeactivate={handleDeactivate}
+                onReactivate={handleReactivate}
               />
             </tbody>
           </table>

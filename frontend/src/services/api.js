@@ -245,6 +245,23 @@ export async function deactivateProduct(id) {
   return res.json()
 }
 
+
+
+ // Reactivar un producto previamente desactivado.
+export async function reactivateProduct(id) {
+  const res = await apiFetch(`/products/${id}/reactivate`, {
+    method: 'PATCH',
+  })
+
+  if (!res.ok) {
+    throw await errorFromResponse(res, 'Error al reactivar producto')
+  }
+
+  return res.json()
+}
+
+
+
 // ------------------------------------------------------------
 // Catalogs API Endpoints
 // ------------------------------------------------------------
