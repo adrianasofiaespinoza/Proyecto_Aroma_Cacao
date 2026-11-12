@@ -18,10 +18,13 @@ El trabajo se realiza y prueba localmente. No ejecutar `git push` ni publicar ca
 
 | Tecnología              | Uso                                   |
 | ----------------------- | ------------------------------------- |
-| React 19                | Interfaz de usuario                   |
+| React 19 + TypeScript   | Interfaz de usuario                   |
+| React Router 7          | Rutas de la aplicación (una sola página) |
+| TanStack Query 5        | Datos del servidor en el frontend     |
 | Vite 8                  | Desarrollo y compilación del frontend |
 | Tailwind CSS v4         | Estilos y diseño adaptable            |
-| Bootstrap Icons         | Iconografía                           |
+| Bootstrap Icons         | Iconografía (SVG en línea)            |
+| Vitest                  | Pruebas automatizadas del frontend    |
 | Python y FastAPI        | Backend y API REST                    |
 | PostgreSQL 17 en Docker | Persistencia de datos                 |
 | SQLAlchemy              | ORM y acceso a datos                  |
@@ -236,31 +239,26 @@ El flujo detallado se encuentra documentado en `docs/flows/alertas-stock.md`.
 
 ### H. Frontend
 
-**Estado: productos y movimientos integrados con la API y verificados en el navegador (lectura y validaciones); quedan los demás módulos.**
+**Estado (2026-11-10): frontend reescrito con el diseño «Bodega»; compila, pasa 25 pruebas y se revisó en el navegador a 1280 y 390 con datos reales (solo lectura). Pendiente de publicar y de probar las escrituras desde el navegador.**
 
-Se han implementado o revisado:
+El frontend anterior (páginas HTML sueltas con JSX) se reemplazó por una aplicación de una sola página en React 19 + TypeScript, con React Router y TanStack Query, construida a partir del kit de diseño de Claude Design (`docs/design/bodega-kit/`). Detalle en `docs/architecture/frontend.md`.
 
-- Inicio de sesión en `frontend/login.html`, con lógica en `frontend/src/login.js`.
-- Cliente API centralizado en `frontend/src/services/api.js`.
-- Envío automático de Bearer Token y mecanismo de renovación ante respuestas HTTP 401.
-- Proxy de Vite para las rutas del backend.
-- Control de sesión en `frontend/src/main.js`.
-- Consulta de productos en `ProductTable.jsx`, con estados de carga y manejo de errores.
-- (2026-11-01) `ProductsPage.jsx` y `ProductFormModal.jsx`: búsqueda, filtros, creación, edición y desactivación según el rol.
-- (2026-11-01) `MovementsPage.jsx`: listado con filtros, nueva solicitud, revisión con autorización o rechazo y detalle de solo lectura.
-- (2026-11-01) `api.js`: errores `422` legibles, y las peticiones en espera ya no quedan colgadas si falla la renovación del token.
-- (2026-11-01) La cabecera de todas las páginas muestra el usuario real (antes mostraba "Carlos Mena" fijo).
-- La compilación de producción (`npm run build`) terminó correctamente el 2026-11-01.
-
-La compilación de producción terminó correctamente en una verificación anterior. Debe repetirse después de cambios que puedan afectarla.
+- Rama `feature/frontend-bodega`, creada desde `feature/lots-expiration` porque necesita los lotes. Al unirla, la PR #8 debe ir primero.
+- 30 componentes propios (`frontend/src/components/ui/`), sin librerías de componentes. Dos temas (claro y oscuro) y marca por empresa con 11 tokens (`src/styles/tenants/`).
+- 16 pantallas: inicio, productos (lista, formulario, lotes), movimientos (lista, nueva, revisión/detalle), préstamos, máquinas (lista y detalle), proveedores (lista y detalle), usuarios, «Más» para móvil y `/dev/componentes` en desarrollo.
+- Permisos con `RoleGate`/`can()`: lo que el rol no puede hacer no se muestra. Pendiente siempre lleva borde discontinuo y «No aplicado al stock»; autorizar y rechazar confirman con cifras.
+- Errores del backend traducidos en `src/lib/errors.ts` (por ejemplo, «La salida supera lo disponible» con código `STOCK_INSUFICIENTE · 400`).
+- Pruebas (Vitest): `can()`, Solo lectura sin botones de escritura, Pendiente dice «No aplicado al stock», motivo obligatorio en salidas y ajustes, salida bloqueada por encima de lo disponible y mapa de errores. `npm run build` correcto el 2026-11-10.
+- Sin cambios en el backend ni en la base de datos. `vite.config.ts` conserva el proxy; `npm run dev` abre `/login`.
 
 **Pendiente:**
 
-- (2026-11-01) Usuarios, máquinas y préstamos integrados (`UsersPage.jsx`, `MachinesPage.jsx`, `LoansPage.jsx`). Escrituras verificadas en el navegador con el backend en modo sandbox (transacción revertida; la BD quedó sin cambios).
-- (2026-11-01) Proveedores (`SuppliersPage.jsx`) y dashboard (`DashboardPage.jsx`) integrados. Todas las vistas usan ya datos reales.
-- (2026-11-03) Inicio de sesión, "Recordarme" y cierre de sesión verificados en el navegador con credenciales reales.
-- Pendiente: renovación automática del token de acceso al vencer (los 401 que se recuperan con el refresh token) observada en uso real.
-- `favicon.ico` devuelve `404` (las páginas no enlazan `public/favicon.svg`).
+- Probar las escrituras desde el navegador (crear, autorizar, rechazar, prestar, devolver, editar) con el backend real; hasta ahora solo lectura y pruebas unitarias.
+- Rechazo con motivo: el diseño lo pide y el backend no lo guarda (`PATCH /movements/{id}/reject` sin cuerpo). Requiere un campo nuevo en `movement`.
+- Varios productos por solicitud desde la pantalla (Sprint 1); el detalle ya los muestra.
+- Reactivar producto depende de la PR #9 (AC-7).
+- Renovación automática del token de acceso observada en uso real.
+- El frontend sigue fuera del CI y sin publicar (Sprint 4).
 
 ### I. Pruebas automatizadas, CI/CD y despliegue (Workshop 6)
 

@@ -1,0 +1,2 @@
+.rs-title { font-family: var(--font-mono); font-weight: 600; letter-spacing: 0; }
+.rs-toast { position: absolute; right: var(--space-6); bottom: var(--space-6); z-index: 20; }

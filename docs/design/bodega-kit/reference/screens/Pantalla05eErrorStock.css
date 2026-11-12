@@ -1,0 +1,3 @@
+.er-line { display: flex; gap: var(--space-6); align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.er-line > div > b { font: 600 15px/22px var(--font-sans); }
+.er-actions { display: flex; justify-content: flex-end; }

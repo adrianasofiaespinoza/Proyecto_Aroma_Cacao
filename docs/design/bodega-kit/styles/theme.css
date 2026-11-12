@@ -1,0 +1,92 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./components.css";
+
+/* Nombres sin colisión: los tokens viven en tokens.css (--brand, --space-4…) y aquí solo se exponen como utilidades
+   (bg-brand, p-4, h-control-lg, rounded-sm, shadow-pop, font-display, text-kpi). */
+/* Los temas cambian con data-theme en <html>; la marca, con data-tenant. */
+@custom-variant dark (&:where([data-theme="oscuro"], [data-theme="oscuro"] *));
+
+@theme inline {
+  --color-*: initial;
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-active-bg: var(--nav-active-bg);
+  --color-nav-ink: var(--nav-ink);
+  --color-nav-ink-muted: var(--nav-ink-muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-focus: var(--focus);
+  --color-pending-tint: var(--pending-tint);
+  --color-pending-stripe: var(--pending-stripe);
+  --color-pending-ink: var(--pending-ink);
+  --color-pending-edge: var(--pending-edge);
+  --color-ok: var(--ok);
+  --color-on-ok: var(--on-ok);
+  --color-ok-tint: var(--ok-tint);
+  --color-ok-ink: var(--ok-ink);
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-ink: var(--danger-ink);
+  --color-info-tint: var(--info-tint);
+  --color-info-ink: var(--info-ink);
+  --color-neutral-tint: var(--neutral-tint);
+  --color-neutral-ink: var(--neutral-ink);
+  --color-scrim: var(--scrim);
+  --font-sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", "Arial Narrow", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --spacing-control-sm: var(--control-sm);
+  --spacing-control-md: var(--control-md);
+  --spacing-control-lg: var(--control-lg);
+  --spacing-control-xl: var(--control-xl);
+  --spacing-rail: var(--rail-w);
+  --spacing-header: var(--header-h);
+  --spacing-bottomnav: var(--bottom-nav-h);
+  --spacing-row: var(--row-h);
+  --shadow-pop: var(--shadow-overlay);
+}
+
+/* Escala tipográfica como utilidades: text-kpi, text-page-title, … */
+@utility text-kpi { font-family: var(--font-display); font-size: 40px; line-height: 40px; font-weight: 700; letter-spacing: 0; }
+@utility text-page-title { font-family: var(--font-display); font-size: 30px; line-height: 34px; font-weight: 700; letter-spacing: 0.005em; }
+@utility text-section-title { font-family: var(--font-display); font-size: 20px; line-height: 24px; font-weight: 700; letter-spacing: 0.01em; }
+@utility text-body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+@utility text-body-strong { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 600; }
+@utility text-input { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+@utility text-label { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 600; }
+@utility text-small { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
+@utility text-eyebrow { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.08em; }
+@utility text-touch-label { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+@utility text-table { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+@utility text-table-head { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; }
+@utility text-code { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 500; }
+@utility text-code-strong { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 600; }

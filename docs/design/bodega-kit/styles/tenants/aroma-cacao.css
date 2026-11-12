@@ -1,0 +1,14 @@
+/* Aroma Cacao S.A. usa los valores por defecto de tokens.css (paleta verde selva + mazorca). */
+[data-tenant="aroma-cacao"] {
+  --brand: #0b6e4f;
+  --brand-hover: #08583f;
+  --on-brand: #ffffff;
+  --brand-tint: #dcefe5;
+  --brand-ink: #075239;
+  --accent: #f2a900;
+  --on-accent: #1c1400;
+  --nav-bg: #0a3d2e;
+  --nav-active-bg: #14563f;
+  --nav-ink: #f1f8f4;
+  --nav-ink-muted: #b6d3c4;
+}

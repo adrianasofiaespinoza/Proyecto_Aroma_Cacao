@@ -1,0 +1,2 @@
+.pf-foot { display: flex; justify-content: flex-end; gap: var(--space-3); }
+@container (max-width: 640px) { .pf-foot { flex-direction: column-reverse; } .pf-foot .bd-btn { height: var(--control-xl); } }
