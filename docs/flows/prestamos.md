@@ -62,5 +62,5 @@ Registrar el préstamo de herramientas a trabajadores, que no necesitan una cuen
 
 ## 7. Pendiente
 
-- No hay restricción de categoría: cualquier producto activo se puede prestar. No se fijó la categoría "Tools" para no acoplar el sistema a un catálogo concreto.
+- No hay restricción de categoría: cualquier producto activo sin trazabilidad por lote se puede prestar. No se fijó la categoría "Tools" para no acoplar el sistema a un catálogo concreto.
 - No existe vista ni gestión de trabajadores (cargo, edición) aparte del autocompletado.

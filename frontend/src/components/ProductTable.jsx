@@ -1,4 +1,3 @@
-
 import React from 'react'
 
 export default function ProductTable({
@@ -11,7 +10,7 @@ export default function ProductTable({
   canManage,
   onEdit,
   onDeactivate,
-  onReactivate,
+  onLots,
 }) {
   if (loading) {
     return (
@@ -56,58 +55,35 @@ export default function ProductTable({
     <>
       {products.map((product) => {
         const isActive = product.status === 'active'
-        const isLowStock =
-          isActive &&
-          Number(product.current_stock) <= Number(product.minimum_stock)
-
+        const isLowStock = isActive && Number(product.current_stock) <= Number(product.minimum_stock)
         const unit = unitsById[product.unit_of_measure_id]
 
         return (
-          <tr
-            key={product.id}
-            className="hover:bg-accent/30 transition-colors"
-          >
-            {/* Código interno */}
-            <td className="px-4 py-3 font-mono text-xs">
-              {product.internal_code}
-            </td>
-
-            {/* Información del producto */}
+          <tr key={product.id} className="hover:bg-accent/30 transition-colors">
+            <td className="px-4 py-3 font-mono text-xs">{product.internal_code}</td>
             <td className="px-4 py-3">
               <div className="font-medium">
                 {product.name}
+                {product.requires_lot && (
+                  <span className="ml-2 inline-flex rounded-full bg-muted text-xs font-normal px-2 py-0.5">Lotes</span>
+                )}
               </div>
-
               <div className="text-xs text-muted-foreground">
-                {[product.brand, product.model]
-                  .filter(Boolean)
-                  .join(' - ')}
-
+                {[product.brand, product.model].filter(Boolean).join(' - ')}
                 {(product.brand || product.model) && ' · '}
-
                 {product.physical_location || 'Sin ubicación'}
               </div>
             </td>
-
-            {/* Categoría */}
             <td className="px-4 py-3 text-muted-foreground">
               {categoriesById[product.category_id]?.name || '—'}
             </td>
-
-            {/* Stock actual */}
             <td
               className={`px-4 py-3 text-right font-medium whitespace-nowrap ${
                 isLowStock ? 'text-destructive' : ''
               }`}
             >
               {product.current_stock}
-
-              {unit && (
-                <span className="ml-1 text-xs text-muted-foreground">
-                  {unit.abbreviation}
-                </span>
-              )}
-
+              {unit && <span className="ml-1 text-xs text-muted-foreground">{unit.abbreviation}</span>}
               {isLowStock && (
                 <i
                   className="bi bi-exclamation-triangle-fill ml-1 text-xs text-destructive"
@@ -115,13 +91,9 @@ export default function ProductTable({
                 ></i>
               )}
             </td>
-
-            {/* Stock mínimo */}
             <td className="px-4 py-3 text-right text-muted-foreground">
               {product.minimum_stock}
             </td>
-
-            {/* Estado del producto */}
             <td className="px-4 py-3">
               <span
                 className={`inline-flex rounded-full text-xs px-2 py-0.5 ${
@@ -133,12 +105,18 @@ export default function ProductTable({
                 {isActive ? 'Activo' : 'Inactivo'}
               </span>
             </td>
-
-            {/* Acciones disponibles para el coordinador */}
             <td className="px-4 py-3 text-right whitespace-nowrap">
+              {product.requires_lot && (
+                <button
+                  onClick={() => onLots(product)}
+                  className="text-muted-foreground hover:text-foreground p-1 transition"
+                  title="Ver lotes"
+                >
+                  <i className="bi bi-layers"></i>
+                </button>
+              )}
               {canManage && (
                 <>
-                  {/* Editar producto */}
                   <button
                     onClick={() => onEdit(product)}
                     className="text-muted-foreground hover:text-foreground p-1 transition"
@@ -146,25 +124,13 @@ export default function ProductTable({
                   >
                     <i className="bi bi-pencil"></i>
                   </button>
-
-                  {/* Desactivar o reactivar producto */}
-                  {isActive ? (
+                  {isActive && (
                     <button
                       onClick={() => onDeactivate(product)}
                       className="text-muted-foreground hover:text-destructive p-1 transition"
                       title="Desactivar producto"
-                      aria-label={`Desactivar ${product.name}`}
                     >
                       <i className="bi bi-slash-circle"></i>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => onReactivate(product)}
-                      className="text-muted-foreground hover:text-green-600 p-1 transition"
-                      title="Reactivar producto"
-                      aria-label={`Reactivar ${product.name}`}
-                    >
-                      <i className="bi bi-arrow-counterclockwise"></i>
                     </button>
                   )}
                 </>

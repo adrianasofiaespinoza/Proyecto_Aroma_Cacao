@@ -177,6 +177,14 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - Nota de publicación: la PR #4 se mergeó por error en `feature/users-machines-loans` (antes de que GitHub cambiara su base a `main`); su contenido llegó a `main` con la PR #5. Conviene evitar PRs apiladas.
 - `test_inventory_limits.py` ya no escribe en la BD real (transacción revertida).
 
+### E4. Lotes y vencimientos
+
+**Estado: implementado y probado (2026-11-05); pendiente de publicar.**
+
+- `product.requires_lot` (migración 002, aplicada en la BD local), endpoints `/lots` y `/products/{id}/lots`, movimientos que actualizan el lote, salidas y entradas de lotes vencidos bloqueadas y aviso a 30 días en el dashboard. Los productos con lotes no se prestan. Detalle en `docs/flows/lotes.md`.
+- Pruebas en `backend/tests/test_lots.py`. Total local: 74 pruebas aprobadas.
+- **Antes de desplegar:** si existe BD en Render, aplicar las migraciones 001 y 002 antes del merge; sin la 002, los endpoints de productos fallarán.
+
 ### F. Roles y permisos
 
 Las reglas acordadas para los movimientos son:

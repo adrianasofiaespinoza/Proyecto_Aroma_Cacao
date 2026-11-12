@@ -19,6 +19,7 @@ export default defineConfig({
       '/loans': 'http://127.0.0.1:8000',
       '/workers': 'http://127.0.0.1:8000',
       '/suppliers': 'http://127.0.0.1:8000',
+      '/lots': 'http://127.0.0.1:8000',
       '/public': 'http://127.0.0.1:8000',
       '/health': 'http://127.0.0.1:8000',
     },

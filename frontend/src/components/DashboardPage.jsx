@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { getAlerts, getLoans, getMovements, getProducts } from '../services/api.js'
+import { daysToExpire, formatExpiration, isLotExpired } from './lotUtils.js'
+import { getAlerts, getLoans, getLots, getMovements, getProducts } from '../services/api.js'
+
+// Días de anticipación del aviso; pasará a la configuración de la empresa
+const LOT_WARNING_DAYS = 30
 
 const TYPE_LABELS = { ENTRY: 'Entrada', EXIT: 'Salida', ADJUSTMENT: 'Ajuste' }
 
@@ -25,13 +29,14 @@ export default function DashboardPage() {
   const loadData = async () => {
     setError(null)
     try {
-      const [products, alerts, pending, loans] = await Promise.all([
+      const [products, alerts, pending, loans, expiringLots] = await Promise.all([
         getProducts(),
         getAlerts(),
         getMovements({ status: 'pending' }),
         getLoans(),
+        getLots({ expiringWithinDays: LOT_WARNING_DAYS }),
       ])
-      setData({ products, alerts, pending, loans })
+      setData({ products, alerts, pending, loans, expiringLots })
     } catch (err) {
       setError(err.message)
     }
@@ -77,6 +82,46 @@ export default function DashboardPage() {
         <SummaryCard label="Movimientos pendientes" value={data.pending.length} href="movimientos.html" />
         <SummaryCard label="Herramientas prestadas" value={loanedUnits} href="prestamos.html" />
       </div>
+
+      {data.expiringLots.length > 0 && (
+        <div className="bg-card border border-border rounded-xl overflow-hidden mb-4">
+          <div className="px-4 py-3 border-b border-border font-medium flex items-center gap-2">
+            <i className="bi bi-calendar-x text-destructive"></i>Lotes vencidos o por vencer ({LOT_WARNING_DAYS} días)
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-accent/40 text-muted-foreground">
+                <tr>
+                  <th className="text-left font-medium px-4 py-2">Producto</th>
+                  <th className="text-left font-medium px-4 py-2">Lote</th>
+                  <th className="text-left font-medium px-4 py-2">Vencimiento</th>
+                  <th className="text-right font-medium px-4 py-2">Cantidad</th>
+                  <th className="text-left font-medium px-4 py-2">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {data.expiringLots.map((lot) => {
+                  const expired = isLotExpired(lot)
+                  const days = daysToExpire(lot)
+                  return (
+                    <tr key={lot.id} className="hover:bg-accent/30">
+                      <td className="px-4 py-3">{productsById[lot.product_id]?.name || `Producto #${lot.product_id}`}</td>
+                      <td className="px-4 py-3 font-mono text-xs">{lot.lot_number}</td>
+                      <td className="px-4 py-3">{formatExpiration(lot)}</td>
+                      <td className="px-4 py-3 text-right">{lot.remaining_quantity}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full text-xs px-2 py-0.5 ${expired ? 'bg-destructive/15 text-destructive' : 'bg-chart-4/30'}`}>
+                          {expired ? 'Vencido' : days === 0 ? 'Vence hoy' : `Vence en ${days} días`}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 2xl:grid-cols-7 gap-4">
         <div className="2xl:col-span-4 bg-card border border-border rounded-xl overflow-hidden">

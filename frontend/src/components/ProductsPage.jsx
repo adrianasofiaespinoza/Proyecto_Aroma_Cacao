@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import ProductTable from './ProductTable.jsx'
 import ProductFormModal from './ProductFormModal.jsx'
-import { deactivateProduct, reactivateProduct, getCategories, getProducts, getUnits, tokenStorage } from '../services/api.js'
+import LotsModal from './LotsModal.jsx'
+import { deactivateProduct, getCategories, getProducts, getUnits, tokenStorage } from '../services/api.js'
 
 const byId = (items) => Object.fromEntries(items.map((item) => [item.id, item]))
 
@@ -22,6 +23,7 @@ export default function ProductsPage() {
 
   // null = cerrado, { product: null } = nuevo, { product } = edición
   const [editing, setEditing] = useState(null)
+  const [lotsOf, setLotsOf] = useState(null)
 
   const loadData = async () => {
     setLoading(true)
@@ -78,33 +80,6 @@ export default function ProductsPage() {
       window.alert(err.message)
     }
   }
-
-
-  // AC-7: Reactivar un producto desactivado.
-  const handleReactivate = async (product) => {
-    const confirmed = window.confirm(
-      `¿Reactivar ${product.internal_code} · ${product.name}?`
-    )
-
-    if (!confirmed) return
-
-    try {
-      // Solicitar la reactivación al backend.
-      const saved = await reactivateProduct(product.id)
-
-      // Actualizar el producto en la tabla.
-      setProducts((list) =>
-        list.map((p) => (p.id === saved.id ? saved : p))
-      )
-
-      // Mostrar un mensaje de confirmación.
-      setNotice(`Producto ${saved.internal_code} reactivado correctamente.`)
-    } catch (err) {
-      setNotice(null)
-      window.alert(err.message || 'Error al reactivar el producto')
-    }
-  }
-
 
   return (
     <>
@@ -186,7 +161,7 @@ export default function ProductsPage() {
                 canManage={canManage}
                 onEdit={(product) => setEditing({ product })}
                 onDeactivate={handleDeactivate}
-                onReactivate={handleReactivate}
+                onLots={setLotsOf}
               />
             </tbody>
           </table>
@@ -197,6 +172,8 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
+
+      {lotsOf && <LotsModal product={lotsOf} onClose={() => setLotsOf(null)} />}
 
       {editing && (
         <ProductFormModal

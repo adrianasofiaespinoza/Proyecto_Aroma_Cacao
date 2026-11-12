@@ -1,289 +1,165 @@
-# Aroma Cacao S.A. — Inventory Management System
+# Aroma Cacao: Inventory Management System
 
-## 1. Project Context
+A web application for managing the tools, spare parts, supplies, equipment, and materials of a maintenance department. It records stock levels, requires authorization before stock changes, raises low-stock alerts, and keeps a record of who requested and authorized each movement.
 
-### 1.1 Company and Problem
+The system is being built and validated with **Aroma Cacao S.A.**, an Ecuadorian cocoa exporter. It is designed to be reused by other companies: each company gets its own installation with its own configuration (see [docs/decisions/001-una-instalacion-por-empresa.md](docs/decisions/001-una-instalacion-por-empresa.md)).
 
-Aroma Cacao S.A. is an Ecuadorian cocoa export company. Its maintenance department requires a web-based inventory management system to organize and manage the tools, spare parts, supplies, equipment, and materials used in daily maintenance operations.
-
-The proposed system aims to improve inventory organization, stock visibility, traceability, and control over inventory transactions. It should support reliable stock records, controlled access to information, authorization of inventory movements, and identification of products requiring replenishment.
-
-The application is intended to be a responsive web application, not a native mobile application.
-
-### 1.2 Main Functional Requirements
-
-#### Product and Stock Management
-
-The system is expected to support:
-
-- Registering, editing, searching, and deactivating products while preserving historical records.
-- Classifying products into tools, spare parts, supplies, equipment, and materials.
-- Recording internal product codes, names, brands, models, part numbers when applicable, units of measurement, and physical workshop locations.
-- Defining current, minimum, and maximum stock levels.
-- Detecting products whose current stock is less than or equal to the minimum threshold.
-- Displaying low-stock alerts within the application.
-- Maintaining an expandable catalog of units of measurement.
-- Tracking batches, expiration dates, and remaining quantities for products that require traceability.
-
-#### Supplier Management
-
-The system is expected to support:
-
-- Registering suppliers and their contact information.
-- Associating products with one or more suppliers.
-- Recording supplier-specific prices for products.
-- Querying supplier information.
-
-#### Machine and Spare-Part Management
-
-The system is expected to support:
-
-- Registering machines with names, identification codes, and physical plant locations.
-- Associating spare parts with one or more machines.
-- Recording the destination machine for relevant outgoing inventory movements.
-
-#### Inventory Movements and Authorization
-
-The system is expected to support:
-
-- Recording incoming transactions, outgoing transactions, and stock adjustments.
-- Recording the product, quantity, date, requesting user, applicable batch, destination machine, reason for outgoing transactions, and work-order reference when available.
-- Requiring Coordinator authorization before executing inventory movements requested by Operators.
-- Updating stock only when the corresponding movement is authorized and executed.
-- Allowing the Coordinator to explicitly authorize an outgoing movement exceeding available stock in exceptional circumstances, such as emergencies.
-- Retaining inventory movement history for at least one year for auditing purposes.
-
-#### Tool Loans
-
-The system is expected to support:
-
-- Registering tool loans to workers, including workers without system accounts.
-- Tracking loan status and returns.
-
-#### User Management and Access Control
-
-The system defines three roles:
-
-1. **Coordinator:** Full administrative access, including user, product, and supplier management and authorization of inventory movements.
-2. **Operator:** Can request incoming and outgoing inventory transactions. These transactions require Coordinator authorization before execution.
-3. **Read-only:** Can consult permitted information but cannot perform inventory operations.
-
-The system should support user registration, login, active or inactive account status, and the creation of additional users as the maintenance team grows.
-
-### 1.3 Out-of-Scope Functionality
-
-The following features are outside the defined project scope:
-
-- Email or SMS notifications; low-stock alerts are displayed within the application.
-- Exporting data or reports to Excel or PDF.
-- Advanced consumption analytics, usage trends, or cost analysis.
-- A complete purchase-order management module.
-- A complete work-order management module; only a reference number is stored when applicable.
-- Integration with external ERP, accounting, procurement, or other systems.
-- A native mobile application.
-- A separate Administrator role; the Coordinator role provides administrative access.
-- Permanent deletion of products; products are deactivated to preserve historical records.
-- Social authentication through Google, GitHub, or other external identity providers.
-
-These requirements define the intended scope of the system and do not imply that all listed features have been implemented.
+- **Public API:** <https://aroma-cacao.onrender.com> (health check at `/health`, interactive docs at `/docs`)
+- **Detailed project status:** [docs/contexto_proyecto.md](docs/contexto_proyecto.md)
 
 ---
 
-## 2. Technology Stack
+## Features
 
-The selected technology stack is:
+| Module | What it does |
+|---|---|
+| **Authentication** | Email and password login, JWT access tokens, refresh tokens with rotation and revocation, and "Remember me". |
+| **Users and roles** | Coordinators create and deactivate users. Deactivating a user revokes their sessions. |
+| **Products** | Create, edit, search, and deactivate products (they are never deleted). Products have categories, units, and minimum and maximum stock levels. |
+| **Inventory movements** | Entries, exits, and adjustments are created as **pending** requests. Stock changes only when a Coordinator **authorizes** a request, and a rejected request has no effect. |
+| **Low-stock alerts** | An alert is raised when `current_stock <= minimum_stock` and resolved automatically when the stock recovers. |
+| **Lots and expiration** | Products can require lot tracking. Each lot has an expiration date and a remaining quantity, expired lots cannot be used, and lots close to expiring are flagged. |
+| **Machines** | Machines with location and compatible spare parts. Exits can record the destination machine. |
+| **Tool loans** | Loans to workers (who do not need an account) and returns. A loan does not change the stock: *available = stock − loaned*. |
+| **Suppliers** | Supplier contacts and reference prices per product. |
+| **Dashboard** | Active products, low stock, pending movements, loaned tools, and expiring lots. |
 
-| Technology           | Purpose                                              |
-| -------------------- | ---------------------------------------------------- |
-| React                | Frontend development and interactive user interfaces |
-| Tailwind CSS         | Styling and responsive interface design              |
-| Python               | Backend programming language                         |
-| FastAPI              | Backend development and REST API endpoints           |
-| PostgreSQL           | Relational database management                       |
-| SQLAlchemy           | Object-relational mapping and database interaction   |
-| Pydantic             | Request validation and data schemas                  |
-| JWT                  | Token-based authentication                           |
-| Argon2               | Password hashing                                     |
-| OpenAPI / Swagger UI | API documentation and endpoint exploration           |
-| Postman              | API testing                                          |
+### Roles
 
-The backend follows a client-server approach in which the frontend communicates with the FastAPI REST API through HTTP requests and JSON. SQLAlchemy provides database interaction with PostgreSQL.
+| | Coordinator | Operator | Read-only |
+|---|:---:|:---:|:---:|
+| View inventory, movements, and reports | ✓ | ✓ | ✓ |
+| Request movements | ✓ | ✓ | |
+| Authorize or reject movements | ✓ | | |
+| Register loans and returns | ✓ | ✓ | |
+| Manage products, machines, suppliers, and users | ✓ | | |
 
-The actual implementation and integration of each technology should be verified in the repository before assuming that the entire application is complete.
+Permissions are enforced by the backend, not only hidden in the interface.
 
----
+### Key business rules
 
-## 3. Current API Implementation
+- Stock is never edited directly; it only changes through authorized movements.
+- An exit that exceeds the available quantity is always rejected.
+- A reason is required for exits and adjustments.
+- An adjustment records the quantity counted in the warehouse. When it is authorized, stock becomes *counted + loaned*.
 
-The project includes a REST API developed with Python and FastAPI. The implementation details below are based on the available project documentation and must be distinguished from the completion status of the overall inventory management system.
+Each module's rules, endpoints, and tests are documented in [docs/flows/](docs/flows/).
 
-**Current development status:** Authentication is the main functionality reported as implemented. Other documented endpoints and business rules require verification against the source code and actual runtime behavior.
+### Out of scope
 
-### 3.1 Authentication and User Management
-
-The documented API includes:
-
-| Endpoint               | Intended purpose                                        |
-| ---------------------- | ------------------------------------------------------- |
-| `POST /auth/register`  | Register a user                                         |
-| `POST /auth/login`     | Authenticate a user                                     |
-| `POST /auth/refresh`   | Obtain a new access token using a refresh token         |
-| `POST /auth/logout`    | Revoke a refresh token                                  |
-| `GET /users/me`        | Retrieve the currently authenticated user's information |
-| `GET /public/info`     | Access public application information                   |
-| `GET /public/products` | Access public product information                       |
-
-The documented authentication implementation includes:
-
-- Argon2 password hashing instead of plaintext password storage.
-- JWT access tokens for protected API endpoints.
-- Refresh tokens stored as hashes and supporting revocation.
-- A Remember Me feature based on refresh tokens.
-- Identification of the authenticated user through the access token.
-- Three application roles: Coordinator, Operator, and Read-only.
-- Protected endpoints with role-based access restrictions.
-
-Access tokens are sent through the following HTTP header:
-
-`Authorization: Bearer <access_token>`
-
-The backend is expected to validate the token and use the authenticated identity when processing protected operations.
-
-The API uses internal authentication based on application credentials and tokens. Social login is outside the project scope.
-
-Token expiration policies, refresh-token rotation, browser storage, cookie configuration, signing algorithms, and other security details must not be assumed unless verified in the implementation.
-
-### 3.2 API Architecture and Validation
-
-The backend uses:
-
-- FastAPI to define endpoints and process requests.
-- Pydantic to validate request data and define schemas.
-- JSON for API requests and responses.
-- SQLAlchemy for database interaction.
-- PostgreSQL for persistent relational storage.
-- OpenAPI and Swagger UI for API documentation, with the documentation interface reported at `/docs`.
-- Postman and Swagger UI for endpoint testing.
-
-The existence of a working API does not establish that the React and Tailwind CSS frontend is complete or fully integrated.
-
-### 3.3 Database Entities
-
-The documented data model includes entities such as:
-
-- `User`
-- `Product`
-- `Movement`
-- `MovementDetail`
-- `Alert`
-- `Category`
-- `UnitOfMeasure`
-- `Supplier`
-- `ProductSupplier`
-- `Machine`
-- `ProductMachine`
-- `Lot`
-- `Worker`
-- `Loan`
-- `RefreshToken`
-
-These entities describe the reported or intended data model. Their presence in source code does not independently prove that all database tables, relationships, migrations, or associated workflows are operational.
-
-PostgreSQL is the selected database, but the actual schema, connection configuration, migration status, and persistence behavior must be verified directly.
-
-### 3.4 Product Management
-
-The API documentation describes product operations for:
-
-- Creating products.
-- Listing products.
-- Retrieving individual products.
-- Updating products.
-- Deactivating products through logical deletion.
-
-Documented validations include unique internal product codes, valid category and unit references, valid minimum stock, and a maximum stock level that cannot be lower than the minimum.
-
-These operations must be checked against the current source code before being considered fully implemented.
-
-### 3.5 Inventory Movement Logic
-
-The documented movement types are:
-
-- `ENTRY`: Adds stock.
-- `EXIT`: Removes stock.
-- `ADJUSTMENT`: Sets the recorded stock to a specified quantity.
-
-The documented statuses include `pending` and `authorized`.
-
-The described behavior is:
-
-- Operators can request movements.
-- Coordinators can authorize movements.
-- Requesting and authorizing user IDs are recorded.
-- Incoming movements add the authorized quantity to current stock.
-- Outgoing movements check stock availability before subtracting the requested quantity.
-- Adjustments set stock to the specified quantity, with negative quantities rejected by validation.
-
-Pending movements should not affect official stock before authorization and execution.
-
-**Known requirement/API discrepancy:** The project requirements permit a Coordinator to authorize an outgoing movement that exceeds available stock in exceptional circumstances. The documented API behavior rejects outgoing movements that exceed current stock. This discrepancy remains a point requiring investigation and clarification. The exceptional authorization must not be described as implemented unless the source code and tests confirm it.
-
-### 3.6 Low-Stock Alerts
-
-The documented alert rule is:
-
-`current_stock <= minimum_stock`
-
-When the condition is met, the API is described as creating an alert. Duplicate active alerts for the same product are prevented, and alerts have active or resolved states.
-
-The documented behavior generates alerts after movements are authorized. Whether every stock-changing operation triggers the appropriate alert must be verified.
-
-Alerts are intended to be displayed within the application. Email and SMS notifications are out of scope.
-
-### 3.7 Traceability
-
-The documented movement model records:
-
-- `requesting_user_id`: the user who requested the movement.
-- `authorizing_user_id`: the user who authorized the movement.
-
-These identities are derived from the authenticated user rather than relying solely on a freely supplied user ID from the client.
-
-This provides a basis for identifying who requested and authorized inventory transactions.
-
-However, this does not by itself prove that the system enforces the required one-year retention period, preserves every relevant historical change, or provides tamper-resistant audit logs. Those requirements need separate verification.
-
-###
+Email or SMS notifications, export to Excel or PDF, advanced analytics, full purchase-order or work-order modules, ERP integration, a native mobile app, and social login.
 
 ---
 
-## 4. Current Development Status
+## Technology
 
-Authentication is the main functionality currently reported as implemented. The status of the remaining modules must be established by inspecting the repository and testing the application.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS v4, Bootstrap Icons |
+| Backend | Python, FastAPI, SQLAlchemy, Pydantic |
+| Security | JWT (`python-jose`), Argon2id password hashing (`pwdlib`) |
+| Database | PostgreSQL 17 (Docker) |
+| Quality | pytest, Ruff, GitHub Actions |
+| Deployment | Render (API) |
 
-The following areas require verification:
+```
+Browser (React)  ──HTTP/JSON──>  FastAPI REST API  ──SQLAlchemy──>  PostgreSQL
+```
 
-- PostgreSQL connection, schema, and migrations.
-- User and role management.
-- Product management.
-- Inventory movement workflows and stock updates.
-- Coordinator authorization and the exceptional-overstock rule.
-- Low-stock alert behavior.
-- Supplier management.
-- Lot and expiration tracking.
-- Machine and spare-part associations.
-- Tool loans and returns.
-- Movement-history retention.
-- React frontend implementation and integration.
-- Automated test coverage.
+---
 
-When evaluating any feature, distinguish between:
+## Project structure
 
-- **Implemented and tested:** Working behavior has been verified through relevant tests.
-- **Implemented but not fully tested:** Code exists, but verification is incomplete.
-- **Partially implemented:** Only some required behavior is available.
-- **Defined but unverified:** Models, schemas, endpoints, or documentation exist, but operational behavior has not been established.
-- **Not implemented:** The required functionality is missing.
-- **Unknown:** There is insufficient evidence to determine its status.
+```
+backend/      FastAPI application (app/) and tests (tests/)
+frontend/     React pages (one HTML entry per page) and the API client
+database/     schema.sql and numbered SQL migrations
+docs/         project status, flows, decisions, and the work plan
+.github/      CI workflow and pull request template
+```
 
-AI assistants and developers working on this project should inspect the existing code before making changes or asserting implementation status. Requirements describe the intended system; the source code and verified test results determine what is actually implemented.
+---
+
+## Getting started (local development)
+
+Requirements: Git, Docker, Python 3.12+, and Node.js 20+.
+
+**1. Database**
+
+```bash
+docker run -d --name aroma-postgres \
+  -e POSTGRES_USER=aroma_user -e POSTGRES_PASSWORD=YOUR_PASSWORD \
+  -e POSTGRES_DB=aroma_inventory \
+  -p 5432:5432 -v aroma_pgdata:/var/lib/postgresql/data postgres:17
+
+docker exec -i aroma-postgres psql -U aroma_user -d aroma_inventory < database/schema.sql
+```
+
+If your database was created from an older `schema.sql`, apply the files in `database/migrations/` in order.
+
+**2. Backend**
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env        # set DATABASE_URL and JWT_SECRET (at least 32 characters)
+uvicorn app.main:app --reload
+```
+
+Check that <http://127.0.0.1:8000/health> returns `{"status":"ok"}`. The API documentation is at <http://127.0.0.1:8000/docs>.
+
+**3. Frontend**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173/login.html>. Vite forwards API requests to the local backend.
+
+The step-by-step team guide, including creating the first Coordinator account, is in [docs/plan/guia-trabajo-equipo.md](docs/plan/guia-trabajo-equipo.md).
+
+---
+
+## Tests and CI
+
+```bash
+cd backend
+ruff check .
+pytest -v
+```
+
+Some tests need the local PostgreSQL database. They run inside a transaction that is rolled back, so the data is not changed.
+
+GitHub Actions runs Ruff and the tests that do not need a database on every pull request to `main`. `main` is protected: changes need a pull request and a passing `validate` check. Every merge to `main` is deployed to Render automatically.
+
+---
+
+## Status and roadmap
+
+All the modules listed above are implemented, covered by automated tests, and connected to the interface. Lots and expiration are under review before they are merged into `main`.
+
+Next steps, planned in five sprints:
+
+1. **Complete features:** editable catalogs, movements with several products, and reactivating products.
+2. **Security:** close public registration, invalidate access tokens on logout, limit login attempts, and let users change their password.
+3. **Per-company configuration:** versioned migrations, company settings and branding, optional modules, and an installation script.
+4. **Infrastructure:** production hosting for the frontend and database, backups, and monitoring.
+5. **Go-live:** import from Excel or CSV, real data, acceptance testing with staff, and user guides.
+
+The full backlog is in [docs/plan/](docs/plan/). For verified versus pending items, see [docs/contexto_proyecto.md](docs/contexto_proyecto.md).
+
+---
+
+## Documentation
+
+| Path | Content |
+|---|---|
+| [docs/contexto_proyecto.md](docs/contexto_proyecto.md) | Current status, decisions, and working rules |
+| [docs/flows/](docs/flows/) | Behavior of each module: rules, endpoints, errors, and tests |
+| [docs/decisions/](docs/decisions/) | Architecture decisions |
+| [docs/plan/](docs/plan/) | Backlog, Jira guide, and team workflow |
+| [docs/authentication.md](docs/authentication.md) | Authentication details |
