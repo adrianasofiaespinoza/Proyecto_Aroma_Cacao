@@ -1,0 +1,16 @@
+/* Ejemplo de segunda empresa (ficticia). Solo estos 11 tokens cambian por empresa; los de estado nunca.
+   Contraste mínimo a verificar: brand/surface 4.5, on-brand/brand y brand-hover 4.5, brand-ink/brand-tint 4.5,
+   accent/nav-bg 3, nav-ink-muted/nav-active-bg 4.5. Repite el bloque para [data-theme="oscuro"] si la empresa lo necesita. */
+[data-tenant="envases-litoral"] {
+  --brand: #1d4e7a;
+  --brand-hover: #163d60;
+  --on-brand: #ffffff;
+  --brand-tint: #dbe7f2;
+  --brand-ink: #173f63;
+  --accent: #e3b341;
+  --on-accent: #1a1406;
+  --nav-bg: #14212c;
+  --nav-active-bg: #23384a;
+  --nav-ink: #eef3f7;
+  --nav-ink-muted: #b5c3cf;
+}

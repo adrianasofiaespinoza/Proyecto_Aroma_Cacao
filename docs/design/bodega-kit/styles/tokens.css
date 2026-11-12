@@ -1,0 +1,215 @@
+/* Bodega — tokens generados desde design-system/tokens.json. No editar a mano. */
+
+@font-face { font-family: "Barlow"; src: url("../fonts/barlow-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Barlow"; src: url("../fonts/barlow-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Barlow"; src: url("../fonts/barlow-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Barlow"; src: url("../fonts/barlow-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Barlow Condensed"; src: url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "Barlow Condensed"; src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "IBM Plex Mono"; src: url("../fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "IBM Plex Mono"; src: url("../fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+:root, [data-theme="claro"] {
+  --ground: #f3f6f1;
+  --surface: #fcfdfb;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e8eee4;
+  --line: #d3dccd;
+  --line-strong: #6b7b68;
+  --ink: #12211a;
+  --ink-muted: #475a4e;
+  --nav-bg: #0a3d2e;
+  --nav-active-bg: #14563f;
+  --nav-ink: #f1f8f4;
+  --nav-ink-muted: #b6d3c4;
+  --brand: #0b6e4f;
+  --brand-hover: #08583f;
+  --on-brand: #ffffff;
+  --brand-tint: #dcefe5;
+  --brand-ink: #075239;
+  --accent: #f2a900;
+  --on-accent: #1c1400;
+  --focus: #1458c8;
+  --pending-tint: #fff1cc;
+  --pending-stripe: #ffe39a;
+  --pending-ink: #6b4500;
+  --pending-edge: #b07800;
+  --ok: #0b5e8e;
+  --on-ok: #ffffff;
+  --ok-tint: #dcecf7;
+  --ok-ink: #08466b;
+  --danger: #c0262d;
+  --on-danger: #ffffff;
+  --danger-tint: #fde1e0;
+  --danger-ink: #9a1b21;
+  --info-tint: #e6eaee;
+  --info-ink: #36424f;
+  --neutral-tint: #e6eae2;
+  --neutral-ink: #434f46;
+  --scrim: rgba(5, 25, 18, 0.6);
+  --shadow-overlay: 0 16px 40px rgba(36, 24, 15, 0.28);
+}
+
+[data-theme="oscuro"] {
+  --ground: #0c1612;
+  --surface: #13201a;
+  --surface-raised: #1a2a22;
+  --surface-sunken: #08100c;
+  --line: #26382e;
+  --line-strong: #6f8a7c;
+  --ink: #eef5f0;
+  --ink-muted: #a9bdb1;
+  --nav-bg: #06110c;
+  --nav-active-bg: #123326;
+  --nav-ink: #eef5f0;
+  --nav-ink-muted: #9fbcae;
+  --brand: #4fc79a;
+  --brand-hover: #73d6b0;
+  --on-brand: #04140d;
+  --brand-tint: #123a2b;
+  --brand-ink: #8be0bf;
+  --accent: #f5b82e;
+  --on-accent: #1a1200;
+  --focus: #7fb5f0;
+  --pending-tint: #3a2c0a;
+  --pending-stripe: #4d3a10;
+  --pending-ink: #f6cf72;
+  --pending-edge: #c9952e;
+  --ok: #5fb3e6;
+  --on-ok: #04192a;
+  --ok-tint: #10293b;
+  --ok-ink: #9dd0f2;
+  --danger: #f2807a;
+  --on-danger: #250606;
+  --danger-tint: #3d1416;
+  --danger-ink: #f7a9a4;
+  --info-tint: #1c252d;
+  --info-ink: #b8c6d2;
+  --neutral-tint: #1f2a24;
+  --neutral-ink: #c3d0c8;
+  --scrim: rgba(0, 0, 0, 0.72);
+  --shadow-overlay: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="contraste"] {
+  --ground: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #ebebeb;
+  --line: #595959;
+  --line-strong: #000000;
+  --ink: #000000;
+  --ink-muted: #1f1f1f;
+  --nav-bg: #000000;
+  --nav-active-bg: #333333;
+  --nav-ink: #ffffff;
+  --nav-ink-muted: #d9d9d9;
+  --brand: #00563b;
+  --brand-hover: #003d29;
+  --on-brand: #ffffff;
+  --brand-tint: #e0f2e9;
+  --brand-ink: #003d29;
+  --accent: #f0b429;
+  --on-accent: #000000;
+  --focus: #0040b0;
+  --pending-tint: #fff1c2;
+  --pending-stripe: #ffd54a;
+  --pending-ink: #3d2600;
+  --pending-edge: #000000;
+  --ok: #00466e;
+  --on-ok: #ffffff;
+  --ok-tint: #e0f0fb;
+  --ok-ink: #003355;
+  --danger: #8e0f05;
+  --on-danger: #ffffff;
+  --danger-tint: #ffe3de;
+  --danger-ink: #6a0900;
+  --info-tint: #ebebeb;
+  --info-ink: #1a1a1a;
+  --neutral-tint: #ebebeb;
+  --neutral-ink: #1a1a1a;
+  --scrim: rgba(0, 0, 0, 0.72);
+  --shadow-overlay: 0 0 0 2px #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --ground: #0c1612;
+    --surface: #13201a;
+    --surface-raised: #1a2a22;
+    --surface-sunken: #08100c;
+    --line: #26382e;
+    --line-strong: #6f8a7c;
+    --ink: #eef5f0;
+    --ink-muted: #a9bdb1;
+    --nav-bg: #06110c;
+    --nav-active-bg: #123326;
+    --nav-ink: #eef5f0;
+    --nav-ink-muted: #9fbcae;
+    --brand: #4fc79a;
+    --brand-hover: #73d6b0;
+    --on-brand: #04140d;
+    --brand-tint: #123a2b;
+    --brand-ink: #8be0bf;
+    --accent: #f5b82e;
+    --on-accent: #1a1200;
+    --focus: #7fb5f0;
+    --pending-tint: #3a2c0a;
+    --pending-stripe: #4d3a10;
+    --pending-ink: #f6cf72;
+    --pending-edge: #c9952e;
+    --ok: #5fb3e6;
+    --on-ok: #04192a;
+    --ok-tint: #10293b;
+    --ok-ink: #9dd0f2;
+    --danger: #f2807a;
+    --on-danger: #250606;
+    --danger-tint: #3d1416;
+    --danger-ink: #f7a9a4;
+    --info-tint: #1c252d;
+    --info-ink: #b8c6d2;
+    --neutral-tint: #1f2a24;
+    --neutral-ink: #c3d0c8;
+    --scrim: rgba(0, 0, 0, 0.72);
+    --shadow-overlay: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 48px;
+  --control-xl: 60px;
+  --rail-w: 104px;
+  --header-h: 60px;
+  --bottom-nav-h: 68px;
+  --row-h: 44px;
+  --stroke-hair: 1px;
+  --stroke-control: 2px;
+  --stroke-rule: 3px;
+  --font-sans: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", "Arial Narrow", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+}

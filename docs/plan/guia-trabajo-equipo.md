@@ -113,7 +113,7 @@ npm install
 npm run dev
 ```
 
-Abre <http://localhost:5173/login.html> e inicia sesión. El frontend usa el backend local a través del proxy de Vite.
+Abre <http://localhost:5173/login> e inicia sesión. El frontend usa el backend local a través del proxy de Vite. Antes de subir cambios del frontend, ejecuta `npm run typecheck`, `npm test` y `npm run build`. La estructura está explicada en `docs/architecture/frontend.md`.
 
 ---
 

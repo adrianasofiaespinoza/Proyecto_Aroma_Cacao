@@ -1,0 +1,4 @@
+.pv-sup { padding: 0 var(--space-6) var(--space-5); display: grid; gap: var(--space-4); }
+.pv-sup-call { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.pv-sup-note { margin: 0; padding: var(--space-3) var(--space-6); font: 500 13px/18px var(--font-sans); color: var(--ink-muted); }
+@container (max-width: 640px) { .pv-sup { padding: 0 var(--space-4) var(--space-4); } .pv-sup-note { padding: var(--space-3) var(--space-4); } }

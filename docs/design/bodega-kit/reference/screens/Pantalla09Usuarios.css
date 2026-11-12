@@ -1,0 +1,2 @@
+.us-role { display: inline-flex; gap: 6px; align-items: center; font: 600 14px/20px var(--font-sans); }
+.us-role .bd-icon { width: 14px; height: 14px; color: var(--ink-muted); }

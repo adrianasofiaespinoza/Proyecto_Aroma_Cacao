@@ -1,0 +1,18 @@
+.lg { height: 100%; overflow: auto; background: var(--nav-bg); display: grid; place-items: center; padding: var(--space-8) var(--space-6); border-top: 8px solid var(--accent); }
+.lg-form { width: 100%; max-width: 520px; display: grid; gap: var(--space-6); }
+.lg-brand { display: grid; gap: var(--space-2); text-align: center; }
+.lg-co { font: 700 72px/68px var(--font-display); letter-spacing: -.005em; color: var(--nav-ink); }
+.lg-prod { font: 700 14px/18px var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+.lg-panel { display: grid; gap: var(--space-5); padding: var(--space-8); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.lg-panel h1 { margin: 0; font: 700 34px/38px var(--font-display); color: var(--ink); }
+.lg-sub { margin: -12px 0 0; font: 400 16px/24px var(--font-sans); color: var(--ink-muted); }
+.lg-help { margin: 0; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); text-align: center; }
+.lg-foot { font: 500 13px/18px var(--font-sans); color: var(--nav-ink-muted); text-align: center; }
+.lg-pw { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); }
+.lg-pw > * { min-width: 0; }
+.lg-pw .bd-iconbtn { width: var(--control-lg); height: var(--control-lg); border: var(--stroke-control) solid var(--line-strong); background: var(--surface-raised); color: var(--ink); }
+@container (max-width: 640px) {
+  .lg { place-items: start stretch; padding: var(--space-8) var(--space-4) var(--space-6); }
+  .lg-co { font-size: 48px; line-height: 46px; }
+  .lg-panel { padding: var(--space-5) var(--space-4); }
+}

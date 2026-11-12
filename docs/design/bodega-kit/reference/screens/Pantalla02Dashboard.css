@@ -1,0 +1,14 @@
+.db-pend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.db-pend li { display: grid; grid-template-columns: 1fr auto; gap: 4px var(--space-3); align-items: center; padding: var(--space-3); border: var(--stroke-control) dashed var(--pending-edge); border-radius: var(--radius-sm); color: var(--pending-ink); }
+.db-pend-top { display: flex; gap: var(--space-2); align-items: center; grid-column: 1 / -1; }
+.db-pend-time { margin-left: auto; font: 600 13px/18px var(--font-sans); font-variant-numeric: tabular-nums; }
+.db-pend-item { font: 400 15px/20px var(--font-sans); color: var(--ink); }
+.db-pend-item b { font-weight: 600; }
+.db-pend-by { font: 500 13px/18px var(--font-sans); grid-column: 1; }
+.db-pend li > .bd-btn, .db-pend li > .bd-badge { grid-column: 2; grid-row: 2 / span 2; }
+.db-pend .bd-code, .db-pend .bd-type { background: var(--surface-raised); }
+.db-hello { font: 700 28px/32px var(--font-display); }
+.db-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.db-actions .bd-btn { height: 88px; flex-direction: column; gap: 6px; white-space: normal; text-align: center; font-size: 16px; line-height: 20px; padding: 0 var(--space-2); }
+.db-actions .bd-btn .bd-icon { width: 26px; height: 26px; }
+@container (max-width: 640px) { .db-pend li > .bd-btn, .db-pend li > .bd-badge { grid-column: 1; grid-row: auto; justify-self: start; } }

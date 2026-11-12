@@ -35,6 +35,26 @@ Router:
 
 Antes de esta revisión, un texto demasiado largo o un número fuera de rango llegaba a PostgreSQL y devolvía `500`. Ahora devuelve `422` (probado en `test_schema_validation.py`).
 
+### Por qué existe un stock máximo
+
+El mínimo y el máximo siguen el método de inventario **mínimo–máximo**, habitual en bodegas de repuestos de mantenimiento:
+
+- **Mínimo:** cuándo hay que reponer. Si el stock llega a ese valor, se genera la alerta de stock bajo, para pedir la pieza antes de que una máquina se quede parada por falta de ella.
+- **Máximo:** hasta cuánto reponer. La cantidad a pedir es `máximo − stock actual`. Por ejemplo, con 2 u. en bodega, mínimo 8 y máximo 40, se piden 38 u.
+
+El tope evita acumular de más, por tres razones:
+
+- **Dinero inmovilizado:** cada repuesto en el estante es dinero que no se usa en otra cosa.
+- **Vencimiento o deterioro:** grasas, aceites, sellos y mangueras se dañan con el tiempo.
+- **Espacio físico:** cuenta, sobre todo con piezas grandes, pero es secundario.
+
+**Uso actual en el sistema:** el máximo solo se guarda y se valida que no sea menor que el mínimo. No bloquea entradas que lo superen ni genera avisos. En el frontend es solo informativo: la barra de stock y la leyenda «Mín. X · Máx. Y».
+
+**Ideas no implementadas** (hay que acordarlas con el equipo):
+
+- mostrar la cantidad sugerida a pedir (`máximo − actual`) en las alertas de stock bajo;
+- marcar los productos que superan su máximo, para no seguir comprando.
+
 ## 4. Desactivación
 
 `DELETE` es un borrado lógico (`status = 'inactive'`) que resuelve las alertas activas. Un producto inactivo no admite nuevas solicitudes de movimiento ni autorizaciones. No existe reactivación.
