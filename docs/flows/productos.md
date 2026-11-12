@@ -54,6 +54,8 @@ Componente `frontend/src/components/ProductsPage.jsx` (con `ProductTable.jsx` y 
 
 Verificado en el navegador (2026-11-01) como `Coordinator` y `Read-only`, sin escrituras: listado, filtros, visibilidad por rol, error de validación, `409` por código duplicado y stock deshabilitado al editar.
 
+Trazabilidad por lote: casilla `requires_lot`, solo modificable con stock 0 (ver `lotes.md`).
+
 ## 7. Pendiente
 
 - La creación y la edición se verificaron en el navegador con el backend en modo sandbox (transacción revertida). Falta la desactivación desde el navegador y la prueba con credenciales reales.

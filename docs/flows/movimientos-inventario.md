@@ -120,7 +120,8 @@ Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimie
 - **Revisar** (solo `Coordinator`, movimientos pendientes): muestra los detalles con el stock actual (y lo prestado, si hay) y el resultante, y ofrece Autorizar o Rechazar. Autorizar se deshabilita si una salida supera lo disponible. El formulario de nueva solicitud también muestra lo prestado y avisa con el mismo criterio. Tras la acción, recarga los movimientos y productos.
 - **Ver detalle** (resto de casos): solo lectura, incluido quién autorizó o rechazó.
 - En las salidas, el selector "Máquina destino (opcional)" lista primero las máquinas compatibles con el producto (ver `maquinas.md`). El detalle muestra la máquina.
-- Limitaciones actuales: la interfaz crea solicitudes de un solo detalle y no tiene selector de lote, porque no existe un endpoint de lotes. La fecha la asigna el servidor.
+- En productos con lotes, el formulario pide el lote y permite registrar uno nuevo en las entradas (ver `lotes.md`).
+- Limitaciones actuales: la interfaz crea solicitudes de un solo detalle. La fecha la asigna el servidor.
 
 ## 9. Pruebas
 
@@ -139,8 +140,7 @@ El 2026-11-01 también se verificaron las escrituras desde el navegador, con el 
 ## 10. Pendiente
 
 - Crear → autorizar y crear → rechazar con datos persistentes: verificado solo en el sandbox (con tokens generados localmente) y en las pruebas automáticas. El inicio de sesión real ya se verificó el 2026-11-03.
-- `EXIT` con lote: `lot.remaining_quantity` no se descuenta al autorizar.
-- Lotes y máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Si se agrega, habrá que validarlo al crear y al autorizar.
+- Máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Los lotes se controlan por vencimiento (ver `lotes.md`).
 - Un `ADJUSTMENT` con dos detalles del mismo producto aplica el último; no se rechaza la duplicidad.
 - Concurrencia: el bloqueo pesimista está implementado, pero no se ha probado con transacciones concurrentes reales.
 - `test_movements_flow.py` y `test_inventory_limits.py` no se ejecutan en CI porque requieren PostgreSQL. `test_schema_validation.py` podría agregarse a CI, ya que no la necesita.

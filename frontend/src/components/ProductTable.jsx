@@ -10,6 +10,7 @@ export default function ProductTable({
   canManage,
   onEdit,
   onDeactivate,
+  onLots,
 }) {
   if (loading) {
     return (
@@ -61,7 +62,12 @@ export default function ProductTable({
           <tr key={product.id} className="hover:bg-accent/30 transition-colors">
             <td className="px-4 py-3 font-mono text-xs">{product.internal_code}</td>
             <td className="px-4 py-3">
-              <div className="font-medium">{product.name}</div>
+              <div className="font-medium">
+                {product.name}
+                {product.requires_lot && (
+                  <span className="ml-2 inline-flex rounded-full bg-muted text-xs font-normal px-2 py-0.5">Lotes</span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">
                 {[product.brand, product.model].filter(Boolean).join(' - ')}
                 {(product.brand || product.model) && ' · '}
@@ -100,6 +106,15 @@ export default function ProductTable({
               </span>
             </td>
             <td className="px-4 py-3 text-right whitespace-nowrap">
+              {product.requires_lot && (
+                <button
+                  onClick={() => onLots(product)}
+                  className="text-muted-foreground hover:text-foreground p-1 transition"
+                  title="Ver lotes"
+                >
+                  <i className="bi bi-layers"></i>
+                </button>
+              )}
               {canManage && (
                 <>
                   <button

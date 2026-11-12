@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     ForeignKey,
     Integer,
     Numeric,
@@ -110,6 +111,13 @@ class Product(Base):
         String(10),
         nullable=False,
         default="active"
+    )
+
+    requires_lot: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false"
     )
 
     category_id: Mapped[int] = mapped_column(
