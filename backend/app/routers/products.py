@@ -481,3 +481,52 @@ def delete_product(
     db.refresh(product)
 
     return product
+
+
+# ============================================================
+# REACTIVATE PRODUCT
+# ============================================================
+
+@router.patch(
+    "/{product_id}/reactivate",
+    response_model=ProductResponse,
+    summary="Reactivate an inactive product"
+)
+def reactivate_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Solo el coordinador puede reactivar productos.
+    require_coordinator(current_user)
+
+    # Buscar el producto en la base de datos.
+    product = db.get(Product, product_id)
+
+    # Comprobar que el producto exista.
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found"
+        )
+
+    # Evitar reactivar un producto que ya está activo.
+    if product.status == "active":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Product is already active"
+        )
+
+    # Cambiar el estado del producto a activo.
+    product.status = "active"
+
+    # Actualizar las alertas de inventario.
+    update_stock_alerts(db, product)
+
+    # Guardar los cambios.
+    db.commit()
+    db.refresh(product)
+
+    # Devolver el producto actualizado.
+    return product
+
