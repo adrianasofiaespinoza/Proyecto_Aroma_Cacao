@@ -120,6 +120,8 @@ Archivos principales:
 
 **Estado: backend implementado y probado (47 pruebas locales); interfaz integrada; falta la prueba manual de escritura desde el navegador.**
 
+**AC-53 (2026-11-12, implementación local pendiente de PR):** `POST /movements` rechaza con `400` los ajustes que repiten la combinación de producto y lote, incluidos productos sin lote. Acepta el mismo producto en lotes distintos y no limita las líneas repetidas en entradas o salidas. Once pruebas nuevas en `test_adjustment_duplicates.py`; suite local completa: **90 aprobadas**, Ruff sin errores. No requiere migración. Emma verificó manualmente el rechazo en `/docs` como Coordinator y confirmó en la web que el stock del producto y el lote siguen en 10 y no se creó una solicitud nueva. El frontend actual solo crea un detalle por solicitud (AC-52 pendiente).
+
 Endpoints revisados:
 
 - `GET /movements`: listado con filtros.
