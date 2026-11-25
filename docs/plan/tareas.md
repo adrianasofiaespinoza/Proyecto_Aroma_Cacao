@@ -16,10 +16,6 @@ Estas descripciones se escribieron al preparar el plan. Los números de línea y
 
 Los permisos siempre se aplican en el backend. Cualquier cambio en la base de datos lleva una migración acordada con el equipo: en `database/migrations/` hasta que exista Alembic y con Alembic después.
 
-## Ya hechas, pendientes de merge
-
-Rama `feature/lots-expiration`: registrar lotes con fecha de vencimiento, las entradas y salidas con lote actualizan la cantidad del lote, seleccionar lote al registrar movimientos y aviso de lotes próximos a vencer. Sus reglas están en `docs/flows/lotes.md`.
-
 ---
 
 ## Sprint 1: Funcionalidad completa
@@ -208,7 +204,7 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 
 ## Sprint 4: Infraestructura y despliegue
 
-**En curso (2026-11-25).** Hecho: CORS por variable, registros y `/health` con la BD, CI con PostgreSQL y frontend, copias cifradas con prueba de restauración, guía de instalación y comparación del hosting. Pendiente: que el equipo elija el hosting y, con él, la BD de producción y la publicación del frontend. Estado al día en `docs/contexto_proyecto.md` (E7).
+**Mergeado en `main` (PR #16, 2026-11-25).** Hecho: CORS por variable, registros y `/health` con la BD, CI con PostgreSQL y frontend, copias cifradas (secretos configurados y primera copia correcta) y guía de instalación. Comparación del hosting con Cloudflare incluida. Pendiente: que el equipo elija el hosting y, con él, la BD de producción y la publicación del frontend. Estado al día en `docs/contexto_proyecto.md` (E7).
 
 ### BD de producción con migraciones aplicadas
 **Responsable:** Adriana. **Parte manual:** usar las credenciales reales.
@@ -296,6 +292,8 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 
 ## Sprint 5: Datos, pruebas y salida a producción
 
+**En curso (2026-11-25), rama `feature/sprint-5`.** Hecho: importador (`docs/flows/importar-inventario.md`), pruebas de concurrencia y el índice único de alertas (`docs/flows/movimientos-inventario.md`, «Operaciones simultáneas»). **Limpiar los datos de prueba** queda para cuando lleguen los datos reales: los actuales se usan para presentar (decisión de la usuaria). Pendiente: guía de uso por rol, carga de datos reales, prueba de aceptación y salida a producción.
+
 ### Limpiar los datos de prueba de la BD
 **Responsable:** Adriana. **Parte manual:** revisar, aprobar y ejecutar.
 
@@ -325,7 +323,7 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 - **Objetivo:** cargar un inventario sin escribirlo a mano.
 - **Hacer:** subir un archivo de productos, stock inicial, máquinas y proveedores; ver una vista previa con los errores por fila; confirmar la carga. Incluir una plantilla descargable.
 - **Reglas:** solo Coordinator. No se guarda nada hasta confirmar, y se carga todo o nada. Aplica las mismas validaciones que la pantalla, incluida la de que un producto con lotes empieza con stock 0. Limita el tamaño del archivo.
-- **Por confirmar:** si el stock inicial se registra como movimiento, para que quede en el historial (propuesta: sí), y cómo se cargan los lotes.
+- **Decidido (2026-11-25):** el stock inicial entra como una entrada autorizada «Carga inicial»; los lotes van en la hoja de stock, una fila por lote; si un registro ya existe, la vista previa lo advierte y el usuario decide si actualizarlo. Hecho: ver `docs/flows/importar-inventario.md`.
 
 ### Pruebas de concurrencia de autorizaciones y préstamos
 **Responsable:** Emma

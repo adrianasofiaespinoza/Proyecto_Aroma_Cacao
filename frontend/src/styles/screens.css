@@ -226,3 +226,18 @@ html, body, #root { height: 100%; }
 .cf-preview-btn { padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); font-weight: 600; }
 .cf-preview-chip { padding: 2px var(--space-3); border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; }
 @media (max-width: 480px) { .cf-preview { grid-template-columns: 1fr; } }
+
+/* ---------- Importar inventario ---------- */
+.im-step { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.im-step p { flex: 1 1 320px; margin: 0; }
+.im-filename { overflow-wrap: anywhere; }
+.im-detail { display: grid; gap: var(--space-1); }
+.im-msg-error { color: var(--danger-ink); }
+.im-changes { margin: 0; padding-left: var(--space-4); }
+.im-tag { display: inline-block; padding: 2px var(--space-2); border-radius: 999px; font-size: 12px; font-weight: 600;
+  border: 1px solid currentColor; white-space: nowrap; }
+.im-tag-new { color: var(--ok-ink); background: var(--ok-tint); }
+.im-tag-existing { color: var(--pending-ink); background: var(--pending-tint); }
+.im-tag-error { color: var(--danger-ink); background: var(--danger-tint); }
+.im-sheet-note { padding: var(--space-3) var(--space-4) 0; }
+.im-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }

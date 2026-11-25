@@ -9,6 +9,7 @@ import { DashboardPage } from '../pages/DashboardPage'
 import { ProductsPage } from '../pages/products/ProductsPage'
 import { ProductFormPage } from '../pages/products/ProductFormPage'
 import { ProductLotsPage } from '../pages/products/ProductLotsPage'
+import { ImportPage } from '../pages/products/ImportPage'
 import { MovementsPage } from '../pages/movements/MovementsPage'
 import { NewMovementPage } from '../pages/movements/NewMovementPage'
 import { MovementDetailPage } from '../pages/movements/MovementDetailPage'
@@ -42,6 +43,11 @@ function RequireUsersAdmin() {
   return user && can(user.role, 'usuarios') ? <Outlet /> : <Navigate to="/" replace />
 }
 
+function RequireImport() {
+  const { user } = useAuth()
+  return user && can(user.role, 'importar') ? <Outlet /> : <Navigate to="/productos" replace />
+}
+
 function RequireSettingsAdmin() {
   const { user } = useAuth()
   return user && can(user.role, 'reglas') ? <Outlet /> : <Navigate to="/" replace />
@@ -65,6 +71,9 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="productos" element={<ProductsPage />} />
         <Route path="productos/nuevo" element={<ProductFormPage />} />
+        <Route element={<RequireImport />}>
+          <Route path="productos/importar" element={<ImportPage />} />
+        </Route>
         <Route path="productos/:id" element={<ProductFormPage />} />
         <Route path="productos/:id/lotes" element={<ProductLotsPage />} />
         <Route path="movimientos" element={<MovementsPage />} />

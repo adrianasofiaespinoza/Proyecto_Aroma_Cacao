@@ -1,7 +1,8 @@
 import unittest
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
@@ -13,6 +14,16 @@ class TestStockAlerts(unittest.TestCase):
     def setUp(self):
         # Use an in-memory SQLite database for isolated testing
         self.engine = create_engine("sqlite:///:memory:")
+
+        # Receta de SQLAlchemy para que pysqlite respete los SAVEPOINT (el servicio
+        # crea la alerta dentro de uno); en PostgreSQL no hace falta.
+        @event.listens_for(self.engine, "connect")
+        def _no_pysqlite_begin(dbapi_connection, connection_record):
+            dbapi_connection.isolation_level = None
+
+        @event.listens_for(self.engine, "begin")
+        def _explicit_begin(conn):
+            conn.exec_driver_sql("BEGIN")
         
            
         Base.metadata.create_all(self.engine)
@@ -85,36 +96,37 @@ class TestStockAlerts(unittest.TestCase):
         alerts = self.session.scalars(select(Alert).where(Alert.product_id == product.id)).all()
         self.assertEqual(len(alerts), 1, "Should not create duplicate alerts")
 
-    def test_duplicate_consolidation(self):
-        """Caso E: Conservar la más reciente y resolver el resto."""
+    def test_database_rejects_second_active_alert(self):
+        """Caso E: el índice único (migración 0007) impide dos alertas activas del mismo producto."""
         product = self.create_product(stock=5, minimum=10)
-        
-        # Manually create duplicate active alerts with different dates
-        a1 = Alert(
-            product_id=product.id, 
-            stock_at_alert=Decimal(5), 
-            status="active", 
-            date_generated=datetime(2026, 1, 1)
-        )
-        a2 = Alert(
-            product_id=product.id, 
-            stock_at_alert=Decimal(4), 
-            status="active", 
-            date_generated=datetime(2026, 1, 2)
-        )
-        self.session.add_all([a1, a2])
+        update_stock_alerts(self.session, product)
         self.session.commit()
 
+        self.session.add(Alert(product_id=product.id, stock_at_alert=Decimal(4), status="active"))
+        with self.assertRaises(IntegrityError):
+            self.session.commit()
+        self.session.rollback()
+
+        # Las resueltas no cuentan: puede haber muchas
+        self.session.add_all([
+            Alert(product_id=product.id, stock_at_alert=Decimal(1), status="resolved"),
+            Alert(product_id=product.id, stock_at_alert=Decimal(2), status="resolved"),
+        ])
+        self.session.commit()
+
+    def test_existing_active_alert_is_kept(self):
+        """Caso F: si ya hay una alerta activa, no se crea otra ni falla."""
+        product = self.create_product(stock=5, minimum=10)
+        update_stock_alerts(self.session, product)
+        self.session.commit()
+        product.current_stock = Decimal(3)
         update_stock_alerts(self.session, product)
         self.session.commit()
 
         active_alerts = self.session.scalars(
             select(Alert).where(Alert.product_id == product.id, Alert.status == "active")
         ).all()
-        
-        self.assertEqual(len(active_alerts), 1, "Should consolidate to exactly one active alert")
-        # Verify that the most recent one was kept (a2)
-        self.assertEqual(active_alerts[0].stock_at_alert, Decimal(4))
+        self.assertEqual(len(active_alerts), 1)
 
     def test_stock_recovery_resolves_alert(self):
         """Caso F: Recuperación del stock resuelve alertas."""

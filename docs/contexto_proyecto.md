@@ -153,7 +153,6 @@ La implementación revisada incluye validaciones de productos y lotes, bloqueo p
 **Pendiente:**
 
 - Prueba manual con datos reales de crear → autorizar y crear → rechazar: cubierta por `test_movements_flow.py` y por el navegador en modo sandbox, pero no ejecutada con datos persistentes.
-- Probar la concurrencia real (el bloqueo pesimista está implementado, pero no se ha probado con transacciones simultáneas).
 - `EXIT` con lote no descuenta `lot.remaining_quantity`.
 - Lotes y máquinas no tienen un campo de estado; no hay nada que validar mientras no exista.
 
@@ -230,7 +229,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E7. Sprint 4: Infraestructura y despliegue
 
-**Estado (2026-11-25): en curso, en la rama `feature/sprint-4-infra`, sin commit.** La elección del hosting está pendiente del equipo, y de ella dependen la BD de producción, publicar el frontend y programar las copias en el hosting.
+**Estado (2026-11-25): mergeado en `main` (PR #16).** Los secretos de las copias están configurados y la primera copia manual terminó bien. La elección del hosting está pendiente del equipo, y de ella dependen la BD de producción y publicar el frontend.
 
 - **CORS por variable de entorno:** `CORS_ORIGINS`, separada por comas, con los orígenes locales por defecto. Rechaza `*` y dominios sin `https://`.
 - **Registros:** `backend/app/logging_config.py`. Los errores no controlados se registran con su ruta y su traza, y el cliente recibe un `500` genérico. Un filtro tapa contraseñas, tokens y credenciales de URL, también en uvicorn y en las trazas.
@@ -242,6 +241,15 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Hosting:** comparación con precios oficiales en `docs/decisions/002-hosting.md` (propuesta; decide el equipo). **Vercel Hobby no se puede usar con clientes que pagan.**
 - **Limpieza:** se borró `docs/contexto_proyecto.md.bak` (aprobado por la usuaria). Los demás archivos de la lista y las ramas viejas ya no existían.
 - **Pruebas:** backend 173 aprobadas, también en una BD creada solo con Alembic como en el CI; frontend 51.
+
+### E8. Sprint 5: Datos, pruebas y salida a producción
+
+**Estado (2026-11-25): en curso, en la rama `feature/sprint-5`, sin commit.** Los datos actuales de la BD local se conservan para las presentaciones: la tarea «Limpiar los datos de prueba» queda para cuando lleguen los datos reales (decisión de la usuaria).
+
+- **Índice único de alertas activas:** migración 0007, aplicada en la BD local y en `aroma_test` (copia previa en `~/aroma-cacao-respaldos/`). Ver `docs/flows/alertas-stock.md`.
+- **Pruebas de concurrencia:** `test_stock_concurrency.py`, seis casos que fallan sin los bloqueos o sin el índice y pasan con el código actual. En el CI corren siempre. Ver `docs/flows/movimientos-inventario.md`, «Operaciones simultáneas».
+- **Importador de inventario** (decisiones de la usuaria): Excel y CSV; el stock inicial se registra como una entrada autorizada «Carga inicial»; los lotes van en la hoja de stock, una fila por lote; si un producto, máquina o proveedor ya existe, la vista previa lo advierte y el usuario decide si actualizarlo o dejarlo como está. Pantalla `/productos/importar` (solo Coordinador), probada en el navegador contra `aroma_test`. Nueva dependencia: `openpyxl`. Ver `docs/flows/importar-inventario.md`.
+- **Pruebas:** backend 192 aprobadas (más 7 que solo corren con `RUN_CONCURRENCY_TESTS=1`; en el CI corren todas: 199); frontend 55.
 
 ### F. Roles y permisos
 
@@ -289,7 +297,7 @@ La lógica está integrada transaccionalmente en:
 
 **Verificación:**
 - Ocho casos funcionales (A-H) aprobados en PostgreSQL 17 (`aroma_inventory`), incluyendo la validación de rollback transaccional.
-- Limitación: la prevención de duplicados bajo concurrencia extrema depende de la serialización de transacciones (no existe restricción `UNIQUE` en la base de datos).
+- Desde la migración 0007 (Sprint 5), un índice único parcial impide dos alertas activas del mismo producto, también con transacciones simultáneas.
 - Corrección posterior (Workshop 6): en el modelo `Alert`, `date_generated` usaba `server_default="CURRENT_TIMESTAMP"` como cadena literal; se cambió a `server_default=func.now()` y se eliminó el parche de `Alert.date_generated.default` en `backend/tests/test_alerts.py`. Las 8 pruebas de alertas pasan localmente y en CI.
 
 El flujo detallado se encuentra documentado en `docs/flows/alertas-stock.md`.
@@ -457,7 +465,6 @@ El plan de trabajo se establece en el siguiente orden:
 
 **Estado actual y restricciones:**
 - Las alertas de stock mínimo están implementadas y cuentan con ocho pruebas funcionales reportadas como aprobadas en PostgreSQL 17.
-- La concurrencia de las alertas sigue siendo una limitación pendiente.
 - La integración del frontend y backend es parcial y todavía necesita pruebas funcionales.
 - La autenticación tiene verificaciones de integración y casos límite pendientes, pero no constituye una razón para iniciar ahora una auditoría independiente.
 - No se debe repetir la configuración inicial de PostgreSQL ni las verificaciones ya confirmadas, salvo que aparezca un problema concreto.

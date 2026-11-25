@@ -8,7 +8,7 @@ Garantizar que el sistema notifique (mediante la creación de un registro de ale
   - `product.status == 'active'`
   - `product.current_stock <= product.minimum_stock`
   - No existe ya una alerta `active` para ese producto.
-- **Consolidación:** Si existen múltiples alertas `active` para un mismo producto, se conserva la más reciente y las demás se marcan como `resolved`.
+- **Una sola alerta activa por producto, garantizada por la BD** (migración 0007, Sprint 5): el índice único parcial `uq_alert_active_product` sobre `alert(product_id)` con `status = 'active'`. La migración resolvió antes los duplicados que hubiera (se conserva la más reciente; ninguna se borra). Si dos transacciones crean la alerta a la vez, la segunda espera, su `INSERT` falla dentro de un savepoint (`IntegrityError`) y continúa con la alerta que ya existe.
 - **Resolución de Alerta:** Todas las alertas `active` de un producto deben pasar a estado `resolved` si:
   - `product.current_stock > product.minimum_stock`
   - `product.status != 'active'` (El producto es desactivado).
@@ -31,11 +31,9 @@ La funcionalidad ha sido revisada mediante análisis estático de código y vali
 
 - **Comprobaciones ejecutadas:**
   - Revisión de la secuencia transaccional en routers.
-  - Validación de la lógica de consolidación de duplicados en el servicio.
+  - Índice único: `test_alerts.py` (la BD rechaza una segunda alerta activa) y `test_stock_concurrency.py` (dos transacciones simultáneas terminan con una sola alerta activa, sin error; sin el índice quedaban dos).
   - Verificación de sintaxis (Linter).
   - Pruebas funcionales ejecutadas en PostgreSQL 17 (`aroma_inventory`) cubriendo los casos A-H.
-- **Pendientes:**
-  - Pruebas de concurrencia extrema: la prevención de duplicados depende de la serialización de transacciones y no existe una restricción de unicidad en la base de datos que lo garantice bajo carga simultánea.
 
 
 ## 5. Criterios de Aceptación
@@ -43,7 +41,7 @@ La funcionalidad ha sido revisada mediante análisis estático de código y vali
 - [x] Actualizar `minimum_stock` $\rightarrow$ Alerta creada/resuelta según el nuevo umbral.
 - [x] Desactivar producto $\rightarrow$ Alertas resueltas.
 - [x] Autorizar movimientos $\rightarrow$ Alertas creadas/resueltas según mutación de stock.
-- [x] Existencia de alertas duplicadas $\rightarrow$ Consolidación a una sola alerta activa.
+- [x] Dos alertas activas del mismo producto $\rightarrow$ la BD lo impide (índice único, migración 0007).
 
 ## Visualización en la interfaz (2026-11-01)
 

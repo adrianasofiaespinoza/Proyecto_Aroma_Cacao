@@ -88,7 +88,12 @@ export function ProductsPage() {
       <PageHeader
         title="Productos"
         subtitle={inv.isLoading ? 'Cargando…' : `${active.length} activos · ${low.length} con stock bajo · ${inactive} inactivos`}
-        actions={<RoleGate role={user.role} action="administrar"><Button variant="primary" icon="plus-lg" onClick={() => navigate('/productos/nuevo')}>Nuevo producto</Button></RoleGate>}
+        actions={
+          <>
+            <RoleGate role={user.role} action="importar"><Button icon="box-arrow-in-down" onClick={() => navigate('/productos/importar')}>Importar</Button></RoleGate>
+            <RoleGate role={user.role} action="administrar"><Button variant="primary" icon="plus-lg" onClick={() => navigate('/productos/nuevo')}>Nuevo producto</Button></RoleGate>
+          </>
+        }
       />
       {user.role === 'lectura' && <Notice tone="info" icon="eye" title="Acceso de solo lectura">Puedes consultar el inventario. Para pedir repuestos, habla con el coordinador.</Notice>}
       <Panel flush>
