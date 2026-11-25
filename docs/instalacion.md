@@ -52,7 +52,7 @@ La contraseña del Coordinator se le entrega en persona. Al entrar por primera v
 - **Build:** `npm ci && npm run build`, con `frontend/` como raíz. La salida queda en `frontend/dist`.
 - Todas las rutas que no sean archivos deben servir `index.html`, porque es una aplicación de una sola página.
 - **Conexión con la API:** si el hosting permite reescribir rutas, `/auth`, `/users`, `/products`, `/settings` y las demás van a la API (ver `frontend/vercel.json`). Si no lo permite, el frontend llama a la API por su URL y `CORS_ORIGINS` debe incluir el dominio del frontend. Esto depende del hosting elegido.
-- **Vercel Hobby no se puede usar** para un cliente que paga: solo admite uso no comercial.
+- **Vercel Hobby no se puede usar** para un cliente que paga: solo admite uso no comercial. Cloudflare Pages sí lo permite en su plan gratuito, pero su `_redirects` no reenvía a la API: hace falta una Pages Function o CORS (`docs/decisions/002-hosting.md`, opción 6).
 
 ## 5. Configurar la empresa
 
