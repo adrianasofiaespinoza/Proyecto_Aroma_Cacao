@@ -170,7 +170,7 @@ a.bd-kpi:hover { background: var(--surface); }
 .bd-invalid .bd-input, .bd-invalid .bd-select, .bd-invalid .bd-textarea { border-color: var(--danger); background: var(--surface-raised); box-shadow: inset 4px 0 0 var(--danger); }
 .bd-readonly { background: var(--surface-sunken); border-color: var(--line); color: var(--ink); display: flex; align-items: center; gap: var(--space-2); }
 .bd-readonly .bd-icon { width: 16px; height: 16px; color: var(--ink-muted); }
-.bd-check { display: inline-flex; gap: var(--space-3); align-items: center; font: 500 15px/22px var(--font-sans); cursor: pointer; min-height: var(--control-lg); }
+.bd-check { position: relative; display: inline-flex; gap: var(--space-3); align-items: center; font: 500 15px/22px var(--font-sans); cursor: pointer; min-height: var(--control-lg); }
 .bd-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .bd-check-box { width: 24px; height: 24px; border: var(--stroke-control) solid var(--line-strong); border-radius: var(--radius-xs); background: var(--surface-raised); display: grid; place-items: center; color: var(--on-brand); flex: none; }
 .bd-check input:checked + .bd-check-box { background: var(--brand); border-color: var(--brand); }
@@ -255,7 +255,7 @@ a.bd-kpi:hover { background: var(--surface); }
 .bd-consequence dd { margin: 0; font: 600 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; }
 
 /* ---------- Marco de la aplicación ---------- */
-.bd-app { container: app / inline-size; height: 100%; min-height: 0; background: var(--ground); color: var(--ink); position: relative; overflow: hidden; }
+.bd-app { container: app / inline-size; height: 100%; min-height: 0; background: var(--ground); color: var(--ink); position: relative; overflow: hidden; overflow: clip; }
 .bd-layout { display: grid; grid-template-columns: var(--rail-w) 1fr; height: 100%; min-height: 0; }
 .bd-rail { background: var(--nav-bg); color: var(--nav-ink); display: flex; flex-direction: column; min-height: 0; }
 .bd-rail-brand { padding: var(--space-4) var(--space-2) var(--space-3); text-align: center; border-bottom: 1px solid var(--nav-active-bg); }

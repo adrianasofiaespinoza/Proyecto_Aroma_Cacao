@@ -25,3 +25,5 @@ dist-ssr
 
 # Caché de compilación de TypeScript
 *.tsbuildinfo
+.vercel
+.env*
