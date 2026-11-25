@@ -62,19 +62,18 @@ Se han revisado los siguientes aspectos:
 - Refresh tokens almacenados mediante hash, con rotación y revocación.
 - Validación de `JWT_SECRET` y configuración de CORS.
 - Manejo de conflictos durante el registro y de tokens inválidos.
-- Endpoints `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh` y `POST /auth/logout`.
+- Endpoints `POST /auth/login`, `POST /auth/refresh` y `POST /auth/logout` (el registro público `POST /auth/register` se cerró en el Sprint 2).
 - Sustitución de endpoints de prueba inseguros por `/health`.
 
 **Verificado con credenciales reales (2026-11-03):** inicio de sesión desde `login.html` con la cuenta `Coordinator` y "Recordarme" (refresh token con vencimiento a 30 días), y cierre de sesión (el refresh token queda revocado en `refresh_tokens`). La usuaria lo confirmó en el navegador y se comprobó en la BD.
 
 Los permisos y las rutas protegidas se verificaron con pruebas automáticas en todos los módulos (ver sección F).
 
+**Resuelto en el Sprint 2 (2026-11-24, ver sección E5):** renovación concurrente de refresh tokens, conservación de `remember_me` al rotar y token de acceso invalidado al cerrar sesión.
+
 **Pendiente:**
 
-- Revisar la renovación concurrente de refresh tokens.
 - Comprobar la correspondencia entre el usuario del token y el registro persistido.
-- Verificar la conservación de `remember_me` durante la rotación.
-- Confirmar el comportamiento de los tokens de acceso después del cierre de sesión (siguen siendo válidos hasta que vencen; solo se revoca el refresh token).
 
 No se identificó un endpoint de recuperación de contraseña en el archivo de autenticación revisado.
 
@@ -187,6 +186,22 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - `product.requires_lot` (migración 002, aplicada en la BD local), endpoints `/lots` y `/products/{id}/lots`, movimientos que actualizan el lote, salidas y entradas de lotes vencidos bloqueadas y aviso a 30 días en el dashboard. Los productos con lotes no se prestan. Detalle en `docs/flows/lotes.md`.
 - Pruebas en `backend/tests/test_lots.py`. Total local: 74 pruebas aprobadas.
 - **Antes de desplegar:** si existe BD en Render, aplicar las migraciones 001 y 002 antes del merge; sin la 002, los endpoints de productos fallarán.
+
+### E5. Sprint 2: Seguridad y Alembic
+
+**Estado (2026-11-24): implementado y probado en una BD temporal (`aroma_test`); sin commit; las migraciones no se aplicaron todavía ni a la BD local real ni a la de Render.**
+
+- **Límite de intentos de login:** 5 fallos por correo en 15 minutos → bloqueo de 15 minutos con `429`; contador en la tabla `login_attempt` (`services/login_limit.py`). Decisión de la usuaria: 5/15 y en la BD.
+- **Logout invalida el token de acceso:** tabla `revoked_access_token` (por `jti`), comprobada en `get_current_user`.
+- **Renovación concurrente:** reproducida (dos `200` con el mismo refresh token) y corregida con `with_for_update()`; el frontend ya no cierra la sesión si otra pestaña renovó primero.
+- **Recordarme:** pruebas de dos rotaciones con y sin la opción; pasaron sin cambios.
+- **Registro público cerrado:** se quitó `POST /auth/register`. El primer Coordinator se crea con `backend/app/create_coordinator.py`.
+- **Cambio de contraseña propio:** `POST /users/me/password` y pantalla `/cuenta`. Cierra las demás sesiones (decisión de la usuaria).
+- **Al menos un Coordinator activo:** bloqueo de filas en `update_user`.
+- **Alembic:** `backend/alembic/` con la revisión `0001` (copia congelada de `schema.sql`, que incluye la 001 y la 002), `0002` (`login_attempt`) y `0003` (`revoked_access_token`). Comprobado: una BD nueva queda igual a `schema.sql`; una existente se marca con `alembic stamp 0001` y sube a `0003`; `downgrade` y nuevo `upgrade` funcionan. `schema.sql` y `database/migrations/` se conservan como referencia (decisión de la usuaria).
+- **Pruebas:** backend 97 aprobadas (+18), más `test_refresh_concurrency.py` (opcional, `RUN_CONCURRENCY_TESTS=1`, solo en una BD de pruebas); frontend 31 (+6). Probado en el navegador contra `aroma_test`: bloqueo del login, cambio de contraseña y token rechazado tras el logout.
+
+**Antes de desplegar (obligatorio):** el login usa la tabla `login_attempt`, así que sin las migraciones el login falla con `500`. En cada BD existente (local y Render), una sola vez: `alembic stamp 0001` y luego `alembic upgrade head`. Conviene que el comando de inicio de Render ejecute `alembic upgrade head` antes de `uvicorn`.
 
 ### F. Roles y permisos
 

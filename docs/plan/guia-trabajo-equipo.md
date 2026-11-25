@@ -70,11 +70,9 @@ docker run -d --name aroma-postgres \
   -p 5432:5432 -v aroma_pgdata:/var/lib/postgresql/data \
   postgres:17
 
-# Espera unos segundos y crea las tablas y los catálogos iniciales:
-docker exec -i aroma-postgres psql -U aroma_user -d aroma_inventory < database/schema.sql
 ```
 
-`schema.sql` ya incluye la migración 001; no hace falta ejecutarla aparte. Los días siguientes solo necesitas `docker start aroma-postgres`.
+Las tablas se crean con Alembic en el paso 2.4. Los días siguientes solo necesitas `docker start aroma-postgres`.
 
 ### 2.4 Backend
 
@@ -89,19 +87,27 @@ uvicorn app.main:app --reload
 
 Comprueba que <http://127.0.0.1:8000/health> responde `{"status":"ok"}` y que la documentación de la API está en <http://127.0.0.1:8000/docs>.
 
+**Tablas de la base (Alembic).** Antes del primer `uvicorn`, y cada vez que hagas `git pull` y entre una migración nueva, ejecuta desde `backend/`:
+
+```bash
+alembic upgrade head      # crea o actualiza las tablas
+alembic current           # muestra en qué revisión está tu base
+```
+
+- **Base nueva:** `alembic upgrade head` crea todo: el esquema inicial (equivalente a `database/schema.sql`) y las revisiones posteriores.
+- **Base que ya tenías** (creada con `schema.sql` y las migraciones 001 y 002): no la recrees. Márcala una sola vez con `alembic stamp 0001` y después ejecuta `alembic upgrade head`. Comprueba antes que tu base tenga la columna `product.requires_lot`; si no, aplica primero `database/migrations/002_product_requires_lot.sql`.
+- **Cambiar la base:** nunca a mano. Crea una revisión con `alembic revision -m "descripcion corta"`, escribe `upgrade()` y `downgrade()` en el archivo nuevo de `backend/alembic/versions/` y pruébala en una base temporal (subir, bajar y volver a subir) antes de la PR.
+- `database/schema.sql` y `database/migrations/` se conservan solo como referencia del estado inicial; ya no se editan.
+
 ### 2.5 Tu primer usuario local
 
-Mientras siga abierto el registro público:
+El registro público está cerrado: ninguna cuenta se crea sin un Coordinator. El primero de tu base local lo creas en la consola, desde `backend/`:
 
-1. En <http://127.0.0.1:8000/docs>, ejecuta `POST /auth/register` con tus datos. Se crea con el rol `Read-only`.
-2. Conviértelo en Coordinator:
+```bash
+PYTHONPATH=. python app/create_coordinator.py      # Fish: set -x PYTHONPATH . ; python app/create_coordinator.py
+```
 
-   ```bash
-   docker exec aroma-postgres psql -U aroma_user -d aroma_inventory \
-     -c "UPDATE users SET role = 'Coordinator' WHERE email = 'tu-correo@ejemplo.com';"
-   ```
-
-Cuando se cierre el registro público (Sprint 2), este paso lo hará el script de instalación.
+Te pide usuario, nombre, correo y contraseña (no se muestra al escribirla y se guarda solo como hash). Con esa cuenta entras al sistema y creas los demás usuarios desde la pantalla **Usuarios**.
 
 ### 2.6 Frontend
 
