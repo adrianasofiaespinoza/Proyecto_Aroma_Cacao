@@ -1,0 +1,57 @@
+name: Copia diaria de la BD
+# Copia cifrada de la BD de producción, guardada 30 días fuera del servidor de la BD.
+# El repositorio es público: sin la clave BACKUP_PASSPHRASE el archivo no se puede abrir.
+# Secretos (Settings → Secrets and variables → Actions):
+#   PROD_DATABASE_URL   URL externa de la BD (con ?sslmode=require en Render)
+#   BACKUP_PASSPHRASE   clave larga, guardada también fuera de GitHub (gestor de contraseñas)
+# Restauración: docs/operacion/copias-de-seguridad.md
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC = 02:00 en Ecuador
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    # pg_dump 17 y gpg vienen en la imagen oficial
+    container: postgres:17
+    steps:
+      # La imagen no trae git: checkout descarga el código por la API
+      - uses: actions/checkout@v4
+
+      - name: Comprobar secretos
+        id: check
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$PROD_DATABASE_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::Faltan los secretos PROD_DATABASE_URL o BACKUP_PASSPHRASE: no se hizo la copia."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Copia cifrada
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          OUT_DIR: copias
+        run: bash ops/backup/backup.sh
+
+      - name: Guardar 30 días
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aroma-db-${{ github.run_id }}
+          path: copias/*.dump.gpg
+          retention-days: 30
+          if-no-files-found: error

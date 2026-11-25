@@ -228,6 +228,21 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 **Antes de usar Configuración:** cada integrante del equipo crea su cuenta de soporte con `python app/create_support.py`, en la BD local y en la de Render. Las rutas `/settings` ya están en `vite.config.ts` y `vercel.json`.
 
+### E7. Sprint 4: Infraestructura y despliegue
+
+**Estado (2026-11-25): en curso, en la rama `feature/sprint-4-infra`, sin commit.** La elección del hosting está pendiente del equipo, y de ella dependen la BD de producción, publicar el frontend y programar las copias en el hosting.
+
+- **CORS por variable de entorno:** `CORS_ORIGINS`, separada por comas, con los orígenes locales por defecto. Rechaza `*` y dominios sin `https://`.
+- **Registros:** `backend/app/logging_config.py`. Los errores no controlados se registran con su ruta y su traza, y el cliente recibe un `500` genérico. Un filtro tapa contraseñas, tokens y credenciales de URL, también en uvicorn y en las trazas.
+- **`/health` comprueba la BD** (decisión de la usuaria): `503` si no responde en 2 segundos. Monitor externo: UptimeRobot gratis (decisión de la usuaria). Ver `docs/operacion/monitoreo.md`.
+- **CI:** el mismo trabajo `validate` ahora levanta PostgreSQL 17, crea las tablas con `alembic upgrade head`, ejecuta todo `pytest` y corre las pruebas y el build del frontend (Node 22). No hubo que cambiar la protección de `main`.
+- **Copias de seguridad** (decisión de la usuaria: diaria, 30 días): flujo `.github/workflows/backup.yml` con `ops/backup/backup.sh`. El repositorio es público, así que las copias se guardan **cifradas con AES-256**. La restauración (`ops/backup/restore.sh`, solo en una BD vacía) se probó con éxito. Falta configurar los secretos. Ver `docs/operacion/copias-de-seguridad.md`.
+- **Guía de instalación:** `docs/instalacion.md`. El instalador se probó desde cero dos veces.
+- **El primer Coordinator creado por consola** también debe elegir su propia contraseña al entrar.
+- **Hosting:** comparación con precios oficiales en `docs/decisions/002-hosting.md` (propuesta; decide el equipo). **Vercel Hobby no se puede usar con clientes que pagan.**
+- **Limpieza:** de la lista del plan solo queda `docs/contexto_proyecto.md.bak`; los demás archivos y las ramas viejas ya no existen. Se borra solo si el equipo lo aprueba.
+- **Pruebas:** backend 173 aprobadas, también en una BD creada solo con Alembic como en el CI; frontend 51.
+
 ### F. Roles y permisos
 
 Las reglas acordadas para los movimientos son:

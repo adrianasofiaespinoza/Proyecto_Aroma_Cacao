@@ -16,7 +16,8 @@ if not DATABASE_URL:
         f"DATABASE_URL no está configurada. Revisa el archivo: {ENV_PATH}"
     )
 
-engine = create_engine(DATABASE_URL)
+# connect_timeout: si la BD no responde, /health y las peticiones fallan en segundos, no en minutos
+engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 5}, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(
     autocommit=False,
