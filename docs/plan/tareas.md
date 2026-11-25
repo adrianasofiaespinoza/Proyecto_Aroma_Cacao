@@ -208,6 +208,8 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 
 ## Sprint 4: Infraestructura y despliegue
 
+**En curso (2026-11-25).** Hecho: CORS por variable, registros y `/health` con la BD, CI con PostgreSQL y frontend, copias cifradas con prueba de restauración, guía de instalación y comparación del hosting. Pendiente: que el equipo elija el hosting y, con él, la BD de producción y la publicación del frontend. Estado al día en `docs/contexto_proyecto.md` (E7).
+
 ### BD de producción con migraciones aplicadas
 **Responsable:** Adriana. **Parte manual:** usar las credenciales reales.
 

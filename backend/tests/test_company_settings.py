@@ -368,6 +368,8 @@ def test_ensure_coordinator_creates_first_one(session, monkeypatch):
     assert ensure_coordinator(session) is True
     created = session.query(User).filter_by(username=f"inst_{suffix}").one()
     assert created.role == "Coordinator"
+    # Lo escribió el equipo de desarrollo: la persona elige la suya al entrar
+    assert created.must_change_password is True
     assert created.password_hash and created.password_hash != "ClaveSegura123"
 
 

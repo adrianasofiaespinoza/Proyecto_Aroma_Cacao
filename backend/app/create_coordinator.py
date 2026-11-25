@@ -57,7 +57,11 @@ def ask_coordinator() -> dict | None:
 
 
 def insert_coordinator(db, data: dict, role: str = "Coordinator") -> bool:
-    """Crea el usuario (Coordinator por defecto) si el usuario y el correo están libres. No hace commit."""
+    """Crea el usuario (Coordinator por defecto) si el usuario y el correo están libres. No hace commit.
+
+    Un Coordinator creado por consola lo escribe otra persona (el equipo de desarrollo):
+    deberá elegir su propia contraseña al entrar. Una cuenta de soporte la crea su dueña.
+    """
     exists = db.scalar(
         select(User.id).where(
             or_(User.username == data["username"], User.email == data["email"])
@@ -74,6 +78,7 @@ def insert_coordinator(db, data: dict, role: str = "Coordinator") -> bool:
             email=data["email"],
             password_hash=hash_password(data["password"]),
             role=role,
+            must_change_password=role == "Coordinator",
             is_active=True,
             auth_provider="local",
         )
@@ -91,7 +96,7 @@ def main() -> None:
         if not insert_coordinator(db, data):
             return
         db.commit()
-        print(f"Coordinator {data['username']} creado. Ya puede iniciar sesión.")
+        print(f"Coordinator {data['username']} creado. Al entrar por primera vez deberá elegir su propia contraseña.")
 
 
 if __name__ == "__main__":

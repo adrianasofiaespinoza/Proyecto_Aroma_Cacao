@@ -107,7 +107,7 @@ El registro público está cerrado: ninguna cuenta se crea sin un Coordinator. E
 PYTHONPATH=. python app/create_coordinator.py      # Fish: set -x PYTHONPATH . ; python app/create_coordinator.py
 ```
 
-Te pide usuario, nombre, correo y contraseña (no se muestra al escribirla y se guarda solo como hash). Con esa cuenta entras al sistema y creas los demás usuarios desde la pantalla **Usuarios**.
+Te pide usuario, nombre, correo y contraseña (no se muestra al escribirla y se guarda solo como hash). Al entrar por primera vez con esa cuenta, el sistema te pide elegir una contraseña nueva. Después creas los demás usuarios desde la pantalla **Usuarios**.
 
 Para entrar a **Configuración** (marca, moneda, módulos) necesitas una cuenta de soporte, que la empresa no ve: `python app/create_support.py`.
 

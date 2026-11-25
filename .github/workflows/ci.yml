@@ -5,16 +5,34 @@ on:
   push:
     branches: [main]
 jobs:
+  # Un solo trabajo: la protección de main exige el check «validate».
   validate:
     runs-on: ubuntu-latest
+    # PostgreSQL de prueba: credenciales solo para el CI, nunca reales
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: aroma_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d aroma_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/test
+      DATABASE_URL: postgresql+psycopg://ci_user:ci_password@localhost:5432/aroma_ci
       JWT_SECRET: ci-only-dummy-secret-key-0123456789abcdef
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+
+      # ---------- Backend ----------
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -23,4 +41,19 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pip install ruff==0.9.2 pytest httpx
       - run: ruff check .
-      - run: pytest -v tests/test_health.py tests/test_alerts.py
+      # Las tablas se crean igual que en una instalación nueva
+      - run: alembic upgrade head
+      - run: pytest -v tests
+
+      # ---------- Frontend ----------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
