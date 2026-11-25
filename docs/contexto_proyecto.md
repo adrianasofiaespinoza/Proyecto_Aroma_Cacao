@@ -191,7 +191,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E5. Sprint 2: Seguridad y Alembic
 
-**Estado (2026-11-24): implementado, en la rama `feature/sprint-2-seguridad` (PR pendiente). Migraciones aplicadas en la BD local y en la de Render (`0003`).**
+**Estado (2026-11-25): en `main` (PR #13) y desplegado en Render.**
 
 - **Límite de intentos de login:** 5 fallos por correo en 15 minutos → bloqueo de 15 minutos con `429`; contador en la tabla `login_attempt` (`services/login_limit.py`). Decisión de la usuaria: 5/15 y en la BD.
 - **Logout invalida el token de acceso:** tabla `revoked_access_token` (por `jti`), comprobada en `get_current_user`.
@@ -207,7 +207,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E6. Sprint 3: Configuración por empresa
 
-**Estado (2026-11-25): implementado en la rama `feature/sprint-3-configuracion` (sale de la del Sprint 2), sin commit. Probado contra `aroma_test` y en el navegador con Playwright. Las revisiones `0004`, `0005` y `0006` están aplicadas en la BD local y en la de Render, las dos configuradas como Aroma Cacao (USD, paleta verde y amarilla).**
+**Estado (2026-11-25): en `main` (PR #14) y desplegado en Render. Probado contra `aroma_test` y en el navegador con Playwright. Las revisiones `0004`, `0005` y `0006` están aplicadas en la BD local y en la de Render, las dos configuradas como Aroma Cacao (USD, paleta verde y amarilla).**
 
 - **Configuración de la empresa:** tabla `company_settings` de una sola fila (revisión `0004`), endpoints `/settings`, `/settings/public` y `/settings/logo`, y pantalla `/configuracion`.
 - **Rol Soporte (revisión `0005`):** la marca, la moneda y los módulos solo los cambia el equipo de desarrollo, con su cuenta `Support`. La empresa no ve esas cuentas en Usuarios ni puede asignar el rol. El Coordinator solo cambia la autoaprobación (`/settings/rules`). Decisión de la usuaria del 2026-11-25. Detalle en `docs/flows/configuracion-empresa.md`.
@@ -223,6 +223,8 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Pruebas:** backend 145 aprobadas (+48); frontend 51 (+20); build correcto. Flujos comprobados en el navegador con Playwright: configuración, módulos, autoaprobación, vistas de Coordinator y Soporte, primer ingreso y enlace de restablecimiento.
 
 **Pendiente de decidir (2026-11-25):** hoy la cuenta `Support` consulta todo el sistema del cliente (inventario, movimientos, préstamos). La usuaria lo va a consultar. Opciones: (a) que solo vea **Configuración** y el backend le responda `403` a todo lo demás, o (b) quitar el rol y configurar solo por consola. La regla sería la misma en todas las instalaciones.
+
+**Despliegue en Render (2026-11-25):** el despliegue automático no se lanzaba desde la PR #11 (las PR #12, #13 y #14 no se desplegaron solas). Se desplegó a mano y se revisó la configuración de Auto-Deploy. Si vuelve a pasar, revisar en Render *Settings → Build & Deploy* que Auto-Deploy esté activo y que la rama sea `main`.
 
 **Antes de usar Configuración:** cada integrante del equipo crea su cuenta de soporte con `python app/create_support.py`, en la BD local y en la de Render. Las rutas `/settings` ya están en `vite.config.ts` y `vercel.json`.
 
