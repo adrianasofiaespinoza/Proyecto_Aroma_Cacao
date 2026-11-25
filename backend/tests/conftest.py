@@ -90,3 +90,44 @@ def product(session):
     # pero se revierte con la transacción externa al final de la prueba
     session.commit()
     return item
+
+
+@pytest.fixture
+def auth_client(session):
+    """Cliente que valida los tokens de verdad (sin saltarse get_current_user).
+
+    Para probar login, refresh, logout y cambio de contraseña.
+    """
+
+    def override_db():
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
+
+    app.dependency_overrides[get_db] = override_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def make_user(session):
+    """Crea un usuario con contraseña real. Devuelve (usuario, contraseña)."""
+    from app.security.password import hash_password
+
+    def _make(role="Operator", password="ClaveSegura123", is_active=True):
+        suffix = uuid.uuid4().hex[:8]
+        user = User(
+            username=f"auth_{suffix}",
+            full_name=f"Auth {role}",
+            email=f"auth_{suffix}@example.com",
+            role=role,
+            is_active=is_active,
+            password_hash=hash_password(password),
+        )
+        session.add(user)
+        session.commit()
+        return user, password
+
+    return _make

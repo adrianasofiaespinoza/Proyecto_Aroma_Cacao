@@ -14,6 +14,7 @@ from jose import JWTError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.revoked_access_token import RevokedAccessToken
 from app.models.user import User
 from app.security.jwt import decode_token
 
@@ -61,6 +62,14 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token"
+        )
+
+    # Token invalidado al cerrar sesión (routers/auth.py: logout)
+    jti = payload.get("jti")
+    if jti and db.get(RevokedAccessToken, jti) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token revoked"
         )
 
     try:

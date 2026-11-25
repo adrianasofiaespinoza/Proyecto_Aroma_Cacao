@@ -11,6 +11,8 @@ export type ErrorCode =
   | 'PRODUCTO_INACTIVO'
   | 'YA_REVISADO'
   | 'CREDENCIALES'
+  | 'DEMASIADOS_INTENTOS'
+  | 'CLAVE_ACTUAL'
   | 'SESION_EXPIRADA'
   | 'SIN_PERMISO'
   | 'NO_ENCONTRADO'
@@ -89,6 +91,19 @@ function translate(status: number, detail: string): { code: ErrorCode; title: st
   }
   if (/Quantity must be greater than zero/i.test(detail)) {
     return { code: 'DATOS_INVALIDOS', title: 'La cantidad debe ser mayor que cero', message: 'Solo un ajuste puede registrar 0.' }
+  }
+  if (status === 429) {
+    const minutes = /in (\d+) minutes/i.exec(detail)?.[1] ?? '15'
+    return { code: 'DEMASIADOS_INTENTOS', title: 'Demasiados intentos fallidos', message: `Por seguridad, el acceso con este correo quedó bloqueado ${minutes} minutos. Espera y vuelve a intentarlo, o pídele al coordinador que restablezca tu contraseña.` }
+  }
+  if (/Current password is incorrect/i.test(detail)) {
+    return { code: 'CLAVE_ACTUAL', title: 'La contraseña actual no es correcta', message: 'Escribe la contraseña con la que entraste hoy.' }
+  }
+  if (/New password must be different/i.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'La contraseña nueva es igual a la actual', message: 'Elige una contraseña distinta.' }
+  }
+  if (/At least one active Coordinator is required/i.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'Debe quedar al menos un coordinador activo', message: 'Dale el rol de Coordinador a otra persona antes de quitárselo o desactivar a esta.' }
   }
   if (/already exists|already registered|duplicate|ya existe/i.test(detail) || status === 409) {
     return { code: 'DUPLICADO', title: 'Ya existe un registro con esos datos', message: detail || 'Revisa el código, el correo o el número de lote: debe ser único.' }
