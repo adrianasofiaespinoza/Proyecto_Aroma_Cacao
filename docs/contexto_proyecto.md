@@ -240,7 +240,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Guía de instalación:** `docs/instalacion.md`. El instalador se probó desde cero dos veces.
 - **El primer Coordinator creado por consola** también debe elegir su propia contraseña al entrar.
 - **Hosting:** comparación con precios oficiales en `docs/decisions/002-hosting.md` (propuesta; decide el equipo). **Vercel Hobby no se puede usar con clientes que pagan.**
-- **Limpieza:** de la lista del plan solo queda `docs/contexto_proyecto.md.bak`; los demás archivos y las ramas viejas ya no existen. Se borra solo si el equipo lo aprueba.
+- **Limpieza:** se borró `docs/contexto_proyecto.md.bak` (aprobado por la usuaria). Los demás archivos de la lista y las ramas viejas ya no existían.
 - **Pruebas:** backend 173 aprobadas, también en una BD creada solo con Alembic como en el CI; frontend 51.
 
 ### F. Roles y permisos
