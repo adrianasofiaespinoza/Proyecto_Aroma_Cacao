@@ -4,13 +4,6 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, EmailStr, ConfigDict, Field, StringConstraints
 
 
-class UserRegister(BaseModel):
-    username: str
-    full_name: str
-    email: EmailStr
-    password: str
-
-
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -77,3 +70,11 @@ class UserUpdate(BaseModel):
     role: Role
     is_active: bool
 
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+    # Refresh token de la sesión actual: se conserva y se cierran las demás.
+    # Si no se envía, se cierran todas las sesiones persistentes del usuario.
+    refresh_token: str | None = None

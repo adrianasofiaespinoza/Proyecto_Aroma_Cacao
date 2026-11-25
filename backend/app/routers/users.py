@@ -15,12 +15,14 @@ from app.database import get_db
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.user import (
+    PasswordChange,
     UserCreate,
     UserResponse,
     UserUpdate,
 )
 from app.security.auth import get_current_user, require_roles
-from app.security.password import hash_password
+from app.security.password import hash_password, verify_password
+from app.security.token_utils import hash_token
 
 
 router = APIRouter(
@@ -41,6 +43,61 @@ def get_me(
 ):
 
     return current_user
+
+
+# ============================================================
+# CHANGE OWN PASSWORD (any role)
+# ============================================================
+
+@router.post(
+    "/me/password",
+    summary="Change the authenticated user's own password"
+)
+def change_my_password(
+    data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    if not current_user.password_hash or not verify_password(
+        data.current_password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    if data.new_password == data.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from the current one"
+        )
+
+    current_user.password_hash = hash_password(data.new_password)
+
+    # Se cierran las demás sesiones persistentes; la actual se conserva si envía su refresh token
+    stmt = update(RefreshToken).where(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.revoked_at.is_(None)
+    )
+    if data.refresh_token:
+        stmt = stmt.where(
+            RefreshToken.token_hash != hash_token(data.refresh_token)
+        )
+    db.execute(
+        stmt.values(
+            revoked_at=datetime.now(timezone.utc).replace(tzinfo=None)
+        )
+    )
+
+    db.commit()
+
+    return {
+        "message": "Password updated"
+    }
 
 
 # ============================================================
@@ -139,6 +196,30 @@ def update_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You cannot deactivate yourself or remove your own Coordinator role"
         )
+
+    # Nunca puede quedar el sistema sin un Coordinator activo. Se bloquean las filas
+    # de los Coordinators activos, así dos cambios simultáneos (A quita a B y B quita a A)
+    # se aplican de uno en uno y el segundo ve el resultado del primero.
+    removes_coordinator = (
+        user.role == "Coordinator"
+        and user.is_active
+        and (user_data.role != "Coordinator" or not user_data.is_active)
+    )
+    if removes_coordinator:
+        active_coordinators = db.scalars(
+            select(User.id)
+            .where(
+                User.role == "Coordinator",
+                User.is_active.is_(True)
+            )
+            .order_by(User.id)
+            .with_for_update()
+        ).all()
+        if not [uid for uid in active_coordinators if uid != user.id]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one active Coordinator is required"
+            )
 
     ensure_unique(db, email=user_data.email, exclude_id=user.id)
 
