@@ -109,6 +109,10 @@ PYTHONPATH=. python app/create_coordinator.py      # Fish: set -x PYTHONPATH . ;
 
 Te pide usuario, nombre, correo y contraseña (no se muestra al escribirla y se guarda solo como hash). Con esa cuenta entras al sistema y creas los demás usuarios desde la pantalla **Usuarios**.
 
+Para entrar a **Configuración** (marca, moneda, módulos) necesitas una cuenta de soporte, que la empresa no ve: `python app/create_support.py`.
+
+Para una base **vacía**, `python app/install.py` hace todo en un paso: aplica las migraciones, carga los catálogos básicos, pide el nombre de la empresa y crea el primer Coordinator. Se puede ejecutar de nuevo sin duplicar nada. Detalle en `docs/flows/configuracion-empresa.md`.
+
 ### 2.6 Frontend
 
 En otra terminal:
