@@ -204,16 +204,43 @@ export const previewImport = (upload: ImportUpload) => importRequest<ImportPrevi
 export const confirmImport = (upload: ImportUpload, update_rows: Partial<Record<ImportKind, number[]>>) =>
   importRequest<ImportSummary>('/imports/confirm', { ...upload, update_rows })
 
-/** Descarga la plantilla con la sesión (un enlace normal no llevaría el token). */
-export async function downloadImportTemplate(): Promise<void> {
-  const res = await apiFetch('/imports/template')
+/** Descarga un archivo con la sesión (un enlace normal no llevaría el token). El nombre lo da el servidor. */
+export async function downloadFile(endpoint: string, fallbackName: string): Promise<string> {
+  const res = await apiFetch(endpoint)
   if (!res.ok) throw await errorFromResponse(res)
+  const match = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')
+  const filename = match?.[1] ?? fallbackName
   const url = URL.createObjectURL(await res.blob())
   const link = document.createElement('a')
   link.href = url
-  link.download = 'plantilla-inventario.xlsx'
+  link.download = filename
   document.body.appendChild(link)
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+  return filename
+}
+
+export const downloadImportTemplate = () => downloadFile('/imports/template', 'plantilla-inventario.xlsx')
+
+// ---------- Exportar (cualquier rol) ----------
+export type ExportFormat = 'xlsx' | 'csv'
+export type InventoryExportKind = 'products' | 'stock' | 'machines' | 'suppliers'
+
+/** Zona horaria del navegador: las fechas del archivo salen igual que en pantalla. */
+const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+
+export function exportInventory(format: ExportFormat, kind?: InventoryExportKind) {
+  const params = new URLSearchParams({ format, tz: browserTimeZone() })
+  if (format === 'csv' && kind) params.set('kind', kind)
+  return downloadFile(`/exports/inventory?${params}`, `inventario.${format}`)
+}
+
+export function exportMovements(format: ExportFormat, filters: { dateFrom?: string; dateTo?: string; type?: MovementType; status?: MovementStatus }) {
+  const params = new URLSearchParams({ format, tz: browserTimeZone() })
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
+  if (filters.dateTo) params.set('date_to', filters.dateTo)
+  if (filters.type) params.set('type_filter', filters.type)
+  if (filters.status) params.set('status_filter', filters.status)
+  return downloadFile(`/exports/movements?${params}`, `movimientos.${format}`)
 }

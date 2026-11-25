@@ -30,6 +30,7 @@ from app.routers.loans import router as loans_router
 from app.routers.suppliers import router as suppliers_router
 from app.routers.lots import router as lots_router
 from app.routers.imports import router as imports_router
+from app.routers.exports import router as exports_router
 from app.routers.settings import favicon, router as settings_router
 from app.services.company import require_module
 from app.database import engine
@@ -71,6 +72,7 @@ app.include_router(catalogs_router)
 app.include_router(lots_router)
 app.include_router(settings_router)
 app.include_router(imports_router)
+app.include_router(exports_router)
 
 # Módulos activables por empresa: si están desactivados, sus endpoints responden 403.
 app.include_router(machines_router, dependencies=[Depends(require_module("machines"))])

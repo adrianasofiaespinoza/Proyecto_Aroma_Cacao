@@ -74,10 +74,12 @@ describe('formato según la configuración', () => {
 })
 
 describe('módulos y errores nuevos', () => {
-  it('oculta del menú los módulos desactivados y Configuración a quien no es coordinador', () => {
+  it('oculta del menú los módulos desactivados y Usuarios a quien no es coordinador', () => {
     const ids = (role: Parameters<typeof visibleNav>[0], modules?: Parameters<typeof visibleNav>[1]) => visibleNav(role, modules).map((n) => n.id)
-    expect(ids('coordinador')).toContain('configuracion')
-    expect(ids('operador')).not.toContain('configuracion')
+    expect(ids('coordinador')).toContain('usuarios')
+    expect(ids('operador')).not.toContain('usuarios')
+    // Configuración y Exportar están en el menú del usuario, no en el lateral (decisión de la usuaria)
+    expect(ids('coordinador')).not.toContain('configuracion')
     const sinPrestamos = ids('coordinador', { loans: false, machines: true, suppliers: false })
     expect(sinPrestamos).not.toContain('prestamos')
     expect(sinPrestamos).not.toContain('proveedores')

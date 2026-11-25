@@ -5,7 +5,6 @@ import { useAuth, useSessionUser } from '../app/AuthProvider'
 import { useTheme } from '../app/ThemeProvider'
 import { Button, Field, Notice, PageHeader, Panel, TextInput, useToast } from '../components/ui'
 import { describeError } from '../lib/errors'
-import { ROLES } from '../lib/permissions'
 
 const MIN_PASSWORD = 8
 
@@ -70,13 +69,25 @@ function ChangePasswordForm({ intro, submitLabel, onDone }: { intro: string; sub
   )
 }
 
-/** Mi cuenta: datos de la sesión y cambio de contraseña propio (todos los roles). */
+/**
+ * «Cambiar contraseña» para quien no tiene Configuración (operador y solo lectura).
+ * El coordinador y soporte cambian la suya dentro de Configuración (decisión de la usuaria, 2026-11-25).
+ */
 export function AccountPage() {
   const user = useSessionUser()
+  return (
+    <>
+      <PageHeader title="Cambiar contraseña" subtitle={user.name} />
+      <PasswordPanel />
+    </>
+  )
+}
+
+/** Cambio de contraseña propio. Lo usan AccountPage y Configuración. */
+export function PasswordPanel() {
   const toast = useToast()
   return (
     <>
-      <PageHeader title="Mi cuenta" subtitle={`${user.name} · ${ROLES[user.role].label}`} />
       <Panel title="Cambiar contraseña" icon="lock">
         <ChangePasswordForm
           intro="Al cambiarla se cierran tus sesiones en otros equipos. En este sigues conectado."

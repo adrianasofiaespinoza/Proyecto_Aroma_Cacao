@@ -20,7 +20,6 @@ export const NAV: NavItem[] = [
   { id: 'maquinas', label: 'Máquinas', icon: 'gear-wide-connected', href: '/maquinas', module: 'machines' },
   { id: 'proveedores', label: 'Proveedores', icon: 'truck', href: '/proveedores', module: 'suppliers' },
   { id: 'usuarios', label: 'Usuarios', icon: 'people', href: '/usuarios', action: 'usuarios' },
-  { id: 'configuracion', label: 'Configuración', icon: 'sliders', href: '/configuracion', action: 'reglas' },
 ]
 
 /** Lo que ve el rol con los módulos activos de la empresa. */

@@ -197,7 +197,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Renovación concurrente:** reproducida (dos `200` con el mismo refresh token) y corregida con `with_for_update()`; el frontend ya no cierra la sesión si otra pestaña renovó primero.
 - **Recordarme:** pruebas de dos rotaciones con y sin la opción; pasaron sin cambios.
 - **Registro público cerrado:** se quitó `POST /auth/register`. El primer Coordinator se crea con `backend/app/create_coordinator.py`.
-- **Cambio de contraseña propio:** `POST /users/me/password` y pantalla `/cuenta`. Cierra las demás sesiones (decisión de la usuaria).
+- **Cambio de contraseña propio:** `POST /users/me/password` y sección «Cambiar contraseña» al final de Configuración para Coordinator y soporte; pantalla `/cuenta` para Operator y Read-only. Cierra las demás sesiones (decisión de la usuaria).
 - **Al menos un Coordinator activo:** bloqueo de filas en `update_user`.
 - **Alembic:** `backend/alembic/` con la revisión `0001` (copia congelada de `schema.sql`, que incluye la 001 y la 002), `0002` (`login_attempt`) y `0003` (`revoked_access_token`). Comprobado: una BD nueva queda igual a `schema.sql`; una existente se marca con `alembic stamp 0001` y sube a `0003`; `downgrade` y nuevo `upgrade` funcionan. `schema.sql` y `database/migrations/` se conservan como referencia (decisión de la usuaria).
 - **Pruebas:** backend 97 aprobadas (+18), más `test_refresh_concurrency.py` (opcional, `RUN_CONCURRENCY_TESTS=1`, solo en una BD de pruebas); frontend 31 (+6). Probado en el navegador contra `aroma_test`: bloqueo del login, cambio de contraseña y token rechazado tras el logout.
@@ -249,7 +249,9 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Índice único de alertas activas:** migración 0007, aplicada en la BD local y en `aroma_test` (copia previa en `~/aroma-cacao-respaldos/`). Ver `docs/flows/alertas-stock.md`.
 - **Pruebas de concurrencia:** `test_stock_concurrency.py`, seis casos que fallan sin los bloqueos o sin el índice y pasan con el código actual. En el CI corren siempre. Ver `docs/flows/movimientos-inventario.md`, «Operaciones simultáneas».
 - **Importador de inventario** (decisiones de la usuaria): Excel y CSV; el stock inicial se registra como una entrada autorizada «Carga inicial»; los lotes van en la hoja de stock, una fila por lote; si un producto, máquina o proveedor ya existe, la vista previa lo advierte y el usuario decide si actualizarlo o dejarlo como está. Pantalla `/productos/importar` (solo Coordinador), probada en el navegador contra `aroma_test`. Nueva dependencia: `openpyxl`. Ver `docs/flows/importar-inventario.md`.
-- **Pruebas:** backend 192 aprobadas (más 7 que solo corren con `RUN_CONCURRENCY_TESTS=1`; en el CI corren todas: 199); frontend 55.
+- **Exportar a Excel o CSV** (pedido y decisiones de la usuaria): el inventario completo (mismo formato que la plantilla de importación) y el historial de movimientos con filtros, desde una sola pantalla `/exportar`, para todos los roles. Ver `docs/flows/exportar.md`.
+- **Guía de uso por rol:** `docs/guia-uso.md`, para el personal y en lenguaje sencillo. Cada paso se comprobó en el navegador contra `aroma_test` con los tres roles (2026-11-25).
+- **Pruebas:** backend 202 aprobadas (más 7 que solo corren con `RUN_CONCURRENCY_TESTS=1`; en el CI corren todas: 209); frontend 58.
 
 ### F. Roles y permisos
 

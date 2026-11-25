@@ -292,7 +292,7 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 
 ## Sprint 5: Datos, pruebas y salida a producción
 
-**En curso (2026-11-25), rama `feature/sprint-5`.** Hecho: importador (`docs/flows/importar-inventario.md`), pruebas de concurrencia y el índice único de alertas (`docs/flows/movimientos-inventario.md`, «Operaciones simultáneas»). **Limpiar los datos de prueba** queda para cuando lleguen los datos reales: los actuales se usan para presentar (decisión de la usuaria). Pendiente: guía de uso por rol, carga de datos reales, prueba de aceptación y salida a producción.
+**En curso (2026-11-25), rama `feature/sprint-5`.** Hecho: importador (`docs/flows/importar-inventario.md`), exportar a Excel o CSV (`docs/flows/exportar.md`, pedido por la usuaria), pruebas de concurrencia y el índice único de alertas (`docs/flows/movimientos-inventario.md`, «Operaciones simultáneas»). **Limpiar los datos de prueba** queda para cuando lleguen los datos reales: los actuales se usan para presentar (decisión de la usuaria). Guía de uso por rol en `docs/guia-uso.md`, con cada paso comprobado en el navegador. Pendiente: carga de datos reales, prueba de aceptación y salida a producción.
 
 ### Limpiar los datos de prueba de la BD
 **Responsable:** Adriana. **Parte manual:** revisar, aprobar y ejecutar.

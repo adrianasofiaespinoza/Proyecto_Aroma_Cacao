@@ -241,3 +241,10 @@ html, body, #root { height: 100%; }
 .im-tag-error { color: var(--danger-ink); background: var(--danger-tint); }
 .im-sheet-note { padding: var(--space-3) var(--space-4) 0; }
 .im-actions { display: flex; justify-content: flex-end; gap: var(--space-3); flex-wrap: wrap; }
+
+/* ---------- Exportar ---------- */
+.ex-form { display: grid; gap: var(--space-4); }
+.ex-help { margin: 0; }
+.ex-grid { display: grid; gap: var(--space-3) var(--space-4); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.ex-note { margin: 0; font-size: 14px; }
+.ex-form .bd-seg { width: fit-content; max-width: 100%; }
