@@ -54,5 +54,7 @@ class MovementResponse(BaseModel):
     reason: str | None = None
     work_order_number: str | None = None
     details: list[MovementDetailResponse] = []
+    # Solo al crear: motivo por el que la autoaprobación del Coordinator no se aplicó
+    auto_authorize_error: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

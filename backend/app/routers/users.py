@@ -16,13 +16,15 @@ from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.user import (
     PasswordChange,
+    PasswordResetLink,
     UserCreate,
     UserResponse,
     UserUpdate,
 )
-from app.security.auth import get_current_user, require_roles
+from app.security.auth import SUPPORT_ROLE, get_current_user, require_roles
 from app.security.password import hash_password, verify_password
 from app.security.token_utils import hash_token
+from app.services.password_reset import create_reset
 
 
 router = APIRouter(
@@ -77,6 +79,7 @@ def change_my_password(
         )
 
     current_user.password_hash = hash_password(data.new_password)
+    current_user.must_change_password = False
 
     # Se cierran las demás sesiones persistentes; la actual se conserva si envía su refresh token
     stmt = update(RefreshToken).where(
@@ -116,10 +119,11 @@ def list_users(
     )
 ):
 
+    # Las cuentas de soporte (equipo de desarrollo) no son de la empresa: no se listan
     return db.scalars(
-        select(User).order_by(
-            User.full_name
-        )
+        select(User)
+        .where(User.role != SUPPORT_ROLE)
+        .order_by(User.full_name)
     ).all()
 
 
@@ -150,6 +154,8 @@ def create_user(
         password_hash=hash_password(user_data.password),
         role=user_data.role,
         is_active=user_data.is_active,
+        # El Coordinator conoce la contraseña inicial: la persona debe cambiarla al entrar
+        must_change_password=True,
         auth_provider="local",
         provider_user_id=None
     )
@@ -181,7 +187,8 @@ def update_user(
 
     user = db.get(User, user_id)
 
-    if not user:
+    # Una cuenta de soporte no existe para la empresa: no se puede editar ni desactivar
+    if not user or user.role == SUPPORT_ROLE:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
@@ -247,6 +254,44 @@ def update_user(
     db.refresh(user)
 
     return user
+
+
+# ============================================================
+# PASSWORD RESET LINK (Coordinator)
+# ============================================================
+
+@router.post(
+    "/{user_id}/password-reset",
+    response_model=PasswordResetLink,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a one-time link for the user to choose a new password"
+)
+def create_password_reset(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles("Coordinator")
+    )
+):
+    user = db.get(User, user_id)
+
+    # Las cuentas de soporte no existen para la empresa
+    if not user or user.role == SUPPORT_ROLE:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reset the password of an inactive user"
+        )
+
+    token, expires_at = create_reset(db, user, current_user)
+    db.commit()
+
+    return {"token": token, "expires_at": expires_at}
 
 
 # ============================================================
