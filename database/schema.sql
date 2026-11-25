@@ -1,4 +1,11 @@
 -- =========================================================
+-- REFERENCIA: estado inicial de la base (revisión 0001 de Alembic).
+-- Desde el Sprint 2 la base se crea y actualiza con Alembic
+-- (backend/alembic, `alembic upgrade head`). No edites este archivo:
+-- los cambios nuevos van en revisiones de Alembic.
+-- =========================================================
+
+-- =========================================================
 -- AROMA CACAO S.A.
 -- Maintenance Area Inventory System
 -- PostgreSQL
@@ -514,4 +521,4 @@ VALUES
 
 -- =========================================================
 -- END
--- =========================================================
+-- =========================================================

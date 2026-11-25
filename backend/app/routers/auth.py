@@ -6,6 +6,7 @@ from fastapi import (
     HTTPException,
     status,
 )
+from fastapi.security import HTTPAuthorizationCredentials
 
 
 def get_utc_now() -> datetime:
@@ -13,27 +14,31 @@ def get_utc_now() -> datetime:
 
 from jose import JWTError
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.revoked_access_token import RevokedAccessToken
 
 from app.schemas.user import (
-    UserRegister,
-    UserResponse,
     UserLogin,
     TokenResponse,
     RefreshRequest,
     LogoutRequest,
 )
 
-from app.security.password import (
-    hash_password,
-    verify_password,
+from app.security.auth import bearer_scheme
+from app.security.password import verify_password
+from app.services.login_limit import (
+    LOGIN_LOCK_MINUTES,
+    clear_attempts,
+    get_attempt,
+    register_failure,
+    seconds_locked,
 )
 
 from app.security.jwt import (
@@ -56,74 +61,6 @@ router = APIRouter(
 
 
 # ============================================================
-# REGISTER
-# ============================================================
-
-@router.post(
-    "/register",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Register a new user"
-)
-def register_user(
-    user_data: UserRegister,
-    db: Session = Depends(get_db)
-):
-
-    existing_username = db.scalar(
-        select(User).where(
-            User.username == user_data.username
-        )
-    )
-
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already registered"
-        )
-
-    existing_email = db.scalar(
-        select(User).where(
-            User.email == user_data.email
-        )
-    )
-
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered"
-        )
-
-    password_hash = hash_password(
-        user_data.password
-    )
-
-    new_user = User(
-        username=user_data.username,
-        full_name=user_data.full_name,
-        email=user_data.email,
-        password_hash=password_hash,
-        role="Read-only",
-        is_active=True,
-        auth_provider="local",
-        provider_user_id=None
-    )
-
-    db.add(new_user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username or email already registered"
-        )
-    db.refresh(new_user)
-
-    return new_user
-
-
-# ============================================================
 # LOGIN
 # ============================================================
 
@@ -137,34 +74,42 @@ def login_user(
     db: Session = Depends(get_db)
 ):
 
+    # Contador de fallos del correo, con la fila bloqueada (services/login_limit.py)
+    attempt = get_attempt(db, login_data.email)
+
+    wait = seconds_locked(attempt)
+    if wait:
+        db.commit()
+        raise too_many_attempts(wait)
+
     user = db.scalar(
         select(User).where(
             User.email == login_data.email
         )
     )
 
-    if not user:
+    # El mismo mensaje si el correo no existe o la contraseña no coincide
+    valid = bool(
+        user
+        and user.password_hash
+        and verify_password(login_data.password, user.password_hash)
+    )
+
+    if not valid:
+        wait = register_failure(attempt)
+        db.commit()
+        if wait:
+            raise too_many_attempts(wait)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
 
-    if not user.password_hash:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-
-    if not verify_password(
-        login_data.password,
-        user.password_hash
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
+    # Contraseña correcta: se reinicia el contador
+    clear_attempts(db, login_data.email)
 
     if not user.is_active:
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
@@ -259,11 +204,16 @@ def refresh_access_token(
         data.refresh_token
     )
 
+    # with_for_update: si llegan dos renovaciones con el mismo token, la segunda
+    # espera a que termine la primera y entonces lo ve revocado (401).
+    # Así nunca quedan dos sesiones válidas a partir de un mismo refresh token.
     stored_token = db.scalar(
-        select(RefreshToken).where(
+        select(RefreshToken)
+        .where(
             RefreshToken.token_hash
             == token_hash_value
         )
+        .with_for_update()
     )
 
     if not stored_token:
@@ -339,12 +289,19 @@ def refresh_access_token(
 
 @router.post(
     "/logout",
-    summary="Logout and revoke refresh token"
+    summary="Logout: revoke the refresh token and the current access token"
 )
 def logout_user(
     data: LogoutRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ):
+
+    # El token de acceso (cabecera Authorization) deja de servir de inmediato.
+    # Se guarda y confirma primero, para que quede revocado aunque el refresh token falle.
+    if credentials is not None:
+        revoke_access_token(db, credentials.credentials)
+        db.commit()
 
     token_hash_value = hash_token(
         data.refresh_token
@@ -383,3 +340,57 @@ def logout_user(
     return {
         "message": "Logout successful"
     }
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def too_many_attempts(wait_seconds: int) -> HTTPException:
+    """429 con Retry-After. No dice si el correo existe."""
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=(
+            "Too many failed login attempts. "
+            f"Try again in {LOGIN_LOCK_MINUTES} minutes"
+        ),
+        headers={"Retry-After": str(wait_seconds)},
+    )
+
+
+def revoke_access_token(db: Session, token: str) -> None:
+    """Guarda el jti de un token de acceso válido para rechazarlo en get_current_user.
+
+    Un token inválido o ya vencido se ignora: no sirve de todos modos.
+    Aprovecha para borrar los registros cuyo token ya venció.
+    """
+    try:
+        payload = decode_token(token)
+    except JWTError:
+        return
+
+    jti = payload.get("jti")
+    sub = payload.get("sub")
+    exp = payload.get("exp")
+    if payload.get("type") != "access" or not jti or not sub or not exp:
+        return
+
+    try:
+        user_id = int(sub)
+    except (ValueError, TypeError):
+        return
+
+    now = get_utc_now()
+    db.execute(
+        delete(RevokedAccessToken).where(RevokedAccessToken.expires_at < now)
+    )
+    db.execute(
+        insert(RevokedAccessToken)
+        .values(
+            jti=jti,
+            user_id=user_id,
+            expires_at=datetime.fromtimestamp(exp, timezone.utc).replace(tzinfo=None),
+            revoked_at=now,
+        )
+        .on_conflict_do_nothing(index_elements=[RevokedAccessToken.jti])
+    )

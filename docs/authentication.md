@@ -44,26 +44,12 @@ Estos endpoints permiten consultar información pública sin proporcionar un tok
 
 ---
 
-## 2. Registro de usuarios
+## 2. Registro de usuarios (registro público cerrado)
 
-Se implementó:
+El registro público (`POST /auth/register`) **se cerró en el Sprint 2**: nadie puede crear una cuenta sin un `Coordinator`. El endpoint ya no existe (responde `404`).
 
-```http
-POST /auth/register
-```
-
-El sistema permite registrar usuarios utilizando información como:
-
-- username
-    
-- email
-    
-- contraseña
-    
-- nombre completo
-    
-- rol
-    
+- Los usuarios los crea un `Coordinator` desde la pantalla **Usuarios** (`POST /users`), con su rol y una contraseña inicial.
+- El **primer Coordinator** de una base nueva se crea en la consola con `backend/app/create_coordinator.py`, que pide los datos y la contraseña sin mostrarla (ver `docs/plan/guia-trabajo-equipo.md`, sección 2.5).
 
 Las contraseñas no se almacenan directamente en la base de datos. Se utiliza **Argon2** para realizar el hash de las contraseñas.
 
@@ -89,6 +75,18 @@ POST /auth/login
 El usuario proporciona sus credenciales y, si son correctas, la API genera los tokens necesarios para acceder a los endpoints protegidos.
 
 La autenticación permite posteriormente identificar al usuario que realiza las operaciones dentro del sistema.
+
+### Límite de intentos (Sprint 2)
+
+Para dificultar que se adivinen contraseñas por fuerza bruta (`backend/app/services/login_limit.py`, tabla `login_attempt`):
+
+- Tras **5 fallos** con el mismo correo dentro de **15 minutos**, ese correo queda bloqueado **15 minutos**. El login responde `429` con la cabecera `Retry-After` (segundos que faltan), aunque la contraseña sea correcta.
+- Se cuenta por correo **aunque la cuenta no exista**, y el mensaje es el mismo en los dos casos: la respuesta no revela qué correos están registrados.
+- Un inicio de sesión correcto borra el contador.
+- Nunca se guarda la contraseña intentada: solo el correo, el número de fallos y las fechas.
+- El contador está en la BD (no en memoria), así que sobrevive a los reinicios y vale aunque haya varios procesos. La fila se bloquea con `SELECT ... FOR UPDATE`, así dos intentos simultáneos cuentan los dos.
+- Configurable con las variables de entorno `LOGIN_MAX_ATTEMPTS` (5) y `LOGIN_LOCK_MINUTES` (15).
+- El frontend muestra «Demasiados intentos fallidos» con los minutos de espera.
 
 
 ---
@@ -122,6 +120,17 @@ Los refresh tokens permiten obtener un nuevo access token sin solicitar nuevamen
 
 Los refresh tokens son almacenados de manera segura utilizando hash y pueden ser revocados.
 
+Cada refresh token sirve **una sola vez**: al renovar se revoca y se entrega uno nuevo (rotación).
+
+### Renovaciones simultáneas (Sprint 2)
+
+Se reprodujo el caso con `backend/tests/test_refresh_concurrency.py` (dos peticiones a la vez con el mismo refresh token, en una BD de pruebas):
+
+- **Antes:** la fila se leía sin bloquear. Las dos renovaciones respondían `200` y quedaban **dos sesiones válidas** a partir de un solo refresh token.
+- **Ahora:** la fila se lee con `with_for_update()`. La segunda petición espera a que termine la primera, ve el token revocado y recibe `401`.
+
+**Varias pestañas:** el frontend guarda la sesión en `localStorage`, compartido entre pestañas. Si dos pestañas renuevan a la vez, la que pierde recibe `401`; antes eso cerraba la sesión en todas. Ahora `frontend/src/api/client.ts` comprueba si otra pestaña ya guardó tokens nuevos y, si es así, los usa en vez de cerrar la sesión (pruebas en `client.test.ts`).
+
 
 ---
 
@@ -133,9 +142,11 @@ Se implementó:
 POST /auth/logout
 ```
 
-El logout permite revocar el refresh token asociado a la sesión.
+El logout revoca el refresh token de la sesión (cuerpo `{"refresh_token": ...}`) y, desde el Sprint 2, **también el token de acceso** que llega en la cabecera `Authorization`.
 
-De esta manera, el token revocado deja de poder utilizarse para obtener nuevos access tokens.
+- El `jti` del token de acceso se guarda en la tabla `revoked_access_token`, y `get_current_user` (`backend/app/security/auth.py`) lo rechaza con `401` («Access token revoked»). Antes seguía sirviendo hasta vencer (15 minutos).
+- Solo se cierra esa sesión: las de otros equipos siguen activas.
+- Los registros de tokens ya vencidos se borran en cada logout, porque un token vencido se rechaza de todos modos.
 
 
 ---
@@ -145,6 +156,25 @@ De esta manera, el token revocado deja de poder utilizarse para obtener nuevos a
 Se implementó la funcionalidad **Remember Me** mediante el sistema de refresh tokens.
 
 Esto permite mantener la sesión del usuario durante un período mayor sin solicitar nuevamente las credenciales, dependiendo de la opción seleccionada durante el login.
+
+- Sin Recordarme, el refresh token dura `REFRESH_TOKEN_DAYS` (7 días); con Recordarme, `REMEMBER_REFRESH_TOKEN_DAYS` (30).
+- Al renovar, `POST /auth/refresh` deduce la opción de la duración del token anterior (`expires_at − created_at`), así que se conserva en cada rotación.
+- Pruebas (Sprint 2, `backend/tests/test_auth_security.py`): con y sin Recordarme, dos renovaciones seguidas, comprobando la nueva fecha de vencimiento. Pasaron sin cambios en el código.
+
+---
+
+# 7b. Cambio de contraseña propio (Sprint 2)
+
+```http
+POST /users/me/password
+```
+
+Cuerpo: `current_password`, `new_password` (8–128) y, opcional, `refresh_token` de la sesión actual. Funciona para todos los roles.
+
+- Si la contraseña actual es incorrecta responde `400`; si la nueva es igual a la actual, también `400`.
+- **Cierra las demás sesiones** del usuario (revoca sus refresh tokens). La sesión actual se conserva si envía su `refresh_token`; el frontend lo hace.
+- Los tokens de acceso de otros equipos siguen sirviendo hasta que vencen (15 minutos como máximo), porque no se conoce su `jti`; después ya no pueden renovarse.
+- En el frontend: menú de usuario → **Cambiar contraseña** (pantalla `/cuenta`), y en móvil desde «Más».
 
 ---
 

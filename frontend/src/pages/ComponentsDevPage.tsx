@@ -40,7 +40,7 @@ export function ComponentsDevPage() {
           { label: 'Productos activos', value: 212, icon: 'box-seam', hint: 'En 9 categorías', href: '/productos' },
           { label: 'Stock bajo', value: 3, icon: 'exclamation-triangle-fill', tone: 'danger', hint: 'Actual ≤ mínimo' },
           { label: 'Por autorizar', value: 4, icon: 'hourglass-split', tone: 'pending', hint: 'No aplicados al stock' },
-          { label: 'Lotes ≤ 30 días', value: 2, icon: 'calendar-x', tone: 'info', hint: '1 ya vencido' },
+          { label: 'Lotes por vencer', value: 2, icon: 'calendar-x', tone: 'danger', hint: '1 vencido · 1 por vencer' },
         ]} />
         <div className="bd-row"><StockMeter current={4} min={10} max={40} /><StockMeter current={9} min={4} max={16} /></div>
       </section>

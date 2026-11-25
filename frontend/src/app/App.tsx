@@ -17,6 +17,7 @@ import { SuppliersPage } from '../pages/suppliers/SuppliersPage'
 import { SupplierDetailPage } from '../pages/suppliers/SupplierDetailPage'
 import { UsersPage } from '../pages/UsersPage'
 import { MorePage } from '../pages/MorePage'
+import { AccountPage } from '../pages/AccountPage'
 import { ComponentsDevPage } from '../pages/ComponentsDevPage'
 import { LoadingRows } from '../components/ui'
 
@@ -57,6 +58,7 @@ export function App() {
           <Route path="usuarios" element={<UsersPage />} />
         </Route>
         <Route path="mas" element={<MorePage />} />
+        <Route path="cuenta" element={<AccountPage />} />
         {import.meta.env.DEV && <Route path="dev/componentes" element={<ComponentsDevPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

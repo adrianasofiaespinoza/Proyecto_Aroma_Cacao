@@ -30,6 +30,10 @@ export async function logout(): Promise<void> {
 
 export const getMe = () => request<User>('/users/me')
 
+/** Cambia la contraseña propia. Conserva esta sesión y cierra las demás del usuario. */
+export const changePassword = (input: { current_password: string; new_password: string }) =>
+  request<{ message: string }>('/users/me/password', { method: 'POST', ...json({ ...input, refresh_token: tokenStorage.getRefreshToken() }) })
+
 // ---------- Catálogos ----------
 export const getCategories = () => request<Category[]>('/categories')
 export const getUnits = () => request<Unit[]>('/units')

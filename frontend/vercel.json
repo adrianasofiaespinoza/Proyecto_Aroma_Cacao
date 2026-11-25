@@ -1,0 +1,123 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/auth",
+      "destination": "https://aroma-cacao.onrender.com/auth"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://aroma-cacao.onrender.com/auth/:path*"
+    },
+    {
+      "source": "/products",
+      "destination": "https://aroma-cacao.onrender.com/products"
+    },
+    {
+      "source": "/products/:path*",
+      "destination": "https://aroma-cacao.onrender.com/products/:path*"
+    },
+    {
+      "source": "/movements",
+      "destination": "https://aroma-cacao.onrender.com/movements"
+    },
+    {
+      "source": "/movements/:path*",
+      "destination": "https://aroma-cacao.onrender.com/movements/:path*"
+    },
+    {
+      "source": "/users",
+      "destination": "https://aroma-cacao.onrender.com/users"
+    },
+    {
+      "source": "/users/:path*",
+      "destination": "https://aroma-cacao.onrender.com/users/:path*"
+    },
+    {
+      "source": "/alerts",
+      "destination": "https://aroma-cacao.onrender.com/alerts"
+    },
+    {
+      "source": "/alerts/:path*",
+      "destination": "https://aroma-cacao.onrender.com/alerts/:path*"
+    },
+    {
+      "source": "/categories",
+      "destination": "https://aroma-cacao.onrender.com/categories"
+    },
+    {
+      "source": "/categories/:path*",
+      "destination": "https://aroma-cacao.onrender.com/categories/:path*"
+    },
+    {
+      "source": "/units",
+      "destination": "https://aroma-cacao.onrender.com/units"
+    },
+    {
+      "source": "/units/:path*",
+      "destination": "https://aroma-cacao.onrender.com/units/:path*"
+    },
+    {
+      "source": "/machines",
+      "destination": "https://aroma-cacao.onrender.com/machines"
+    },
+    {
+      "source": "/machines/:path*",
+      "destination": "https://aroma-cacao.onrender.com/machines/:path*"
+    },
+    {
+      "source": "/loans",
+      "destination": "https://aroma-cacao.onrender.com/loans"
+    },
+    {
+      "source": "/loans/:path*",
+      "destination": "https://aroma-cacao.onrender.com/loans/:path*"
+    },
+    {
+      "source": "/workers",
+      "destination": "https://aroma-cacao.onrender.com/workers"
+    },
+    {
+      "source": "/workers/:path*",
+      "destination": "https://aroma-cacao.onrender.com/workers/:path*"
+    },
+    {
+      "source": "/suppliers",
+      "destination": "https://aroma-cacao.onrender.com/suppliers"
+    },
+    {
+      "source": "/suppliers/:path*",
+      "destination": "https://aroma-cacao.onrender.com/suppliers/:path*"
+    },
+    {
+      "source": "/lots",
+      "destination": "https://aroma-cacao.onrender.com/lots"
+    },
+    {
+      "source": "/lots/:path*",
+      "destination": "https://aroma-cacao.onrender.com/lots/:path*"
+    },
+    {
+      "source": "/public",
+      "destination": "https://aroma-cacao.onrender.com/public"
+    },
+    {
+      "source": "/public/:path*",
+      "destination": "https://aroma-cacao.onrender.com/public/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://aroma-cacao.onrender.com/health"
+    },
+    {
+      "source": "/health/:path*",
+      "destination": "https://aroma-cacao.onrender.com/health/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

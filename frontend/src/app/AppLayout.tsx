@@ -97,6 +97,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </button>
       ))}
       <div className="bd-usermenu-sep" />
+      <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/cuenta')}>
+        <Icon name="lock" />Cambiar contraseña
+      </button>
       <button
         type="button"
         role="menuitem"

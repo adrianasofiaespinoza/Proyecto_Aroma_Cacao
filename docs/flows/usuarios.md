@@ -2,7 +2,7 @@
 
 ## 1. Propósito y alcance
 
-Permitir al `Coordinator` administrar las cuentas del sistema: listarlas, crearlas con un rol y una contraseña inicial, editar sus datos y rol, y activarlas o desactivarlas. El registro público (`POST /auth/register`, que crea usuarios `Read-only`) no cambia.
+Permitir al `Coordinator` administrar las cuentas del sistema: listarlas, crearlas con un rol y una contraseña inicial, editar sus datos y rol, y activarlas o desactivarlas. El registro público se cerró en el Sprint 2: los usuarios solo los crea un `Coordinator`, y el primero de una base nueva se crea con `backend/app/create_coordinator.py`.
 
 No existe un endpoint para restablecer contraseñas: se mantiene la herramienta local `backend/app/reset_password.py` (ver `contexto_proyecto.md`, sección C).
 
@@ -23,6 +23,8 @@ No existe un endpoint para restablecer contraseñas: se mantiene la herramienta 
 - `username` o `email` duplicados → `409`.
 - `PUT /users/{id}` modifica `full_name`, `email`, `role` e `is_active`. El `username` no se puede editar.
 - **Protección contra bloqueo:** un `Coordinator` no puede desactivarse ni quitarse el rol `Coordinator` a sí mismo (`400`).
+- **Siempre al menos un `Coordinator` activo (Sprint 2):** antes de quitarle el rol o desactivar a un `Coordinator`, se bloquean las filas de los `Coordinators` activos (`SELECT ... FOR UPDATE`, en orden de id) y se responde `400` («At least one active Coordinator is required») si no quedaría ninguno. Así, si dos `Coordinators` intentan quitarse el rol el uno al otro al mismo tiempo, los cambios se aplican de uno en uno y el segundo se rechaza.
+- **Cambio de contraseña propio (Sprint 2):** `POST /users/me/password`, para todos los roles. Ver `docs/authentication.md`, sección 7b.
 - **Al desactivar** a un usuario se revocan todos sus refresh tokens activos. Sus tokens de acceso dejan de funcionar en la siguiente petición, porque `get_current_user` comprueba `is_active` (`403 Inactive user`).
 - El campo "Cargo" de la maqueta se omitió por decisión de la usuaria: no existe en la tabla `users`.
 
@@ -41,5 +43,4 @@ No existe un endpoint para restablecer contraseñas: se mantiene la herramienta 
 
 ## 6. Pendiente
 
-- Cambio de contraseña por parte del propio usuario: no está definido.
-- Garantizar que siempre exista al menos un `Coordinator` activo: hoy solo se impide el autobloqueo; un `Coordinator` puede desactivar a otro.
+- Nada de lo que estaba aquí: el cambio de contraseña propio y la regla de al menos un `Coordinator` activo se hicieron en el Sprint 2 (pruebas en `backend/tests/test_user_password_and_coordinators.py`).

@@ -22,6 +22,11 @@ export function MorePage() {
           </a>
         ))}
       </div>
+      <div className="bd-page-more">
+        <a href="/cuenta" className="bd-more-link bd-focusable" onClick={go('/cuenta')}>
+          <Icon name="lock" />Cambiar contraseña<Icon name="chevron-right" className="bd-chev" />
+        </a>
+      </div>
       <Panel title="Tema" icon="palette">
         <Segmented label="Tema" value={theme} onChange={(v) => setTheme(v as typeof theme)} options={THEMES.map((t) => ({ value: t.value, label: t.label, icon: t.icon }))} />
       </Panel>

@@ -74,7 +74,13 @@ export function DashboardPage() {
   const kpiActive: KpiItem = { label: 'Productos activos', value: active.length, icon: 'box-seam', hint: `En ${categoriesUsed} ${categoriesUsed === 1 ? 'categoría' : 'categorías'}`, href: '/productos' }
   const kpiMonth: KpiItem = { label: 'Movimientos del mes', value: monthMoves.length, icon: 'arrow-left-right', hint: `${monthIn} ${monthIn === 1 ? 'entrada' : 'entradas'} · ${monthOut} ${monthOut === 1 ? 'salida' : 'salidas'}`, href: '/movimientos?estado=autorizado' }
   const kpiLoans: KpiItem = { label: 'Herramientas prestadas', value: loaned.length, icon: 'tools', hint: `${workers} ${workers === 1 ? 'trabajador' : 'trabajadores'}`, href: '/prestamos' }
-  const kpiLots: KpiItem = { label: 'Lotes ≤ 30 días', value: expiring.length, icon: 'calendar-x', tone: expired ? 'danger' : expiring.length ? 'info' : undefined, hint: expired ? `${expired} ya ${expired === 1 ? 'vencido' : 'vencidos'}` : 'Ninguno vencido', href: '/productos?lotes=por-vencer' }
+  const soon = expiring.length - expired
+  const lotsHint = !expiring.length
+    ? 'Ninguno vence en 30 días'
+    : expired
+      ? [`${expired} ${expired === 1 ? 'vencido' : 'vencidos'}`, soon ? `${soon} por vencer` : ''].filter(Boolean).join(' · ')
+      : `${soon === 1 ? 'Vence' : 'Vencen'} en 30 días o menos`
+  const kpiLots: KpiItem = { label: 'Lotes por vencer', value: expiring.length, icon: 'calendar-x', tone: expired ? 'danger' : expiring.length ? 'info' : undefined, hint: lotsHint, href: '/productos?lotes=por-vencer' }
 
   const lowBody = inv.isLoading ? (
     <p className="bd-muted" style={{ margin: 0 }}>Cargando alertas…</p>

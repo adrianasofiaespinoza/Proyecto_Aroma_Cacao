@@ -34,4 +34,18 @@ describe('errorFromResponse()', () => {
     expect(err.code).toBe('SIN_CONEXION')
     expect(err.title).toBe('No hay conexión con el servidor')
   })
+  it('un 429 del login explica el bloqueo temporal sin decir si el correo existe', async () => {
+    const err = await errorFromResponse(response(429, 'Too many failed login attempts. Try again in 15 minutes'))
+    expect(err.code).toBe('DEMASIADOS_INTENTOS')
+    expect(err.message).toContain('15 minutos')
+    expect(err.message).not.toMatch(/no existe|registrad/i)
+  })
+  it('la contraseña actual incorrecta tiene su propio mensaje', async () => {
+    const err = await errorFromResponse(response(400, 'Current password is incorrect'))
+    expect(err.code).toBe('CLAVE_ACTUAL')
+  })
+  it('quitar al último coordinador activo se explica en lenguaje de bodega', async () => {
+    const err = await errorFromResponse(response(400, 'At least one active Coordinator is required'))
+    expect(err.title).toBe('Debe quedar al menos un coordinador activo')
+  })
 })

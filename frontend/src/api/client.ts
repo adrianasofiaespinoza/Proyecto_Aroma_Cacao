@@ -1,7 +1,8 @@
 /**
  * Cliente HTTP: agrega el Bearer token, renueva el access token ante un 401
- * (una sola renovación aunque haya varias peticiones en vuelo) y convierte
- * las respuestas de error en ApiError con mensajes de bodega.
+ * (una sola renovación aunque haya varias peticiones en vuelo, y sin cerrar la
+ * sesión si otra pestaña renovó primero) y convierte las respuestas de error en
+ * ApiError con mensajes de bodega.
  */
 import { errorFromResponse, networkError } from '../lib/errors'
 import type { User } from './types'
@@ -57,7 +58,14 @@ async function refreshAccessToken(): Promise<string | null> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      // Otra pestaña pudo renovar al mismo tiempo con este mismo refresh token: el servidor
+      // lo da por usado (401), pero la otra pestaña ya guardó la sesión nueva. Se usa esa
+      // en vez de cerrar la sesión.
+      const stored = tokenStorage.getRefreshToken()
+      if (stored && stored !== refreshToken) return tokenStorage.getAccessToken()
+      return null
+    }
     const data = (await res.json()) as { access_token: string; refresh_token: string }
     tokenStorage.setSession({ access_token: data.access_token, refresh_token: data.refresh_token })
     return data.access_token
@@ -79,9 +87,14 @@ async function rawFetch(url: string, init: RequestInit, token: string | null): P
 
 /** fetch con sesión. Devuelve la Response; lanza ApiError si no hay conexión. */
 export async function apiFetch(endpoint: string, init: RequestInit = {}): Promise<Response> {
-  let response = await rawFetch(endpoint, init, tokenStorage.getAccessToken())
+  const usedToken = tokenStorage.getAccessToken()
+  let response = await rawFetch(endpoint, init, usedToken)
   const isAuthCall = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/refresh')
   if (response.status !== 401 || isAuthCall) return response
+
+  // Otra pestaña ya renovó mientras esta petición viajaba: se reintenta con su token
+  const storedToken = tokenStorage.getAccessToken()
+  if (storedToken && storedToken !== usedToken) return rawFetch(endpoint, init, storedToken)
 
   if (!refreshing) {
     refreshing = refreshAccessToken().finally(() => {
