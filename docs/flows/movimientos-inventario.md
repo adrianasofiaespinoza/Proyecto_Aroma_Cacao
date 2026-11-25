@@ -58,6 +58,7 @@ Validaciones del router:
 - `ENTRY`/`EXIT` con cantidad `<= 0` → `400`.
 - El producto debe existir (`404`) y estar activo (`400`).
 - El lote, si se envía, debe existir (`404`) y pertenecer al producto (`400`).
+- En `ADJUSTMENT`, cada combinación de `product_id` y `lot_id` debe ser única (`400`: `Duplicate product and lot in ADJUSTMENT movement`). También se rechaza repetir un producto sin lote (`lot_id = null`). El mismo producto en lotes diferentes es válido. Esta regla no limita `ENTRY` ni `EXIT`.
 - La máquina, si se envía, debe existir (`404`).
 
 **Resultado:** `201`, estado `pending` y `requesting_user_id` igual al usuario autenticado. **El stock no cambia.**
@@ -130,8 +131,11 @@ Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimie
 | `backend/tests/test_schema_validation.py` | No | Límites de longitud y numéricos, decimales, motivo, tipos válidos. |
 | `backend/tests/test_movements_flow.py` | Sí (transacción revertida) | Permisos por rol, pendiente sin cambio de stock, autorización propia, salida insuficiente sin cambios, alerta al llegar al mínimo, ajuste a 0, motivo obligatorio, rechazo, estados finales, `404`, filtros y catálogos. |
 | `backend/tests/test_inventory_limits.py` | Sí | Límites de ajustes. |
+| `backend/tests/test_adjustment_duplicates.py` | Sí (transacción revertida) | AC-53: rechazo de ajustes duplicados con y sin lote para Coordinator y Operator, sin guardar solicitudes ni cambiar existencias o alertas; ajustes de lotes distintos y productos distintos válidos; entradas y salidas repetidas permitidas; Read-only recibe `403`. |
 
 Resultado local (2026-11-01): **47 pruebas aprobadas** y `ruff check .` sin hallazgos.
+
+AC-53 (2026-11-12, rama local): primero se reprodujo el defecto con cuatro casos que devolvían `201` en lugar de `400`. Tras la corrección, `pytest -q tests` terminó con **90 pruebas aprobadas**, incluidas las 11 de `test_adjustment_duplicates.py`, y `ruff check .` sin hallazgos. Las pruebas usan la base local de revisión y revierten sus datos. Emma verificó manualmente como Coordinator, desde `/docs`, un ajuste de dos líneas del mismo producto y lote: recibió `400` con `Duplicate product and lot in ADJUSTMENT movement`. Después confirmó en la web que el producto y el lote mantienen stock 10 y no apareció una solicitud nueva. Se usó `/docs` porque el formulario de Bodega todavía crea un solo detalle por solicitud. No cambia el esquema de la BD ni las solicitudes ya existentes.
 
 Verificación en el navegador (Playwright + Chromium), como `Coordinator` y `Read-only`: listado, filtros, visibilidad de botones por rol, validaciones del formulario, modal de detalle y redirección a `login.html` con un token inválido.
 
@@ -141,6 +145,5 @@ El 2026-11-01 también se verificaron las escrituras desde el navegador, con el 
 
 - Crear → autorizar y crear → rechazar con datos persistentes: verificado solo en el sandbox (con tokens generados localmente) y en las pruebas automáticas. El inicio de sesión real ya se verificó el 2026-11-03.
 - Máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Los lotes se controlan por vencimiento (ver `lotes.md`).
-- Un `ADJUSTMENT` con dos detalles del mismo producto aplica el último; no se rechaza la duplicidad.
 - Concurrencia: el bloqueo pesimista está implementado, pero no se ha probado con transacciones concurrentes reales.
 - `test_movements_flow.py` y `test_inventory_limits.py` no se ejecutan en CI porque requieren PostgreSQL. `test_schema_validation.py` podría agregarse a CI, ya que no la necesita.
