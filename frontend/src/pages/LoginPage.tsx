@@ -41,8 +41,8 @@ export function LoginPage() {
     <div className="lg">
       <form className="lg-form" onSubmit={submit} noValidate>
         <div className="lg-brand">
-          <span className="lg-co">{tenant.shortName}</span>
-          <span className="lg-prod">Bodega de mantenimiento</span>
+          {tenant.logoSrc ? <img className="lg-logo" src={tenant.logoSrc} alt={tenant.name} /> : <span className="lg-co">{tenant.shortName}</span>}
+          <span className="lg-prod">Bodega{tenant.product ? ` de ${tenant.product.toLowerCase()}` : ''}</span>
         </div>
         <div className="lg-panel">
           <h1>Iniciar sesión</h1>
@@ -53,7 +53,7 @@ export function LoginPage() {
             </Notice>
           )}
           <Field label="Correo" htmlFor="email">
-            <TextInput id="email" icon="envelope" type="email" autoComplete="username" placeholder="nombre@empresa.ec" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+            <TextInput id="email" icon="envelope" type="email" autoComplete="username" placeholder="nombre@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           </Field>
           <Field label="Contraseña" htmlFor="password" error={error?.credentials ? 'La contraseña no coincide con este correo.' : undefined}>
             <div className="lg-pw">
@@ -63,7 +63,7 @@ export function LoginPage() {
           </Field>
           <Checkbox label="Recordarme en este equipo" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           <Button variant="primary" size="xl" block icon="box-arrow-in-right" type="submit" loading={busy} disabled={!email || !password}>Entrar</Button>
-          <p className="lg-help">¿Olvidaste la contraseña? Pídele al coordinador que la restablezca.</p>
+          <p className="lg-help">¿Olvidaste la contraseña? Pídele al coordinador un enlace para elegir una nueva.</p>
         </div>
         <span className="lg-foot">{APP_NAME} {APP_VERSION} · {tenant.name}</span>
       </form>

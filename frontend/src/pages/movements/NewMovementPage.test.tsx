@@ -69,4 +69,21 @@ describe('Nueva solicitud', () => {
     await waitFor(() => expect(createMovement).toHaveBeenCalledTimes(1))
     expect(createMovement.mock.calls[0]?.[0]).toMatchObject({ type: 'ENTRY', details: [{ product_id: 1, quantity: 1 }] })
   })
+  it('avisa cuando la solicitud se autorizó automáticamente', async () => {
+    createMovement.mockResolvedValueOnce({ id: 78, status: 'authorized', auto_authorize_error: null })
+    renderPage('?tipo=entrada&producto=1')
+    await screen.findByText('Rodamiento rígido de bolas 6205-2RS')
+    await userEvent.click(screen.getByRole('button', { name: /Enviar solicitud/ }))
+    expect(await screen.findByText('Solicitud autorizada automáticamente.')).toBeInTheDocument()
+  })
+  it('explica por qué una autoaprobación quedó pendiente', async () => {
+    createMovement.mockResolvedValueOnce({
+      id: 79, status: 'pending',
+      auto_authorize_error: "Insufficient stock for product 'Rodamiento'. Current: 4, Loaned: 2, Available: 2, Requested: 9",
+    })
+    renderPage('?tipo=entrada&producto=1')
+    await screen.findByText('Rodamiento rígido de bolas 6205-2RS')
+    await userEvent.click(screen.getByRole('button', { name: /Enviar solicitud/ }))
+    expect(await screen.findByText('Quedó pendiente: no se pudo autorizar automáticamente.')).toBeInTheDocument()
+  })
 })

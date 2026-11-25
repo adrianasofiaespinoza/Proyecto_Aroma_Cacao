@@ -4,12 +4,14 @@ import type { Inventory } from '../../api/useInventory'
 import type { Product, Supplier, SupplierProduct } from '../../api/types'
 import { Button, CodeTag, DataTable, Field, IconButton, Modal, Notice, Panel, SearchInput, TextInput, useToast, type Column } from '../../components/ui'
 import { describeError } from '../../lib/errors'
-import { fmtPrice } from '../../lib/format'
+import { currentCurrency, fmtPrice } from '../../lib/format'
+import { useTaxIdLabel } from '../../app/ThemeProvider'
 
 interface Offer extends SupplierProduct { product: Product | undefined }
 
 /** Panel de un proveedor: datos de contacto y productos que ofrece con su precio de referencia. */
 export function SupplierDetail({ supplier, inv, admin, onEdit }: { supplier: Supplier; inv: Inventory; admin: boolean; onEdit?: () => void }) {
+  const taxLabel = useTaxIdLabel()
   const toast = useToast()
   const links = useSupplierProducts()
   const [adding, setAdding] = useState(false)
@@ -72,7 +74,7 @@ export function SupplierDetail({ supplier, inv, admin, onEdit }: { supplier: Sup
     <Panel title={supplier.company_name} icon="building" flush actions={admin && onEdit ? <Button size="sm" variant="secondary" icon="pencil" onClick={onEdit}>Editar</Button> : undefined}>
       <div className="pv-sup">
         <dl className="bd-dl">
-          <div><dt>RUC</dt><dd className="bd-mono">{supplier.ruc ?? '—'}</dd></div>
+          <div><dt>{taxLabel}</dt><dd className="bd-mono">{supplier.ruc ?? '—'}</dd></div>
           <div><dt>Contacto</dt><dd>{supplier.contact_person ?? '—'}</dd></div>
           <div><dt>Teléfono</dt><dd className="bd-num">{supplier.phone ?? '—'}</dd></div>
           <div><dt>Correo</dt><dd>{supplier.email ?? '—'}</dd></div>
@@ -95,7 +97,7 @@ export function SupplierDetail({ supplier, inv, admin, onEdit }: { supplier: Sup
         mobileActions={admin ? (o) => <><Button variant="secondary" icon="pencil" onClick={() => { setPricing(o); setPrice(o.reference_price ?? '') }}>Precio</Button><Button variant="danger-outline" icon="x-lg" onClick={() => void remove(o)}>Quitar</Button></> : null}
       />
       {admin && <div style={{ padding: 'var(--space-3) var(--space-6) 0' }}><Button size="sm" variant="secondary" icon="plus-lg" onClick={() => setAdding(true)}>Agregar producto</Button></div>}
-      <p className="pv-sup-note">Precios de referencia en USD sin IVA. Se usan para estimar; no generan órdenes de compra.</p>
+      <p className="pv-sup-note">Precios de referencia en {currentCurrency()} sin IVA. Se usan para estimar; no generan órdenes de compra.</p>
 
       {adding && (
         <Modal title={`Agregar producto a ${supplier.company_name}`} icon="cash-coin" onClose={closeAll} footer={<><Button variant="secondary" size="lg" onClick={closeAll}>Cancelar</Button><Button variant="primary" size="lg" icon="check-lg" form="sup-add" type="submit" loading={links.add.isPending}>Agregar</Button></>}>
@@ -112,7 +114,7 @@ export function SupplierDetail({ supplier, inv, admin, onEdit }: { supplier: Sup
                 </ul>
               </div>
             )}
-            <Field label="Precio de referencia" htmlFor="sup-price" optional hint="USD sin IVA, por unidad de medida."><TextInput id="sup-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} suffix="USD" /></Field>
+            <Field label="Precio de referencia" htmlFor="sup-price" optional hint={`${currentCurrency()} sin IVA, por unidad de medida.`}><TextInput id="sup-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} suffix={currentCurrency()} /></Field>
           </form>
         </Modal>
       )}
@@ -120,7 +122,7 @@ export function SupplierDetail({ supplier, inv, admin, onEdit }: { supplier: Sup
         <Modal title={`Precio de ${pricing.product?.name ?? 'producto'}`} icon="cash-coin" onClose={closeAll} footer={<><Button variant="secondary" size="lg" onClick={closeAll}>Cancelar</Button><Button variant="primary" size="lg" icon="check-lg" form="sup-price-form" type="submit" loading={links.update.isPending}>Guardar</Button></>}>
           <form id="sup-price-form" onSubmit={submitPrice} noValidate className="bd-stack">
             {error && <Notice tone="danger">{error}</Notice>}
-            <Field label="Precio de referencia" htmlFor="sup-price2" optional hint="USD sin IVA. Vacío si no se conoce."><TextInput id="sup-price2" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} suffix="USD" autoFocus /></Field>
+            <Field label="Precio de referencia" htmlFor="sup-price2" optional hint={`${currentCurrency()} sin IVA. Vacío si no se conoce.`}><TextInput id="sup-price2" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} suffix={currentCurrency()} autoFocus /></Field>
           </form>
         </Modal>
       )}

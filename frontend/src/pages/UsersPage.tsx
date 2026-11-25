@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 import { useCreateUser, useUpdateUser, useUsers } from '../api/hooks'
+import * as api from '../api/endpoints'
+import { fmtDateTime } from '../lib/format'
 import type { BackendRole, User } from '../api/types'
 import { useSessionUser } from '../app/AuthProvider'
 import { Button, ConfirmDialog, DataTable, Field, FilterBar, Icon, IconButton, Modal, Notice, PageHeader, Panel, SearchInput, Segmented, Select, StatusBadge, TextInput, useToast, type Column } from '../components/ui'
@@ -17,6 +19,7 @@ const ROLE_HINT: Record<Role, string> = {
   operador: 'Operador: pide entradas y salidas y registra préstamos. No autoriza.',
   coordinador: 'Coordinador: autoriza movimientos y administra productos, máquinas, proveedores y usuarios.',
   lectura: 'Solo lectura: consulta el inventario sin cambiar nada.',
+  soporte: '',
 }
 
 interface FormState { username: string; full_name: string; email: string; password: string; role: Role }
@@ -42,6 +45,35 @@ export function UsersPage() {
   const [tried, setTried] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [toggling, setToggling] = useState<User | null>(null)
+  // Enlace de un solo uso: se pide confirmación y se muestra una sola vez
+  const [resetting, setResetting] = useState<User | null>(null)
+  const [resetBusy, setResetBusy] = useState(false)
+  const [resetLink, setResetLink] = useState<{ user: User; url: string; expires: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const createResetLink = async (u: User) => {
+    setResetBusy(true)
+    try {
+      const r = await api.createPasswordReset(u.id)
+      setResetLink({ user: u, url: `${window.location.origin}/restablecer?token=${encodeURIComponent(r.token)}`, expires: r.expires_at })
+      setCopied(false)
+    } catch (err) {
+      const d = describeError(err)
+      toast.danger(<><b>{d.title}</b> {d.message}</>)
+    } finally {
+      setResetBusy(false)
+      setResetting(null)
+    }
+  }
+  const copyLink = async () => {
+    if (!resetLink) return
+    try {
+      await navigator.clipboard.writeText(resetLink.url)
+      setCopied(true)
+    } catch {
+      /* sin permiso de portapapeles: el enlace sigue visible para copiarlo a mano */
+    }
+  }
 
   const open = (u: User | 'new') => {
     setEditing(u)
@@ -67,7 +99,7 @@ export function UsersPage() {
     try {
       if (isNew) {
         const u = await createUser.mutateAsync({ username: form.username.trim(), full_name: form.full_name.trim(), email: form.email.trim(), password: form.password, role: ROLE_TO_BACKEND[form.role], is_active: true })
-        toast.ok(<><b>Usuario creado.</b> {u.full_name} ({ROLES[uiRole(u.role)].label}). Entrégale la contraseña en persona.</>)
+        toast.ok(<><b>Usuario creado.</b> {u.full_name} ({ROLES[uiRole(u.role)].label}). Entrégale la contraseña en persona: deberá cambiarla al entrar.</>)
       } else if (editing) {
         const u = await updateUser.mutateAsync({ id: editing.id, input: { full_name: form.full_name.trim(), email: form.email.trim(), role: ROLE_TO_BACKEND[form.role], is_active: editing.is_active } })
         toast.ok(<><b>Usuario actualizado.</b> {u.full_name}</>)
@@ -106,6 +138,12 @@ export function UsersPage() {
     { key: 'role', header: 'Rol', mobile: 'meta', render: (u) => <RoleTag role={u.role} /> },
     { key: 'active', header: 'Estado', mobile: 'badge', render: (u) => <StatusBadge status={u.is_active ? 'activo' : 'inactivo'} /> },
   ]
+  const resetBtn = (u: User, mobile: boolean) => {
+    if (u.id === me.id || !u.is_active) return null
+    return mobile
+      ? <Button variant="secondary" icon="lock" onClick={() => setResetting(u)}>Restablecer contraseña</Button>
+      : <IconButton icon="lock" label={'Enlace para restablecer la contraseña de ' + u.full_name} onClick={() => setResetting(u)} />
+  }
   const toggleBtn = (u: User, mobile: boolean) => {
     if (u.id === me.id) return null
     if (mobile) return u.is_active ? <Button variant="danger-outline" icon="power" onClick={() => setToggling(u)}>Desactivar</Button> : <Button variant="secondary" icon="arrow-counterclockwise" onClick={() => void toggleActive(u)}>Reactivar</Button>
@@ -129,8 +167,8 @@ export function UsersPage() {
           onRetry={() => void users.refetch()}
           loadingLabel="Cargando usuarios…"
           empty={{ icon: 'people', title: q ? `Sin resultados para “${q}”` : 'No hay usuarios con ese rol' }}
-          actions={(u) => <><IconButton icon="pencil" label={'Editar ' + u.full_name} onClick={() => open(u)} />{toggleBtn(u, false)}</>}
-          mobileActions={(u) => <><Button variant="secondary" icon="pencil" onClick={() => open(u)}>Editar</Button>{toggleBtn(u, true)}</>}
+          actions={(u) => <><IconButton icon="pencil" label={'Editar ' + u.full_name} onClick={() => open(u)} />{resetBtn(u, false)}{toggleBtn(u, false)}</>}
+          mobileActions={(u) => <><Button variant="secondary" icon="pencil" onClick={() => open(u)}>Editar</Button>{resetBtn(u, true)}{toggleBtn(u, true)}</>}
         />
       </Panel>
       {users.isError && !isConnectionError(users.error) && <Notice tone="danger" title="No se pudo cargar la lista">{describeError(users.error).message}</Notice>}
@@ -150,7 +188,7 @@ export function UsersPage() {
             <Field label="Nombre completo" htmlFor="u-name" required error={errors.name}><TextInput id="u-name" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} maxLength={100} /></Field>
             <Field label="Correo" htmlFor="u-email" required className="bd-span" error={errors.email}><TextInput id="u-email" type="email" icon="envelope" value={form.email} onChange={(e) => set('email', e.target.value)} maxLength={100} autoComplete="off" /></Field>
             {isNew && (
-              <Field label="Contraseña inicial" htmlFor="u-pass" required className="bd-span" error={errors.password} hint="Mínimo 8 caracteres. Entrégasela en persona.">
+              <Field label="Contraseña inicial" htmlFor="u-pass" required className="bd-span" error={errors.password} hint="Mínimo 8 caracteres. Entrégasela en persona: al entrar deberá elegir la suya.">
                 <TextInput id="u-pass" type="password" icon="lock" value={form.password} onChange={(e) => set('password', e.target.value)} maxLength={128} autoComplete="new-password" />
               </Field>
             )}
@@ -158,6 +196,33 @@ export function UsersPage() {
               <Select id="u-role" value={form.role} onChange={(e) => set('role', e.target.value as Role)} options={ROLE_OPTIONS} disabled={!isNew && editing.id === me.id} />
             </Field>
           </form>
+        </Modal>
+      )}
+      {resetting && (
+        <ConfirmDialog
+          icon="lock"
+          title={`¿Crear un enlace para ${resetting.full_name}?`}
+          confirmLabel="Crear enlace"
+          confirmIcon="lock"
+          loading={resetBusy}
+          onCancel={() => setResetting(null)}
+          onConfirm={() => void createResetLink(resetting)}
+          consequences={[['Usuario', `${resetting.username} · ${resetting.email}`], ['Validez', '24 horas, un solo uso'], ['Enlaces anteriores', 'Dejan de servir']]}
+        >
+          <p style={{ margin: 0 }}>Con el enlace, {resetting.full_name} elige una contraseña nueva que tú no vas a conocer. Al usarlo se cierran sus sesiones abiertas.</p>
+        </ConfirmDialog>
+      )}
+      {resetLink && (
+        <Modal
+          title="Enlace para restablecer la contraseña"
+          icon="lock"
+          onClose={() => setResetLink(null)}
+          footer={<><Button variant="secondary" size="lg" onClick={() => setResetLink(null)}>Cerrar</Button><Button variant="primary" size="lg" icon={copied ? 'check-lg' : 'clipboard-check'} onClick={() => void copyLink()}>{copied ? 'Copiado' : 'Copiar enlace'}</Button></>}
+        >
+          <div className="bd-stack">
+            <Notice tone="pending" title="Solo se muestra esta vez">Entrégaselo únicamente a {resetLink.user.full_name}, en persona o por un mensaje privado. Sirve una vez y vence el {fmtDateTime(resetLink.expires)}.</Notice>
+            <TextInput readOnly aria-label="Enlace" className="bd-mono" value={resetLink.url} onFocus={(e) => e.currentTarget.select()} />
+          </div>
         </Modal>
       )}
       {toggling && (

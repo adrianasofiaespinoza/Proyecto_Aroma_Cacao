@@ -1,7 +1,7 @@
 import { apiFetch, json, request, tokenStorage } from './client'
 import { errorFromResponse } from '../lib/errors'
 import type {
-  Alert, Category, Loan, LoanInput, Lot, LotInput, Machine, MachineInput, Movement, MovementInput, MovementStatus, MovementType,
+  Alert, Category, CompanySettings, CompanySettingsInput, PublicSettings, Loan, LoanInput, Lot, LotInput, Machine, MachineInput, Movement, MovementInput, MovementStatus, MovementType,
   Product, ProductInput, Supplier, SupplierInput, TokenResponse, Unit, User, UserCreateInput, UserUpdateInput, Worker,
 } from './types'
 
@@ -97,3 +97,32 @@ export const removeSupplierProduct = (supplierId: number, productId: number) =>
 export const getUsers = () => request<User[]>('/users')
 export const createUser = (input: UserCreateInput) => request<User>('/users', { method: 'POST', ...json(input) })
 export const updateUser = (id: number, input: UserUpdateInput) => request<User>(`/users/${id}`, { method: 'PUT', ...json(input) })
+
+// ---------- Configuración de la empresa ----------
+/** Sin sesión: no pasa por el renovador de tokens. */
+export async function getPublicSettings(): Promise<PublicSettings> {
+  const res = await fetch('/settings/public')
+  if (!res.ok) throw await errorFromResponse(res)
+  return (await res.json()) as PublicSettings
+}
+export const getSettings = () => request<CompanySettings>('/settings')
+export const updateSettings = (input: CompanySettingsInput) => request<CompanySettings>('/settings', { method: 'PUT', ...json(input) })
+export const getRules = () => request<{ coordinator_auto_approve: boolean }>('/settings/rules')
+export const updateRules = (input: { coordinator_auto_approve: boolean }) => request<{ coordinator_auto_approve: boolean }>('/settings/rules', { method: 'PUT', ...json(input) })
+export const uploadLogo = (data_url: string) => request<CompanySettings>('/settings/logo', { method: 'PUT', ...json({ data_url }) })
+export const deleteLogo = () => request<CompanySettings>('/settings/logo', { method: 'DELETE' })
+
+// ---------- Restablecer contraseña con enlace de un solo uso ----------
+/** Solo Coordinator. El token se muestra una vez: el enlace no se guarda en ningún lado. */
+export const createPasswordReset = (userId: number) => request<{ token: string; expires_at: string }>(`/users/${userId}/password-reset`, { method: 'POST' })
+
+/** Sin sesión: quien abre el enlace todavía no puede entrar. */
+export async function checkPasswordReset(token: string): Promise<{ full_name: string; email: string }> {
+  const res = await fetch(`/auth/password-reset/${encodeURIComponent(token)}`)
+  if (!res.ok) throw await errorFromResponse(res)
+  return (await res.json()) as { full_name: string; email: string }
+}
+export async function completePasswordReset(token: string, new_password: string): Promise<void> {
+  const res = await fetch('/auth/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, new_password }) })
+  if (!res.ok) throw await errorFromResponse(res)
+}

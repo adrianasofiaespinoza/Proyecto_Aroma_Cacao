@@ -125,6 +125,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       onNavigate={() => setAlertsOpen(false)}
       userMenu={userMenu}
       version={`${APP_NAME} ${APP_VERSION}`}
+      modules={tenant.modules}
       banner={offline ? <ConnectionError variant="banner" onRetry={retry} /> : undefined}
     >
       {children}

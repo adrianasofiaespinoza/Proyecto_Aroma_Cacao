@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiFetch, tokenStorage } from './client'
+import { apiFetch, migrateLegacyKeys, tokenStorage } from './client'
 
 const json = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
@@ -49,5 +49,26 @@ describe('apiFetch() con varias pestañas', () => {
 
     expect((await apiFetch('/products')).status).toBe(401)
     expect(tokenStorage.getAccessToken()).toBeNull()
+  })
+})
+
+describe('claves de sesión sin el nombre de la empresa', () => {
+  it('copia una vez la sesión guardada con las claves aroma_* y las borra', () => {
+    localStorage.setItem('aroma_access_token', 'acceso')
+    localStorage.setItem('aroma_refresh_token', 'renovar')
+    localStorage.setItem('aroma_user', JSON.stringify({ id: 1 }))
+    migrateLegacyKeys()
+    expect(tokenStorage.getAccessToken()).toBe('acceso')
+    expect(tokenStorage.getRefreshToken()).toBe('renovar')
+    expect(tokenStorage.getUser()).toEqual({ id: 1 })
+    expect(localStorage.getItem('aroma_access_token')).toBeNull()
+  })
+
+  it('no pisa una sesión nueva con una antigua', () => {
+    tokenStorage.setSession({ access_token: 'nuevo' })
+    localStorage.setItem('aroma_access_token', 'viejo')
+    migrateLegacyKeys()
+    expect(tokenStorage.getAccessToken()).toBe('nuevo')
+    expect(localStorage.getItem('aroma_access_token')).toBeNull()
   })
 })

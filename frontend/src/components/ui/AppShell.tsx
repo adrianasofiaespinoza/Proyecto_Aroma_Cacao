@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ROLES, can, type Role } from '../../lib/permissions'
+import { ROLES, can, type Action, type Role } from '../../lib/permissions'
+import type { ModuleId } from '../../lib/company'
 import { initials } from '../../lib/format'
 import { AlertsPanel, type AlertItem } from './AlertsPanel'
 import { BrandMark, type Brand } from './BrandMark'
@@ -9,17 +10,23 @@ import { useGo } from './navigation'
 
 export interface ShellUser { name: string; role: Role }
 
-export interface NavItem { id: string; label: string; icon: string; href: string; m?: boolean; action?: 'usuarios' }
+export interface NavItem { id: string; label: string; icon: string; href: string; m?: boolean; action?: Action; module?: ModuleId }
 
 export const NAV: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: 'house-door', href: '/', m: true },
   { id: 'productos', label: 'Productos', icon: 'box-seam', href: '/productos', m: true },
   { id: 'movimientos', label: 'Movimientos', icon: 'arrow-left-right', href: '/movimientos', m: true },
-  { id: 'prestamos', label: 'Préstamos', icon: 'tools', href: '/prestamos', m: true },
-  { id: 'maquinas', label: 'Máquinas', icon: 'gear-wide-connected', href: '/maquinas' },
-  { id: 'proveedores', label: 'Proveedores', icon: 'truck', href: '/proveedores' },
+  { id: 'prestamos', label: 'Préstamos', icon: 'tools', href: '/prestamos', m: true, module: 'loans' },
+  { id: 'maquinas', label: 'Máquinas', icon: 'gear-wide-connected', href: '/maquinas', module: 'machines' },
+  { id: 'proveedores', label: 'Proveedores', icon: 'truck', href: '/proveedores', module: 'suppliers' },
   { id: 'usuarios', label: 'Usuarios', icon: 'people', href: '/usuarios', action: 'usuarios' },
+  { id: 'configuracion', label: 'Configuración', icon: 'sliders', href: '/configuracion', action: 'reglas' },
 ]
+
+/** Lo que ve el rol con los módulos activos de la empresa. */
+export function visibleNav(role: Role, modules?: Partial<Record<ModuleId, boolean>>): NavItem[] {
+  return NAV.filter((n) => (!n.action || can(role, n.action)) && (!n.module || modules?.[n.module] !== false))
+}
 
 export interface AppShellProps {
   brand: Brand
@@ -36,12 +43,14 @@ export interface AppShellProps {
   banner?: ReactNode
   overlay?: ReactNode
   version?: string
+  /** Módulos activos; los desactivados no aparecen en el menú. */
+  modules?: Partial<Record<ModuleId, boolean>>
   children?: ReactNode
 }
 
-export function AppShell({ brand, user, current = 'inicio', pendingCount = 0, alerts = [], alertsOpen, onNavigate, onToggleAlerts, userMenu, banner, overlay, version = 'Bodega v1.0', children }: AppShellProps) {
+export function AppShell({ brand, user, current = 'inicio', pendingCount = 0, alerts = [], alertsOpen, onNavigate, onToggleAlerts, userMenu, banner, overlay, version = 'Bodega v1.0', modules, children }: AppShellProps) {
   const go = useGo()
-  const items = NAV.filter((n) => !n.action || can(user.role, n.action))
+  const items = visibleNav(user.role, modules)
   const role = ROLES[user.role] ?? ROLES.lectura
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)

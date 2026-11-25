@@ -5,6 +5,7 @@ import type { Category, Loan, Lot, Machine, Product, Unit } from './types'
 import { available, loanedByProduct } from '../lib/domain'
 import { unitLabel } from '../lib/format'
 import { isConnectionError } from '../lib/errors'
+import { useModules } from '../app/ThemeProvider'
 
 export interface Inventory {
   products: Product[]
@@ -22,6 +23,9 @@ export interface Inventory {
   loanedByProduct: Map<number, number>
   /** Abreviatura de la unidad de un producto: «u.», «kg», «l»… */
   unitOf: (p: Pick<Product, 'unit_of_measure_id'> | undefined) => string
+  /** Módulos activos en Configuración (un módulo apagado llega como lista vacía). */
+  loansEnabled: boolean
+  machinesEnabled: boolean
   /** Disponible = stock − prestado. */
   availableOf: (p: Product) => number
   isLoading: boolean
@@ -31,13 +35,16 @@ export interface Inventory {
 }
 
 export function useInventory(opts: { lots?: boolean; machines?: boolean; loans?: boolean } = {}): Inventory {
-  const want = { lots: true, machines: true, loans: true, ...opts }
+  const modules = useModules()
+  const asked = { lots: true, machines: true, loans: true, ...opts }
+  // Un módulo desactivado no se consulta: su endpoint responde 403.
+  const want = { ...asked, machines: asked.machines && modules.machines, loans: asked.loans && modules.loans }
   const products = useProducts()
   const categories = useCategories()
   const units = useUnits()
   const lots = useLots()
-  const machines = useMachines()
-  const loans = useLoans()
+  const machines = useMachines(want.machines)
+  const loans = useLoans(want.loans)
   const queries = [products, categories, units, ...(want.lots ? [lots] : []), ...(want.machines ? [machines] : []), ...(want.loans ? [loans] : [])]
 
   return useMemo<Inventory>(() => {
@@ -61,6 +68,8 @@ export function useInventory(opts: { lots?: boolean; machines?: boolean; loans?:
       machineById: new Map((want.machines ? (machines.data ?? []) : []).map((m) => [m.id, m])),
       loans: want.loans ? (loans.data ?? []) : [],
       loanedByProduct: loaned,
+      loansEnabled: modules.loans,
+      machinesEnabled: modules.machines,
       unitOf: (p) => unitLabel(p ? unitById.get(p.unit_of_measure_id)?.abbreviation : undefined),
       availableOf: (p) => available(p, loaned),
       isLoading: queries.some((q) => q.isLoading),
@@ -69,5 +78,5 @@ export function useInventory(opts: { lots?: boolean; machines?: boolean; loans?:
       refetch: () => queries.forEach((q) => void q.refetch()),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products.data, categories.data, units.data, lots.data, machines.data, loans.data, products.isLoading, products.isError, categories.isError, units.isError, lots.isError, machines.isError, loans.isError, want.lots, want.machines, want.loans])
+  }, [products.data, categories.data, units.data, lots.data, machines.data, loans.data, products.isLoading, products.isError, categories.isError, units.isError, lots.isError, machines.isError, loans.isError, want.lots, want.machines, want.loans, modules.loans, modules.machines])
 }

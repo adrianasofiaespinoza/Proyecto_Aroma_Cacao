@@ -15,6 +15,9 @@ export type ErrorCode =
   | 'CLAVE_ACTUAL'
   | 'SESION_EXPIRADA'
   | 'SIN_PERMISO'
+  | 'CAMBIAR_CLAVE'
+  | 'ENLACE_INVALIDO'
+  | 'MODULO_DESACTIVADO'
   | 'NO_ENCONTRADO'
   | 'DUPLICADO'
   | 'DATOS_INVALIDOS'
@@ -53,6 +56,16 @@ export class ApiError extends Error {
 const num = (s: string | undefined) => Number(s ?? 0)
 
 function translate(status: number, detail: string): { code: ErrorCode; title: string; message: string; stock?: StockInfo } {
+  // Antes que las reglas de lotes: «has expired» también coincidiría con la de lote vencido
+  if (/Password change required/.test(detail)) {
+    return { code: 'CAMBIAR_CLAVE', title: 'Primero elige tu contraseña', message: 'Entraste con la contraseña que te dieron. Cámbiala para continuar.' }
+  }
+  if (/password reset link is invalid or has expired/i.test(detail)) {
+    return { code: 'ENLACE_INVALIDO', title: 'El enlace ya no sirve', message: 'Ya se usó, venció o se creó uno más nuevo. Pídele otro al coordinador: cada enlace sirve una vez durante 24 horas.' }
+  }
+  if (/Cannot reset the password of an inactive user/.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'El usuario está inactivo', message: 'Reactívalo antes de crear un enlace para su contraseña.' }
+  }
   let m = detail.match(/Insufficient stock for product '(.+)'\. Current: (\S+), Loaned: (\S+), Available: (\S+), Requested: (\S+)/)
   if (m) {
     const stock: StockInfo = { product: m[1] ?? '', current: num(m[2]), loaned: num(m[3]), available: num(m[4]), requested: num(m[5]) }
@@ -105,6 +118,27 @@ function translate(status: number, detail: string): { code: ErrorCode; title: st
   if (/At least one active Coordinator is required/i.test(detail)) {
     return { code: 'DATOS_INVALIDOS', title: 'Debe quedar al menos un coordinador activo', message: 'Dale el rol de Coordinador a otra persona antes de quitárselo o desactivar a esta.' }
   }
+  m = detail.match(/The (\w+) module is disabled/)
+  if (m) {
+    const name = { Loans: 'Préstamos', Machines: 'Máquinas', Suppliers: 'Proveedores' }[m[1] ?? ''] ?? m[1]
+    return { code: 'MODULO_DESACTIVADO', title: `El módulo ${name} está desactivado`, message: 'El coordinador puede activarlo en Configuración. Sus datos se conservan.' }
+  }
+  m = detail.match(/Cannot disable the Loans module: (\d+) tools/)
+  if (m) {
+    return { code: 'DATOS_INVALIDOS', title: 'Hay herramientas prestadas', message: `Quedan ${m[1]} préstamos sin devolver. Registra su devolución antes de desactivar Préstamos.` }
+  }
+  if (/brand_color is too light/.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'El color principal es muy claro', message: 'El texto en ese color no se leería sobre fondo blanco. Elige uno más oscuro.' }
+  }
+  if (/accent_color is too dark/.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'El color de acento es muy oscuro', message: 'No se distinguiría en el menú. Elige uno más claro o más vivo.' }
+  }
+  if (/Logo is too large/.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'El logo pesa demasiado', message: 'Usa una imagen de hasta 200 KB. Puedes reducirla o exportarla como SVG o WebP.' }
+  }
+  if (/Logo (must be|content|file)/.test(detail)) {
+    return { code: 'DATOS_INVALIDOS', title: 'No se pudo usar esa imagen', message: 'El logo debe ser un archivo PNG, JPG, WebP o SVG válido.' }
+  }
   if (/already exists|already registered|duplicate|ya existe/i.test(detail) || status === 409) {
     return { code: 'DUPLICADO', title: 'Ya existe un registro con esos datos', message: detail || 'Revisa el código, el correo o el número de lote: debe ser único.' }
   }
@@ -127,6 +161,12 @@ function translate(status: number, detail: string): { code: ErrorCode; title: st
     return { code: 'ERROR_SERVIDOR', title: 'El servidor tuvo un problema', message: 'No se guardó nada. Inténtalo de nuevo en un momento; si sigue, avisa a soporte.' }
   }
   return { code: 'ERROR_SERVIDOR', title: 'Algo salió mal', message: detail || 'Inténtalo de nuevo.' }
+}
+
+/** Traduce un `detail` suelto del backend (por ejemplo, el motivo de una autoaprobación fallida). */
+export function describeDetail(detail: string, status = 400): { title: string; message: string; code: ErrorCode } {
+  const { code, title, message } = translate(status, detail)
+  return { code, title, message }
 }
 
 /** Extrae `detail` de una respuesta de FastAPI (texto o lista de errores 422). */

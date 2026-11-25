@@ -116,6 +116,14 @@
       "destination": "https://aroma-cacao.onrender.com/health/:path*"
     },
     {
+      "source": "/settings",
+      "destination": "https://aroma-cacao.onrender.com/settings"
+    },
+    {
+      "source": "/settings/:path*",
+      "destination": "https://aroma-cacao.onrender.com/settings/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

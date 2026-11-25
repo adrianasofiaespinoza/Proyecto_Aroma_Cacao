@@ -7,9 +7,11 @@ import { useSessionUser } from '../../app/AuthProvider'
 import { Button, DataTable, FilterBar, IconButton, PageHeader, Panel, RoleGate, SearchInput, type Column } from '../../components/ui'
 import { can } from '../../lib/permissions'
 import { SupplierDetail } from './SupplierDetail'
+import { useTaxIdLabel } from '../../app/ThemeProvider'
 import { SupplierFormModal } from './SupplierFormModal'
 
 export function SuppliersPage() {
+  const taxLabel = useTaxIdLabel()
   const user = useSessionUser()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -49,7 +51,7 @@ export function SuppliersPage() {
       />
       <div className="bd-split pv-split">
         <Panel flush>
-          <FilterBar><SearchInput placeholder="Buscar por empresa, RUC o producto" value={q} onChange={(e) => setParam('q', e.target.value)} /></FilterBar>
+          <FilterBar><SearchInput placeholder={`Buscar por empresa, ${taxLabel} o producto`} value={q} onChange={(e) => setParam('q', e.target.value)} /></FilterBar>
           <DataTable
             columns={cols}
             rows={rows}
