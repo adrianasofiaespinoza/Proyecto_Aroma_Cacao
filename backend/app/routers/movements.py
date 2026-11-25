@@ -163,6 +163,7 @@ def create_movement(
     # --------------------------------------------------------
     # Validate quantities and relations
     # --------------------------------------------------------
+    seen_adjustment_details: set[tuple[int, int | None]] = set()
     for detail in movement_data.details:
 
 
@@ -191,6 +192,15 @@ def create_movement(
             product,
             movement_data.type
         )
+
+        if movement_data.type == "ADJUSTMENT":
+            key = (detail.product_id, detail.lot_id)
+            if key in seen_adjustment_details:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Duplicate product and lot in ADJUSTMENT movement"
+                )
+            seen_adjustment_details.add(key)
 
         if detail.machine_id is not None:
             machine = db.get(Machine, detail.machine_id)
