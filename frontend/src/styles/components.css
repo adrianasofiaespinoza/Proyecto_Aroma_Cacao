@@ -320,7 +320,8 @@ a.bd-kpi:hover { background: var(--surface); }
 
 /* marca */
 .bd-brand { display: grid; gap: 2px; justify-items: center; color: var(--nav-ink); }
-.bd-brand img { max-width: 72px; max-height: 40px; display: block; }
+.bd-brand img { height: 40px; width: auto; max-width: 72px; object-fit: contain; display: block; }
+.bd-brand-row img { align-self: center; height: 32px; }
 .bd-brand-name { font: 700 17px/18px var(--font-display); letter-spacing: .01em; color: var(--nav-ink); }
 .bd-brand-product { font: 700 10px/12px var(--font-sans); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
 .bd-brand-row { display: flex; align-items: baseline; gap: var(--space-2); justify-items: start; }

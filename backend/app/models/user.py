@@ -63,6 +63,14 @@ class User(Base):
         default=True
     )
 
+    # True con la contraseña inicial que escribió el Coordinator o tras un restablecimiento
+    # por consola: hasta cambiarla, solo puede usar /users/me, /users/me/password y el logout.
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
     auth_provider: Mapped[str] = mapped_column(
         String(30),
         nullable=False,

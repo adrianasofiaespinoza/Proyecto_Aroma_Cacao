@@ -48,7 +48,8 @@ Estos endpoints permiten consultar información pública sin proporcionar un tok
 
 El registro público (`POST /auth/register`) **se cerró en el Sprint 2**: nadie puede crear una cuenta sin un `Coordinator`. El endpoint ya no existe (responde `404`).
 
-- Los usuarios los crea un `Coordinator` desde la pantalla **Usuarios** (`POST /users`), con su rol y una contraseña inicial.
+- Los usuarios los crea un `Coordinator` desde la pantalla **Usuarios** (`POST /users`), con su rol y una contraseña inicial que la persona **debe cambiar al entrar** (`must_change_password`).
+- Una contraseña olvidada se restablece con un **enlace de un solo uso** que genera el `Coordinator`; la persona elige la nueva sin que él la conozca. Detalle en `docs/flows/usuarios.md`.
 - El **primer Coordinator** de una base nueva se crea en la consola con `backend/app/create_coordinator.py`, que pide los datos y la contraseña sin mostrarla (ver `docs/plan/guia-trabajo-equipo.md`, sección 2.5).
 
 Las contraseñas no se almacenan directamente en la base de datos. Se utiliza **Argon2** para realizar el hash de las contraseñas.
@@ -60,6 +61,8 @@ Se definieron roles para controlar el acceso:
 - `Operator`
     
 - `Read-only`
+
+- `Support`: el equipo de desarrollo; configura la instalación y solo consulta lo demás. La empresa no lo ve (Sprint 3).
     
 
 ---

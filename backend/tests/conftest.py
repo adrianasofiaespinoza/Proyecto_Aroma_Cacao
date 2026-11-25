@@ -17,8 +17,10 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models.product import Category, Product, UnitOfMeasure
+from app.models.company_settings import CompanySettings
 from app.models.user import User
 from app.security.auth import get_current_user
+from app.services.company import DEFAULTS
 
 
 @pytest.fixture
@@ -26,6 +28,13 @@ def session():
     connection = engine.connect()
     transaction = connection.begin()
     db = Session(bind=connection, join_transaction_mode="create_savepoint")
+    # Las pruebas suponen la configuración por defecto (módulos activos, sin
+    # autoaprobación), sea cual sea la de esta BD. Se revierte con la transacción.
+    settings = db.get(CompanySettings, 1)
+    if settings is not None:
+        for key, value in DEFAULTS.items():
+            setattr(settings, key, value)
+        db.commit()
     try:
         yield db
     finally:
@@ -37,7 +46,7 @@ def session():
 @pytest.fixture
 def users(session):
     created = {}
-    for role in ("Coordinator", "Operator", "Read-only"):
+    for role in ("Coordinator", "Operator", "Read-only", "Support"):
         suffix = uuid.uuid4().hex[:8]
         user = User(
             username=f"flow_{suffix}",

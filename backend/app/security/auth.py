@@ -1,6 +1,7 @@
 from fastapi import (
     Depends,
     HTTPException,
+    Request,
     status,
 )
 
@@ -19,12 +20,21 @@ from app.models.user import User
 from app.security.jwt import decode_token
 
 
+# Equipo de desarrollo: configura la instalación y ve el sistema en modo lectura.
+# La empresa cliente no lo ve en Usuarios ni puede asignarlo; se crea por consola.
+SUPPORT_ROLE = "Support"
+
+# Con la contraseña inicial (o recién restablecida por consola) solo se permite esto
+PASSWORD_CHANGE_PATHS = {"/users/me", "/users/me/password"}
+
+
 bearer_scheme = HTTPBearer(
     auto_error=False
 )
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(
         bearer_scheme
     ),
@@ -95,6 +105,13 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
+        )
+
+    # Nadie usa el sistema con una contraseña que otra persona conoce
+    if user.must_change_password and request.url.path not in PASSWORD_CHANGE_PATHS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required"
         )
 
     return user

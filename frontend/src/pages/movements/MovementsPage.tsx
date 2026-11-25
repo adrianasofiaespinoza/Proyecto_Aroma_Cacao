@@ -7,7 +7,7 @@ import {
   Button, CodeTag, DataTable, FilterBar, IconButton, PageHeader, Panel, RoleGate, SearchInput, Segmented, Select, StatusBadge, TypeTag, type Column,
 } from '../../components/ui'
 import { STATUS_TO_BACKEND, TYPE_TO_BACKEND, type UiMovementStatus, type UiMovementType } from '../../lib/domain'
-import { fmtDateTime } from '../../lib/format'
+import { fmtDateTime, fmtMonthYear } from '../../lib/format'
 import { can } from '../../lib/permissions'
 import { movementView, type MovementView } from './movementView'
 
@@ -19,7 +19,7 @@ const TYPES: { value: UiMovementType | 'todos'; label: string }[] = [
 ]
 
 function monthLabel() {
-  const s = new Intl.DateTimeFormat('es-EC', { month: 'long', year: 'numeric' }).format(new Date())
+  const s = fmtMonthYear()
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 

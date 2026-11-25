@@ -26,6 +26,11 @@ No existe un endpoint para restablecer contraseñas: se mantiene la herramienta 
 - **Siempre al menos un `Coordinator` activo (Sprint 2):** antes de quitarle el rol o desactivar a un `Coordinator`, se bloquean las filas de los `Coordinators` activos (`SELECT ... FOR UPDATE`, en orden de id) y se responde `400` («At least one active Coordinator is required») si no quedaría ninguno. Así, si dos `Coordinators` intentan quitarse el rol el uno al otro al mismo tiempo, los cambios se aplican de uno en uno y el segundo se rechaza.
 - **Cambio de contraseña propio (Sprint 2):** `POST /users/me/password`, para todos los roles. Ver `docs/authentication.md`, sección 7b.
 - **Al desactivar** a un usuario se revocan todos sus refresh tokens activos. Sus tokens de acceso dejan de funcionar en la siguiente petición, porque `get_current_user` comprueba `is_active` (`403 Inactive user`).
+- **Nadie conoce la contraseña de otra persona (2026-11-25, decisión de la usuaria):**
+  - Un usuario creado por el `Coordinator` (o restablecido con `reset_password.py`) queda con `must_change_password = true`. Hasta elegir la suya, el backend responde `403 Password change required` a todo excepto `/users/me` y `/users/me/password`. En la app ve solo la pantalla «Elige tu contraseña».
+  - **Si alguien olvida su contraseña:** el `Coordinator` pulsa el candado en **Usuarios** y obtiene un **enlace de un solo uso** (`POST /users/{id}/password-reset`). Vence a las 24 horas, generar otro anula el anterior y se registra quién lo creó. La persona lo abre (`/restablecer?token=…`), elige su contraseña (`GET` y `POST /auth/password-reset`, sin sesión), se cierran sus sesiones y se borra su bloqueo por intentos. El `Coordinator` nunca conoce la contraseña resultante. Solo se guarda el hash del token.
+  - No se generan enlaces para usuarios inactivos (`400`) ni para cuentas de soporte (`404`).
+  - Revisión `0006`; pruebas en `backend/tests/test_password_reset.py`.
 - El campo "Cargo" de la maqueta se omitió por decisión de la usuaria: no existe en la tabla `users`.
 
 ## 4. Interfaz (`frontend/usuarios.html`)

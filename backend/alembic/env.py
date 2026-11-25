@@ -9,10 +9,12 @@ from app.database import Base, engine
 # Importa todos los modelos para que Base.metadata los conozca (autogenerate).
 from app.models import (  # noqa: F401
     alert,
+    company_settings,
     loan,
     login_attempt,
     lot,
     machine,
+    password_reset_token,
     movement,
     product,
     refresh_token,

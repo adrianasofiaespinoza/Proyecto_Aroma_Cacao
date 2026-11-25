@@ -7,9 +7,30 @@
 import { errorFromResponse, networkError } from '../lib/errors'
 import type { User } from './types'
 
-const TOKEN_KEY = 'aroma_access_token'
-const REFRESH_KEY = 'aroma_refresh_token'
-const USER_KEY = 'aroma_user'
+const TOKEN_KEY = 'bodega_access_token'
+const REFRESH_KEY = 'bodega_refresh_token'
+const USER_KEY = 'bodega_user'
+
+/** Claves anteriores (Sprint 3 quitó el nombre de la empresa del código). Se copian una vez: nadie pierde su sesión. */
+const LEGACY_KEYS: [string, string][] = [
+  ['aroma_access_token', TOKEN_KEY],
+  ['aroma_refresh_token', REFRESH_KEY],
+  ['aroma_user', USER_KEY],
+]
+
+export function migrateLegacyKeys(): void {
+  try {
+    for (const [legacy, current] of LEGACY_KEYS) {
+      const value = localStorage.getItem(legacy)
+      if (value === null) continue
+      if (localStorage.getItem(current) === null) localStorage.setItem(current, value)
+      localStorage.removeItem(legacy)
+    }
+  } catch {
+    /* almacenamiento bloqueado: no hay sesión que migrar */
+  }
+}
+migrateLegacyKeys()
 
 export const tokenStorage = {
   getAccessToken: (): string | null => localStorage.getItem(TOKEN_KEY),

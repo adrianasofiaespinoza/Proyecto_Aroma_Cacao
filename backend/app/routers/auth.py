@@ -25,6 +25,8 @@ from app.models.refresh_token import RefreshToken
 from app.models.revoked_access_token import RevokedAccessToken
 
 from app.schemas.user import (
+    PasswordResetComplete,
+    PasswordResetInfo,
     UserLogin,
     TokenResponse,
     RefreshRequest,
@@ -33,6 +35,7 @@ from app.schemas.user import (
 
 from app.security.auth import bearer_scheme
 from app.security.password import verify_password
+from app.services.password_reset import complete_reset, find_valid
 from app.services.login_limit import (
     LOGIN_LOCK_MINUTES,
     clear_attempts,
@@ -340,6 +343,47 @@ def logout_user(
     return {
         "message": "Logout successful"
     }
+
+
+# ============================================================
+# PASSWORD RESET WITH A ONE-TIME LINK (no session)
+# ============================================================
+
+INVALID_RESET = "This password reset link is invalid or has expired"
+
+
+@router.get(
+    "/password-reset/{token}",
+    response_model=PasswordResetInfo,
+    summary="Check a password reset link before showing the form"
+)
+def check_password_reset(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    found = find_valid(db, token)
+    if found is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_RESET)
+    _, user = found
+    return {"full_name": user.full_name, "email": user.email}
+
+
+@router.post(
+    "/password-reset",
+    summary="Choose a new password with a one-time link"
+)
+def complete_password_reset(
+    data: PasswordResetComplete,
+    db: Session = Depends(get_db)
+):
+    # Bloquea la fila: dos envíos simultáneos del mismo enlace no pasan los dos
+    found = find_valid(db, data.token, lock=True)
+    if found is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_RESET)
+    reset, user = found
+    complete_reset(db, reset, user, data.new_password)
+    db.commit()
+    return {"message": "Password updated"}
 
 
 # ============================================================

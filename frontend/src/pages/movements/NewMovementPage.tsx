@@ -8,7 +8,7 @@ import {
   Button, CodeTag, Field, Icon, MovementFlow, Notice, PageHeader, Panel, QuantityStepper, SearchInput, Segmented, Select, StockImpact, Textarea, TextInput, useToast,
 } from '../../components/ui'
 import { TYPE_TO_BACKEND, isLowStock, lotDaysLabel, lotState, projectedStock, reasonRequired, type UiMovementType } from '../../lib/domain'
-import { describeError, isApiError } from '../../lib/errors'
+import { describeError, isApiError, describeDetail } from '../../lib/errors'
 import { fmtDate, fmtQty, n } from '../../lib/format'
 import { can } from '../../lib/permissions'
 
@@ -103,7 +103,14 @@ export function NewMovementPage() {
         work_order_number: ot.trim() || null,
         details: [{ product_id: product.id, quantity: qty, lot_id: lotId ? Number(lotId) : null, machine_id: machineId ? Number(machineId) : null }],
       })
-      toast.ok(<><b>Solicitud enviada.</b> Queda pendiente: el stock no cambia hasta que el coordinador la autorice.</>)
+      if (created.status === 'authorized') {
+        toast.ok(<><b>Solicitud autorizada automáticamente.</b> El stock ya se actualizó.</>)
+      } else if (created.auto_authorize_error) {
+        const why = describeDetail(created.auto_authorize_error)
+        toast.danger(<><b>Quedó pendiente: no se pudo autorizar automáticamente.</b> {why.message}</>)
+      } else {
+        toast.ok(<><b>Solicitud enviada.</b> Queda pendiente: el stock no cambia hasta que el coordinador la autorice.</>)
+      }
       navigate(`/movimientos/${created.id}`, { replace: true })
     } catch (err) {
       setServerError({ ...describeError(err), code: isApiError(err) ? err.codeLabel : undefined })
@@ -157,7 +164,7 @@ export function NewMovementPage() {
               <Field label={qtyLabel} htmlFor="qty" required hint={qtyHint} error={errors.qty}>
                 <QuantityStepper id="qty" value={qty} min={0} unit={unit} step={unit === 'u.' ? 1 : 0.5} onChange={setQty} label={qtyLabel} />
               </Field>
-              {type === 'salida' && (
+              {type === 'salida' && inv.machinesEnabled && (
                 <Field label="Máquina destino" htmlFor="machine" optional>
                   <Select id="machine" value={machineId} onChange={(e) => setMachineId(e.target.value)} placeholder="Sin máquina" options={inv.machines.map((m) => ({ value: String(m.id), label: `${m.identification_code} · ${m.name}` }))} />
                 </Field>

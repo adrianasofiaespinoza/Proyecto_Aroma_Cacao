@@ -6,7 +6,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers.auth import router as auth_router
@@ -20,9 +20,11 @@ from app.routers.machines import router as machines_router
 from app.routers.loans import router as loans_router
 from app.routers.suppliers import router as suppliers_router
 from app.routers.lots import router as lots_router
+from app.routers.settings import favicon, router as settings_router
+from app.services.company import require_module
 
 app = FastAPI(
-    title="Aroma Cacao Inventory API",
+    title="Bodega Inventory API",
     version="1.0.0"
 )
 
@@ -45,17 +47,23 @@ app.include_router(public_router)
 app.include_router(movements_router)
 app.include_router(alerts_router)
 app.include_router(catalogs_router)
-app.include_router(machines_router)
-app.include_router(loans_router)
-app.include_router(suppliers_router)
 app.include_router(lots_router)
+app.include_router(settings_router)
+
+# Módulos activables por empresa: si están desactivados, sus endpoints responden 403.
+app.include_router(machines_router, dependencies=[Depends(require_module("machines"))])
+app.include_router(loans_router, dependencies=[Depends(require_module("loans"))])
+app.include_router(suppliers_router, dependencies=[Depends(require_module("suppliers"))])
 
 
 @app.get("/")
 def root():
     return {
-        "message": "Aroma Cacao Inventory API"
+        "message": "Bodega Inventory API"
     }
+
+
+app.add_api_route("/favicon.ico", favicon, methods=["GET"], include_in_schema=False)
 
 
 @app.get("/health", tags=["Health"])

@@ -135,6 +135,8 @@ Rama `feature/lots-expiration`: registrar lotes con fecha de vencimiento, las en
 
 Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tiene su propia instalación, y no se agrega `company_id`.
 
+**Hecho (2026-11-25).** Lo implementado difiere de estas descripciones en varias decisiones: la configuración completa es del equipo de desarrollo (rol `Support`), no del Coordinator; el logo se sube como archivo; las claves `aroma_*` se renombraron sin cerrar sesiones. Se agregó la contraseña propia (cambio obligatorio al primer ingreso y enlace de un solo uso). Lo vigente está en `docs/flows/configuracion-empresa.md`, `docs/flows/usuarios.md` y `docs/contexto_proyecto.md` (E6).
+
 ### Script de instalación para una empresa nueva
 **Responsable:** Adriana
 

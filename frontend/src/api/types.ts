@@ -1,6 +1,6 @@
 /** Tipos de las respuestas del backend (backend/app/schemas). Los decimales llegan como string. */
 
-export type BackendRole = 'Coordinator' | 'Operator' | 'Read-only'
+export type BackendRole = 'Coordinator' | 'Operator' | 'Read-only' | 'Support'
 export type MovementType = 'ENTRY' | 'EXIT' | 'ADJUSTMENT'
 export type MovementStatus = 'pending' | 'authorized' | 'rejected'
 
@@ -11,6 +11,8 @@ export interface User {
   email: string
   role: BackendRole
   is_active: boolean
+  /** Con la contraseña inicial: debe elegir la suya antes de usar el sistema */
+  must_change_password?: boolean
   auth_provider: string
   created_at: string
 }
@@ -88,6 +90,8 @@ export interface Movement {
   reason: string | null
   work_order_number: string | null
   details: MovementDetail[]
+  /** Solo al crear: por qué la autoaprobación del coordinador no se aplicó */
+  auto_authorize_error?: string | null
 }
 
 export interface MovementLineInput { product_id: number; quantity: number; lot_id?: number | null; machine_id?: number | null }
@@ -132,3 +136,29 @@ export interface LoanInput { product_id: number; quantity: number; worker_name: 
 
 export interface UserCreateInput { username: string; full_name: string; email: string; password: string; role: BackendRole; is_active: boolean }
 export interface UserUpdateInput { full_name: string; email: string; role: BackendRole; is_active: boolean }
+
+// ---------- Configuración de la empresa ----------
+export interface CompanyModules { loans: boolean; machines: boolean; suppliers: boolean }
+
+/** GET /settings/public: sin sesión, para el login. Sin la identificación fiscal. */
+export interface PublicSettings {
+  name: string
+  short_name: string
+  subtitle: string
+  logo_url: string | null
+  brand_color: string
+  accent_color: string
+  currency: string
+  date_format: 'dd/mm/aaaa' | 'mm/dd/aaaa' | 'aaaa-mm-dd'
+  /** RUC, NIT, RFC…: solo la etiqueta; el número no es público */
+  tax_id_label: string
+  modules: CompanyModules
+}
+
+/** GET /settings: solo el rol Support (equipo de desarrollo). */
+export interface CompanySettings extends PublicSettings {
+  tax_id: string | null
+  coordinator_auto_approve: boolean
+}
+
+export type CompanySettingsInput = Omit<CompanySettings, 'logo_url'>

@@ -14,6 +14,7 @@ from app.models.alert import Alert
 from app.models.lot import Lot
 from app.models.machine import Machine
 from app.services.alerts import update_stock_alerts
+from app.services.company import get_settings
 from app.services.stock import available_quantity, is_expired, loaned_quantity
 from app.models.movement import (
     Movement,
@@ -234,51 +235,41 @@ def create_movement(
         )
         db.add(new_detail)
 
+    # --------------------------------------------------------
+    # Auto-approval (configurable): the Coordinator's own request is
+    # authorized with the same rules. If a rule fails it stays pending.
+    # --------------------------------------------------------
+    auto_error = None
+    if current_user.role == "Coordinator" and get_settings(db).coordinator_auto_approve:
+        db.flush()
+        db.expire(new_movement, ["details"])
+        savepoint = db.begin_nested()
+        try:
+            apply_authorization(db, new_movement, current_user)
+            savepoint.commit()
+        except HTTPException as exc:
+            savepoint.rollback()
+            auto_error = str(exc.detail)
+
     db.commit()
     db.refresh(new_movement)
+
+    # Solo en la respuesta: por qué no se autorizó automáticamente
+    new_movement.auto_authorize_error = auto_error
 
     return new_movement
 
 
 # ============================================================
-# AUTHORIZE MOVEMENT (with pessimistic locking)
+# AUTHORIZATION RULES (shared by authorize and auto-approval)
 # ============================================================
 
-@router.patch(
-    "/{movement_id}/authorize",
-    response_model=MovementResponse,
-    summary="Authorize a movement"
-)
-def authorize_movement(
-    movement_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "Coordinator":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Coordinators can authorize movements"
-        )
+def apply_authorization(db: Session, movement: Movement, authorizer: User) -> None:
+    """Valida y aplica una solicitud pendiente: stock, lotes y alertas.
 
-    # Lock movement row to prevent concurrent authorizations
-    movement = db.scalar(
-        select(Movement)
-        .where(Movement.id == movement_id)
-        .with_for_update()
-    )
-
-    if not movement:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movement not found"
-        )
-
-    if movement.status != "pending":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Movement is already {movement.status}"
-        )
-
+    Lanza HTTPException si no pasa una validación; quien llama decide si revierte.
+    Lo usan la autorización manual y la autoaprobación del Coordinator.
+    """
     details = movement.details
     if not details:
         raise HTTPException(
@@ -368,7 +359,49 @@ def authorize_movement(
     # Finalize authorization
     # --------------------------------------------------------
     movement.status = "authorized"
-    movement.authorizing_user_id = current_user.id
+    movement.authorizing_user_id = authorizer.id
+
+
+# ============================================================
+# AUTHORIZE MOVEMENT (with pessimistic locking)
+# ============================================================
+
+@router.patch(
+    "/{movement_id}/authorize",
+    response_model=MovementResponse,
+    summary="Authorize a movement"
+)
+def authorize_movement(
+    movement_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "Coordinator":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Coordinators can authorize movements"
+        )
+
+    # Lock movement row to prevent concurrent authorizations
+    movement = db.scalar(
+        select(Movement)
+        .where(Movement.id == movement_id)
+        .with_for_update()
+    )
+
+    if not movement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movement not found"
+        )
+
+    if movement.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Movement is already {movement.status}"
+        )
+
+    apply_authorization(db, movement, current_user)
 
     db.commit()
     db.refresh(movement)

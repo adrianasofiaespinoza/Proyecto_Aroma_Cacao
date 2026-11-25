@@ -18,6 +18,9 @@ export const keys = {
   workers: ['workers'] as const,
   suppliers: ['suppliers'] as const,
   users: ['users'] as const,
+  settings: ['settings'] as const,
+  rules: ['settings', 'rules'] as const,
+  publicSettings: ['settings', 'public'] as const,
 }
 
 const CATALOG = { staleTime: 10 * 60_000 }
@@ -31,10 +34,18 @@ export const useMovements = (params?: { status?: MovementStatus; type?: Movement
   useQuery({ queryKey: keys.movements(params), queryFn: () => api.getMovements(params) })
 export const useMovement = (id: number) => useQuery({ queryKey: keys.movement(id), queryFn: () => api.getMovement(id), enabled: Number.isFinite(id) })
 export const useAlerts = () => useQuery({ queryKey: keys.alerts, queryFn: api.getAlerts, refetchInterval: 60_000 })
-export const useMachines = () => useQuery({ queryKey: keys.machines, queryFn: api.getMachines })
-export const useLoans = () => useQuery({ queryKey: keys.loans, queryFn: api.getLoans })
+// enabled = false cuando el módulo está desactivado: su endpoint respondería 403.
+export const useMachines = (enabled = true) => useQuery({ queryKey: keys.machines, queryFn: api.getMachines, enabled })
+export const useLoans = (enabled = true) => useQuery({ queryKey: keys.loans, queryFn: api.getLoans, enabled })
 export const useWorkers = () => useQuery({ queryKey: keys.workers, queryFn: api.getWorkers })
 export const useSuppliers = () => useQuery({ queryKey: keys.suppliers, queryFn: api.getSuppliers })
+export const usePublicSettings = () => useQuery({ queryKey: keys.publicSettings, queryFn: api.getPublicSettings, staleTime: 5 * 60_000 })
+export const useCompanySettings = (enabled = true) => useQuery({ queryKey: keys.settings, queryFn: api.getSettings, enabled })
+export const useRules = () => useQuery({ queryKey: keys.rules, queryFn: api.getRules })
+export function useSaveRules() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: api.updateRules, onSuccess: (data) => qc.setQueryData(keys.rules, data) })
+}
 export const useUsers = () => useQuery({ queryKey: keys.users, queryFn: api.getUsers })
 
 /** Invalida un grupo de claves tras una mutación. */
@@ -80,7 +91,8 @@ export function useUpdateLot() {
 }
 export function useCreateMovement() {
   const inv = useInvalidate()
-  return useMutation({ mutationFn: api.createMovement, onSuccess: () => inv(['movements'], keys.alerts) })
+  // Con la autoaprobación del coordinador, crear una solicitud ya puede cambiar el stock.
+  return useMutation({ mutationFn: api.createMovement, onSuccess: () => inv(...STOCK_KEYS) })
 }
 export function useAuthorizeMovement() {
   const inv = useInvalidate()
@@ -135,4 +147,17 @@ export function useUpdateUser() {
     mutationFn: ({ id, input }: { id: number; input: Parameters<typeof api.updateUser>[1] }) => api.updateUser(id, input),
     onSuccess: () => inv(keys.users),
   })
+}
+
+/** Guarda la configuración, el logo o lo quita. Todo refresca también la versión pública (tema, nombre, módulos). */
+export function useSaveSettings() {
+  const qc = useQueryClient()
+  const done = (data: Awaited<ReturnType<typeof api.getSettings>>) => {
+    qc.setQueryData(keys.settings, data)
+    return qc.invalidateQueries({ queryKey: keys.publicSettings })
+  }
+  const save = useMutation({ mutationFn: api.updateSettings, onSuccess: done })
+  const uploadLogo = useMutation({ mutationFn: api.uploadLogo, onSuccess: done })
+  const deleteLogo = useMutation({ mutationFn: api.deleteLogo, onSuccess: done })
+  return { save, uploadLogo, deleteLogo }
 }

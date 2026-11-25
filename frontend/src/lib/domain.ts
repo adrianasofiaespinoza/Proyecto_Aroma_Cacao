@@ -7,8 +7,8 @@ export type UiMovementType = 'entrada' | 'salida' | 'ajuste'
 export type UiMovementStatus = 'pendiente' | 'autorizado' | 'rechazado'
 export type LotState = 'vencido' | 'por-vencer' | 'vigente' | 'sin-lote'
 
-export const ROLE_FROM_BACKEND: Record<BackendRole, Role> = { Coordinator: 'coordinador', Operator: 'operador', 'Read-only': 'lectura' }
-export const ROLE_TO_BACKEND: Record<Role, BackendRole> = { coordinador: 'Coordinator', operador: 'Operator', lectura: 'Read-only' }
+export const ROLE_FROM_BACKEND: Record<BackendRole, Role> = { Coordinator: 'coordinador', Operator: 'operador', 'Read-only': 'lectura', Support: 'soporte' }
+export const ROLE_TO_BACKEND: Record<Role, BackendRole> = { coordinador: 'Coordinator', operador: 'Operator', lectura: 'Read-only', soporte: 'Support' }
 
 export function uiRole(role: BackendRole | string | undefined): Role {
   return ROLE_FROM_BACKEND[role as BackendRole] ?? 'lectura'

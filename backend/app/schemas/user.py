@@ -11,6 +11,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: str
     is_active: bool
+    must_change_password: bool = False
     auth_provider: str
     created_at: datetime
 
@@ -78,3 +79,20 @@ class PasswordChange(BaseModel):
     # Refresh token de la sesión actual: se conserva y se cierran las demás.
     # Si no se envía, se cierran todas las sesiones persistentes del usuario.
     refresh_token: str | None = None
+
+
+class PasswordResetLink(BaseModel):
+    """Respuesta al Coordinator: el token se muestra una sola vez."""
+    token: str
+    expires_at: datetime
+
+
+class PasswordResetInfo(BaseModel):
+    """Lo que ve la persona al abrir el enlace, antes de elegir su contraseña."""
+    full_name: str
+    email: EmailStr
+
+
+class PasswordResetComplete(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    new_password: str = Field(min_length=8, max_length=128)

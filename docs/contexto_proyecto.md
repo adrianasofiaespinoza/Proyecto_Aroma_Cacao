@@ -191,7 +191,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 
 ### E5. Sprint 2: Seguridad y Alembic
 
-**Estado (2026-11-24): implementado y probado en una BD temporal (`aroma_test`); sin commit; las migraciones no se aplicaron todavía ni a la BD local real ni a la de Render.**
+**Estado (2026-11-24): implementado, en la rama `feature/sprint-2-seguridad` (PR pendiente). Migraciones aplicadas en la BD local y en la de Render (`0003`).**
 
 - **Límite de intentos de login:** 5 fallos por correo en 15 minutos → bloqueo de 15 minutos con `429`; contador en la tabla `login_attempt` (`services/login_limit.py`). Decisión de la usuaria: 5/15 y en la BD.
 - **Logout invalida el token de acceso:** tabla `revoked_access_token` (por `jti`), comprobada en `get_current_user`.
@@ -204,6 +204,27 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Pruebas:** backend 97 aprobadas (+18), más `test_refresh_concurrency.py` (opcional, `RUN_CONCURRENCY_TESTS=1`, solo en una BD de pruebas); frontend 31 (+6). Probado en el navegador contra `aroma_test`: bloqueo del login, cambio de contraseña y token rechazado tras el logout.
 
 **Antes de desplegar (obligatorio):** el login usa la tabla `login_attempt`, así que sin las migraciones el login falla con `500`. En cada BD existente (local y Render), una sola vez: `alembic stamp 0001` y luego `alembic upgrade head`. Conviene que el comando de inicio de Render ejecute `alembic upgrade head` antes de `uvicorn`.
+
+### E6. Sprint 3: Configuración por empresa
+
+**Estado (2026-11-25): implementado en la rama `feature/sprint-3-configuracion` (sale de la del Sprint 2), sin commit. Probado contra `aroma_test` y en el navegador con Playwright. Las revisiones `0004`, `0005` y `0006` están aplicadas en la BD local y en la de Render, las dos configuradas como Aroma Cacao (USD, paleta verde y amarilla).**
+
+- **Configuración de la empresa:** tabla `company_settings` de una sola fila (revisión `0004`), endpoints `/settings`, `/settings/public` y `/settings/logo`, y pantalla `/configuracion`.
+- **Rol Soporte (revisión `0005`):** la marca, la moneda y los módulos solo los cambia el equipo de desarrollo, con su cuenta `Support`. La empresa no ve esas cuentas en Usuarios ni puede asignar el rol. El Coordinator solo cambia la autoaprobación (`/settings/rules`). Decisión de la usuaria del 2026-11-25. Detalle en `docs/flows/configuracion-empresa.md`.
+- **Logo:** se sube como archivo y se guarda en la BD, hasta 200 KB (decisión de la usuaria). Sirve también de favicon (`/favicon.ico` en la API).
+- **Colores:** el equipo de desarrollo elige el principal y el de acento; el resto del tema se calcula, también los fondos del tema oscuro, y se rechaza un contraste insuficiente (decisión de la usuaria).
+- **Pestaña y etiqueta fiscal:** el título es «Sistema de mantenimiento · Aroma Cacao» y Proveedores usa la etiqueta fiscal configurada (RUC, NIT…).
+- **Módulos:** Préstamos, Máquinas y Proveedores. Desactivado → `403` (decisión de la usuaria), oculto en el menú, datos conservados. No se puede desactivar Préstamos con herramientas prestadas.
+- **Autoaprobación del Coordinator:** opcional y desactivada por defecto. Reutiliza `apply_authorization`. Si falla una validación, queda pendiente con el motivo.
+- **Sin el nombre de Aroma Cacao en el código:** API «Bodega Inventory API», `/public/info` con el nombre configurado, `index.html` genérico, claves de sesión `bodega_*` (las `aroma_*` se migran sin cerrar sesión). Se borró `frontend/src/styles/tenants/`.
+- **Contraseña propia (revisión `0006`, decisión de la usuaria del 2026-11-25):** cambio obligatorio de la contraseña inicial al primer ingreso y enlace de un solo uso, generado por el Coordinator, para recuperar una contraseña olvidada. El Coordinator nunca conoce la contraseña final de nadie.
+- **Moneda y fecha:** `lib/format.ts` usa la configuración. Se quitó `es-EC` fijo y `USD` en Proveedores.
+- **Instalación:** `backend/app/install.py` (migraciones, catálogos, nombre, primer Coordinator y cuenta de soporte), idempotente. Las cuentas de soporte también se crean con `app/create_support.py`; los scripts validan el correo como el login.
+- **Pruebas:** backend 145 aprobadas (+48); frontend 51 (+20); build correcto. Flujos comprobados en el navegador con Playwright: configuración, módulos, autoaprobación, vistas de Coordinator y Soporte, primer ingreso y enlace de restablecimiento.
+
+**Pendiente de decidir (2026-11-25):** hoy la cuenta `Support` consulta todo el sistema del cliente (inventario, movimientos, préstamos). La usuaria lo va a consultar. Opciones: (a) que solo vea **Configuración** y el backend le responda `403` a todo lo demás, o (b) quitar el rol y configurar solo por consola. La regla sería la misma en todas las instalaciones.
+
+**Antes de usar Configuración:** cada integrante del equipo crea su cuenta de soporte con `python app/create_support.py`, en la BD local y en la de Render. Las rutas `/settings` ya están en `vite.config.ts` y `vercel.json`.
 
 ### F. Roles y permisos
 
@@ -227,6 +248,8 @@ Verificado el 2026-11-01 en productos, movimientos, catálogos, usuarios, máqui
 | Usuarios (listar y escribir) | Sí | No | No |
 | Préstamos y devoluciones | Sí | Sí | No |
 | Consultas (productos, movimientos, máquinas, préstamos, proveedores, dashboard) | Sí | Sí | Sí |
+
+**`Support` (Sprint 3):** la cuenta del equipo de desarrollo. Cambia la configuración de la instalación (marca, moneda, módulos) y solo consulta lo demás: no crea, autoriza ni presta. La empresa no la ve en Usuarios ni puede asignar ese rol. Ver `docs/flows/configuracion-empresa.md`.
 
 ### G. Alertas de stock mínimo
 
@@ -261,7 +284,7 @@ El flujo detallado se encuentra documentado en `docs/flows/alertas-stock.md`.
 El frontend anterior (páginas HTML sueltas con JSX) se reemplazó por una aplicación de una sola página en React 19 + TypeScript, con React Router y TanStack Query, construida a partir del kit de diseño de Claude Design (`docs/design/bodega-kit/`). Detalle en `docs/architecture/frontend.md`.
 
 - Rama `feature/frontend-bodega`, creada desde `feature/lots-expiration` porque necesita los lotes. Al unirla, la PR #8 debe ir primero.
-- 30 componentes propios (`frontend/src/components/ui/`), sin librerías de componentes. Dos temas (claro y oscuro) y marca por empresa con 11 tokens (`src/styles/tenants/`).
+- 30 componentes propios (`frontend/src/components/ui/`), sin librerías de componentes. Dos temas (claro y oscuro) y marca por empresa calculada desde la configuración (`src/lib/company.ts`).
 - 16 pantallas: inicio, productos (lista, formulario, lotes), movimientos (lista, nueva, revisión/detalle), préstamos, máquinas (lista y detalle), proveedores (lista y detalle), usuarios, «Más» para móvil y `/dev/componentes` en desarrollo.
 - Permisos con `RoleGate`/`can()`: lo que el rol no puede hacer no se muestra. Pendiente siempre lleva borde discontinuo y «No aplicado al stock»; autorizar y rechazar confirman con cifras.
 - Errores del backend traducidos en `src/lib/errors.ts` (por ejemplo, «La salida supera lo disponible» con código `STOCK_INSUFICIENTE · 400`).

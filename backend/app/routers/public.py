@@ -12,6 +12,7 @@ from app.schemas.product import ProductResponse
 
 from app.models.user import User
 from app.security.auth import get_current_user
+from app.services.company import get_settings
 
 router = APIRouter(
     prefix="/public",
@@ -27,10 +28,11 @@ router = APIRouter(
     "/info",
     summary="Get public API information"
 )
-def public_info():
+def public_info(db: Session = Depends(get_db)):
 
     return {
-        "application": "Aroma Cacao Inventory API",
+        "application": "Bodega Inventory API",
+        "company": get_settings(db).name,
         "version": "1.0.0",
         "authentication_required": False
     }

@@ -19,7 +19,7 @@ No se usan librerías de componentes: todo está en `src/components/ui/`.
 
 ```
 frontend/
-  index.html                 entrada única (data-theme, data-tenant)
+  index.html                 entrada única (data-theme)
   public/fonts/              Barlow, Barlow Condensed, IBM Plex Mono
   src/
     main.tsx                 proveedores: Query, Theme, Toast, Router, Auth
@@ -27,7 +27,7 @@ frontend/
       App.tsx                rutas y protección por sesión y por rol
       AppLayout.tsx          AppShell con datos reales: campana, pendientes, tema, cerrar sesión
       AuthProvider.tsx       sesión (login, logout, /users/me, rol traducido)
-      ThemeProvider.tsx      tema claro/oscuro y empresa (data-tenant)
+      ThemeProvider.tsx      tema claro/oscuro y empresa (GET /settings/public): colores, logo, formato, módulos
     api/
       client.ts              fetch con Bearer, renovación única ante 401, ApiError
       endpoints.ts           una función por endpoint del backend
@@ -38,7 +38,8 @@ frontend/
       permissions.ts         can(rol, acción) y ROLES (del kit)
       domain.ts              traducciones backend ↔ interfaz y reglas (stock bajo, lotes, disponible)
       errors.ts              mapa de errores del backend a mensajes de bodega
-      format.ts              números, fechas, unidades, MOV-0000
+      format.ts              números, moneda y fechas según la configuración, unidades, MOV-0000
+      company.ts             monedas, formatos de fecha, contraste y tema derivado de 2 colores
     components/ui/           los 30 componentes del kit, uno por archivo, + index.ts
     pages/                   una carpeta por módulo; cada pantalla usa solo componentes de ui/
     styles/
@@ -46,8 +47,7 @@ frontend/
       theme.css              entrada de Tailwind: tokens → utilidades
       components.css         clases bd-* de los componentes (del kit)
       screens.css            estilos de pantalla y piezas propias de la app
-      tenants/<id>.css       los 11 tokens de marca de cada empresa
-    config/tenant.ts         empresa instalada por defecto
+    config/tenant.ts         valores genéricos mientras llega la configuración
 ```
 
 ## Reglas que la interfaz hace cumplir
@@ -62,21 +62,25 @@ frontend/
 
 ## Errores del backend
 
-`src/lib/errors.ts` convierte el `detail` en inglés del backend en `{ title, message, code }`. Los casos con nombre: `STOCK_INSUFICIENTE` (con las cantidades extraídas del mensaje), `LOTE_INSUFICIENTE`, `LOTE_VENCIDO`, `PRODUCTO_INACTIVO`, `YA_REVISADO`, `CREDENCIALES`, `SESION_EXPIRADA`, `SIN_PERMISO`, `NO_ENCONTRADO`, `DUPLICADO`, `DATOS_INVALIDOS`, `SIN_CONEXION`, `ERROR_SERVIDOR`. El código técnico se muestra aparte en `Notice.code` («STOCK_INSUFICIENTE · 400»).
+`src/lib/errors.ts` convierte el `detail` en inglés del backend en `{ title, message, code }`. Los casos con nombre: `STOCK_INSUFICIENTE` (con las cantidades extraídas del mensaje), `LOTE_INSUFICIENTE`, `LOTE_VENCIDO`, `PRODUCTO_INACTIVO`, `YA_REVISADO`, `CREDENCIALES`, `SESION_EXPIRADA`, `SIN_PERMISO`, `MODULO_DESACTIVADO`, `NO_ENCONTRADO`, `DUPLICADO`, `DATOS_INVALIDOS`, `SIN_CONEXION`, `ERROR_SERVIDOR`. El código técnico se muestra aparte en `Notice.code` («STOCK_INSUFICIENTE · 400»).
 
 El backend responde `400` (no `409`) cuando una salida supera lo disponible; la interfaz lo trata igual.
 
 ## Marca por empresa
 
-1. Copia `src/styles/tenants/_ejemplo-otra-empresa.css` a `src/styles/tenants/<id>.css`, cambia los 11 tokens y comprueba los contrastes que indica el archivo.
-2. Importa la hoja en `src/main.tsx`.
-3. Cambia `DEFAULT_TENANT` en `src/config/tenant.ts` (`id`, `name`, `shortName`, `product`, `logoSrc`). El `id` debe coincidir con el selector `[data-tenant]`.
+La marca ya no se configura en el código, sino en la pantalla **Configuración** (`/configuracion`). La versión completa solo la ve el rol soporte (el equipo de desarrollo); el coordinador solo ve la autoaprobación. Ver `docs/flows/configuracion-empresa.md`.
 
-Los tokens de estado (pendiente, autorizado, rechazado, stock bajo…) no se cambian por empresa. Cuando exista la configuración de empresa en el backend (Sprint 3), `ThemeProvider.setTenant` recibirá esos datos.
+- `ThemeProvider` pide `GET /settings/public` y guarda la respuesta en `localStorage` (`bodega_tenant`), así la siguiente carga se pinta sin esperar al servidor.
+- Con el color principal y el de acento, `lib/company.ts` calcula los 11 tokens de marca del tema claro y del oscuro y los inyecta en `<style id="company-theme">`. En el oscuro también tiñe los fondos, las líneas y los grises con el matiz de la empresa. Con la paleta por defecto no inyecta nada y se usa `tokens.css` tal cual.
+- `setFormatSettings` cambia la moneda y el formato de fecha de `fmtPrice`, `fmtDate` y `fmtDateTime`.
+- El favicon es el logo configurado, o `/favicon.svg` si no hay. El título de la pestaña es «Sistema de <subtítulo> · <nombre corto>» (`pageTitle`).
+- `useModules()` devuelve los módulos activos. El menú (`visibleNav`), las rutas (`RequireModule`) y `useInventory` dejan fuera los desactivados.
+
+Los tokens de estado (pendiente, autorizado, rechazado, stock bajo…) no cambian por empresa.
 
 ## Sesión
 
-- El access token (15 min) y el refresh token se guardan en `localStorage` (`aroma_*`).
+- El access token (15 min) y el refresh token se guardan en `localStorage` (`bodega_*`). Las claves antiguas `aroma_*` se copian una vez al cargar, así nadie pierde su sesión.
 - Ante un `401`, `client.ts` renueva una sola vez aunque haya varias peticiones en vuelo y reintenta; si falla, cierra la sesión y la app vuelve a `/login`.
 - Al arrancar con sesión guardada se confirma contra `/users/me` (rol actual y cuenta activa).
 

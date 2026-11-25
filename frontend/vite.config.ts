@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 const API = 'http://127.0.0.1:8000'
 const API_ROUTES = [
   '/auth', '/products', '/movements', '/users', '/alerts', '/categories', '/units',
-  '/machines', '/loans', '/workers', '/suppliers', '/lots', '/public', '/health',
+  '/machines', '/loans', '/workers', '/suppliers', '/lots', '/public', '/health', '/settings',
 ]
 
 export default defineConfig({

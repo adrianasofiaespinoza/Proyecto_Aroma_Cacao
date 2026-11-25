@@ -122,7 +122,7 @@ export function DashboardPage() {
             {mine.length ? <PendingList items={mine.slice(0, PENDING_LIMIT)} review={false} onOpen={(id) => navigate(`/movimientos/${id}`)} /> : <p className="bd-muted" style={{ margin: 0 }}>No tienes solicitudes esperando revisión.</p>}
           </Panel>
         )}
-        <KpiStrip items={[kpiActive, kpiLoans, kpiLots]} />
+        <KpiStrip items={inv.loansEnabled ? [kpiActive, kpiLoans, kpiLots] : [kpiActive, kpiLots]} />
         {lowPanel}
       </>
     )
@@ -131,7 +131,7 @@ export function DashboardPage() {
   return (
     <>
       {header(<RoleGate role={user.role} action="solicitar"><Button variant="primary" icon="plus-lg" onClick={() => navigate('/movimientos/nueva')}>Nueva solicitud</Button></RoleGate>)}
-      <KpiStrip items={[kpiActive, kpiMonth, kpiLoans, kpiLots]} />
+      <KpiStrip items={inv.loansEnabled ? [kpiActive, kpiMonth, kpiLoans, kpiLots] : [kpiActive, kpiMonth, kpiLots]} />
       <div className="bd-split db-split">
         {lowPanel}
         <Panel title="Por autorizar" icon="hourglass-split" tone="pending" count={`${pendingViews.length} solicitudes`} actions={<Button size="sm" variant="ghost" iconRight="chevron-right" onClick={() => navigate('/movimientos?estado=pendiente')}>Ver todas</Button>}>

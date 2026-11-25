@@ -4,7 +4,7 @@
 
 /* Nombres sin colisión: los tokens viven en tokens.css (--brand, --space-4…) y aquí solo se exponen como utilidades
    (bg-brand, p-4, h-control-lg, rounded-sm, shadow-pop, font-display, text-kpi). */
-/* Los temas cambian con data-theme en <html>; la marca, con data-tenant. */
+/* Los temas cambian con data-theme en <html>; los colores de la empresa, con la hoja #company-theme (lib/company.ts). */
 @custom-variant dark (&:where([data-theme="oscuro"], [data-theme="oscuro"] *));
 
 @theme inline {

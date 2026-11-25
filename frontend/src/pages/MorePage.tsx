@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router'
 import { useAuth, useSessionUser } from '../app/AuthProvider'
-import { THEMES, useTheme } from '../app/ThemeProvider'
-import { Button, Icon, NAV, PageHeader, Panel, Segmented, useGo } from '../components/ui'
-import { can } from '../lib/permissions'
+import { THEMES, useModules, useTheme } from '../app/ThemeProvider'
+import { Button, Icon, PageHeader, Panel, Segmented, useGo, visibleNav } from '../components/ui'
 
 /** «Más» de la barra inferior: las secciones que no caben en ella, el tema y cerrar sesión. */
 export function MorePage() {
@@ -11,7 +10,8 @@ export function MorePage() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const go = useGo()
-  const items = NAV.filter((n) => !n.m && (!n.action || can(user.role, n.action)))
+  const modules = useModules()
+  const items = visibleNav(user.role, modules).filter((n) => !n.m)
   return (
     <>
       <PageHeader title="Más" subtitle={user.name} />

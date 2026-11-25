@@ -49,6 +49,7 @@ html, body, #root { height: 100%; }
 .lg-form { width: 100%; max-width: 520px; display: grid; gap: var(--space-6); }
 .lg-brand { display: grid; gap: var(--space-2); text-align: center; }
 .lg-co { font: 700 72px/68px var(--font-display); letter-spacing: -.005em; color: var(--nav-ink); }
+.lg-logo { max-width: min(280px, 100%); max-height: 120px; object-fit: contain; justify-self: center; }
 .lg-prod { font: 700 14px/18px var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
 .lg-panel { display: grid; gap: var(--space-5); padding: var(--space-8); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
 .lg-panel h1 { margin: 0; font: 700 34px/38px var(--font-display); color: var(--ink); }
@@ -205,3 +206,23 @@ html, body, #root { height: 100%; }
 /* Encabezado de «Alertas de stock bajo» con su propia franja, como el de las tablas. */
 .db-low-head { background: var(--surface-sunken); border-radius: var(--radius-sm);
   padding-top: var(--space-2); padding-bottom: var(--space-2); align-items: center; }
+
+/* ---------- Configuración de la empresa ---------- */
+.cf-logo { display: flex; gap: var(--space-5); align-items: flex-start; flex-wrap: wrap; }
+.cf-logo-box { width: 160px; height: 96px; display: flex; align-items: center; justify-content: center; padding: var(--space-3);
+  background: var(--surface-sunken); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.cf-logo-box img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.cf-logo .bd-stack { flex: 1; min-width: 220px; }
+.cf-color { display: flex; gap: var(--space-2); align-items: center; }
+.cf-color input[type="color"] { width: var(--control-lg); height: var(--control-lg); padding: 2px; flex: none;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
+.cf-color .bd-input-wrap, .cf-color > :last-child { flex: 1; min-width: 0; }
+.cf-preview { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius-md); margin-top: var(--space-4); }
+.cf-preview-nav { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-3); font-size: 14px; }
+.cf-preview-item { padding: var(--space-1) var(--space-2); border-left: 3px solid; border-radius: var(--radius-xs); }
+.cf-preview-body { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; padding: var(--space-4);
+  background: #fcfdfb; color: #12211a; } /* la vista previa es del tema claro */
+.cf-preview-btn { padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); font-weight: 600; }
+.cf-preview-chip { padding: 2px var(--space-3); border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; }
+@media (max-width: 480px) { .cf-preview { grid-template-columns: 1fr; } }

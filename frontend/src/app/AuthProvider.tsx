@@ -12,6 +12,8 @@ export interface SessionUser {
   email: string
   role: Role
   backendRole: User['role']
+  /** Entró con una contraseña que otra persona conoce: debe elegir la suya */
+  mustChangePassword: boolean
 }
 
 interface AuthContextValue {
@@ -20,12 +22,14 @@ interface AuthContextValue {
   checking: boolean
   login: (input: { email: string; password: string; remember_me: boolean }) => Promise<SessionUser>
   logout: () => Promise<void>
+  /** Vuelve a pedir /users/me (p. ej. tras elegir la contraseña propia) */
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 function toSession(u: User): SessionUser {
-  return { id: u.id, name: u.full_name || u.username, email: u.email, role: uiRole(u.role), backendRole: u.role }
+  return { id: u.id, name: u.full_name || u.username, email: u.email, role: uiRole(u.role), backendRole: u.role, mustChangePassword: Boolean(u.must_change_password) }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -82,7 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     qc.clear()
   }, [qc])
 
-  const value = useMemo(() => ({ user, checking, login, logout }), [user, checking, login, logout])
+  const refreshUser = useCallback(async () => {
+    const u = await api.getMe()
+    tokenStorage.setSession({ user: u })
+    setUser(toSession(u))
+  }, [])
+
+  const value = useMemo(() => ({ user, checking, login, logout, refreshUser }), [user, checking, login, logout, refreshUser])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
