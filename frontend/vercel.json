@@ -124,6 +124,14 @@
       "destination": "https://aroma-cacao.onrender.com/settings/:path*"
     },
     {
+      "source": "/imports/:path*",
+      "destination": "https://aroma-cacao.onrender.com/imports/:path*"
+    },
+    {
+      "source": "/exports/:path*",
+      "destination": "https://aroma-cacao.onrender.com/exports/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

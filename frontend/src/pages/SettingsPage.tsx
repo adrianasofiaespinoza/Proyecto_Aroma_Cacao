@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useCompanySettings, useRules, useSaveRules, useSaveSettings } from '../api/hooks'
 import { useSessionUser } from '../app/AuthProvider'
-import { can } from '../lib/permissions'
+import { ROLES, can } from '../lib/permissions'
+import { PasswordPanel } from './AccountPage'
 import type { CompanySettings, CompanySettingsInput } from '../api/types'
 import { Button, Checkbox, ConnectionError, Field, LoadingRows, Notice, PageHeader, Panel, Select, TextInput, useToast } from '../components/ui'
 import { CURRENCIES, DATE_FORMATS, MODULES, colorErrors, deriveTheme, isHexColor, type DateFormat } from '../lib/company'
@@ -66,9 +67,23 @@ function ColorPreview({ brand, accent, name }: { brand: string; accent: string; 
  * Configuración. El equipo de desarrollo (rol soporte) ve todo: marca, moneda y módulos.
  * El coordinador de la empresa solo ve las reglas de operación (autoaprobación).
  */
+/**
+ * Configuración: solo coordinador y soporte (decisión de la usuaria, 2026-11-25). Cada uno ve sus secciones.
+ * - Soporte: datos de la empresa, apariencia y módulos (incluye la autoaprobación).
+ * - Coordinador: la autoaprobación de sus solicitudes.
+ * - Los dos: cambiar su contraseña. El operador y solo lectura la cambian en «Cambiar contraseña» (/cuenta).
+ */
 export function SettingsPage() {
   const user = useSessionUser()
-  return can(user.role, 'configurar') ? <CompanySettingsForm /> : <RulesForm />
+  return (
+    <>
+      <PageHeader title="Configuración" subtitle={`${user.name} · ${ROLES[user.role].label}`} />
+      <div className="bd-stack">
+        {can(user.role, 'configurar') ? <CompanySettingsForm /> : <RulesForm />}
+        <PasswordPanel />
+      </div>
+    </>
+  )
 }
 
 const AUTO_APPROVE_HELP = 'Útil en empresas pequeñas. Se aplican las mismas validaciones de stock y lotes; si alguna falla, la solicitud queda pendiente. El historial registra al coordinador como solicitante y como quien autoriza. Las solicitudes de los operadores siempre esperan revisión.'
@@ -92,7 +107,6 @@ function RulesForm() {
 
   return (
     <>
-      <PageHeader title="Configuración" subtitle="Reglas de autorización" />
       {rules.isError ? (
         isConnectionError(rules.error) ? <ConnectionError onRetry={() => void rules.refetch()} /> : <Notice tone="danger" title={describeError(rules.error).title}>{describeError(rules.error).message}</Notice>
       ) : !rules.data ? (
@@ -131,7 +145,6 @@ function CompanySettingsForm() {
   if (settings.isError) {
     return (
       <>
-        <PageHeader title="Configuración" />
         {isConnectionError(settings.error) ? <ConnectionError onRetry={() => void settings.refetch()} /> : <Notice tone="danger" title={describeError(settings.error).title}>{describeError(settings.error).message}</Notice>}
       </>
     )
@@ -139,7 +152,6 @@ function CompanySettingsForm() {
   if (!form || !settings.data) {
     return (
       <>
-        <PageHeader title="Configuración" />
         <LoadingRows rows={4} label="Cargando la configuración…" />
       </>
     )
@@ -206,7 +218,7 @@ function CompanySettingsForm() {
   const logoUrl = settings.data.logo_url
   return (
     <>
-      <PageHeader title="Configuración" subtitle="Datos de la empresa, apariencia y módulos · solo soporte" />
+      <Notice tone="info" icon="person-badge" title="Datos de la empresa, apariencia y módulos">Solo el equipo de soporte ve esta sección.</Notice>
       <form className="bd-stack" onSubmit={submit} noValidate>
         {error && <Notice tone="danger" title={error.title} code={error.code}>{error.message}</Notice>}
 

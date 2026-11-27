@@ -131,6 +131,7 @@ Componente `frontend/src/components/MovementsPage.jsx`, montado por `src/movimie
 | `backend/tests/test_schema_validation.py` | No | Límites de longitud y numéricos, decimales, motivo, tipos válidos. |
 | `backend/tests/test_movements_flow.py` | Sí (transacción revertida) | Permisos por rol, pendiente sin cambio de stock, autorización propia, salida insuficiente sin cambios, alerta al llegar al mínimo, ajuste a 0, motivo obligatorio, rechazo, estados finales, `404`, filtros y catálogos. |
 | `backend/tests/test_inventory_limits.py` | Sí | Límites de ajustes. |
+| `backend/tests/test_stock_concurrency.py` | Sí, con datos reales: solo con `RUN_CONCURRENCY_TESTS=1` en una BD de pruebas (en el CI, siempre) | Operaciones simultáneas, ver «Operaciones simultáneas». |
 | `backend/tests/test_adjustment_duplicates.py` | Sí (transacción revertida) | AC-53: rechazo de ajustes duplicados con y sin lote para Coordinator y Operator, sin guardar solicitudes ni cambiar existencias o alertas; ajustes de lotes distintos y productos distintos válidos; entradas y salidas repetidas permitidas; Read-only recibe `403`. |
 
 Resultado local (2026-11-01): **47 pruebas aprobadas** y `ruff check .` sin hallazgos.
@@ -145,5 +146,30 @@ El 2026-11-01 también se verificaron las escrituras desde el navegador, con el 
 
 - Crear → autorizar y crear → rechazar con datos persistentes: verificado solo en el sandbox (con tokens generados localmente) y en las pruebas automáticas. El inicio de sesión real ya se verificó el 2026-11-03.
 - Máquinas no tienen un campo de estado (activo/inactivo), por lo que no hay nada que validar. Los lotes se controlan por vencimiento (ver `lotes.md`).
-- Concurrencia: el bloqueo pesimista está implementado, pero no se ha probado con transacciones concurrentes reales.
-- `test_movements_flow.py` y `test_inventory_limits.py` no se ejecutan en CI porque requieren PostgreSQL. `test_schema_validation.py` podría agregarse a CI, ya que no la necesita.
+- Ninguno sobre concurrencia: ver «Operaciones simultáneas».
+
+## Operaciones simultáneas (Sprint 5, 2026-11-25)
+
+`backend/tests/test_stock_concurrency.py` lanza dos peticiones reales a la vez, cada una con su propia conexión. Para forzar la carrera, retrasa 0,5 s el paso entre leer el stock y escribirlo.
+
+| Caso (stock inicial 10) | Resultado |
+|---|---|
+| Dos salidas de 6 autorizadas a la vez | Una `200` y otra `400` (stock insuficiente). Stock final 4. |
+| La misma solicitud autorizada dos veces a la vez | Una `200` y otra `400` (`Movement is already authorized`). El stock baja una sola vez. |
+| Autorizar y rechazar la misma solicitud a la vez | Solo una gana; el stock corresponde al estado final. |
+| Un préstamo de 6 y una salida de 6 a la vez | Solo uno pasa; lo prestado nunca supera el stock. |
+| Dos préstamos de 6 a la vez | Se registra uno; el otro recibe `400`. |
+| Dos transacciones crean la alerta del mismo producto | Una sola alerta activa y ningún error (índice de la migración 0007). |
+
+**Comprobación de que las pruebas detectan el problema:** al quitar temporalmente los `with_for_update()` de `movements.py` y `loans.py`, fallaron los cinco primeros casos (las dos operaciones pasaban y el stock quedaba mal). Al quitar el índice único, el último terminó con dos alertas activas. Con el código actual pasan las seis. No apareció ningún error en el código existente.
+
+**Cómo correrlas en local** (solo en `aroma_test`, nunca en la BD de desarrollo; borran lo que crean):
+
+```fish
+set -x RUN_CONCURRENCY_TESTS 1
+set -x DATABASE_URL '<url de aroma_test>'
+pytest tests/test_stock_concurrency.py
+set -e RUN_CONCURRENCY_TESTS DATABASE_URL
+```
+
+En el CI corren siempre, porque su BD es desechable.

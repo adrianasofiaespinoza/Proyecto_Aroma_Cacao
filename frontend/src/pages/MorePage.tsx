@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router'
 import { useAuth, useSessionUser } from '../app/AuthProvider'
 import { THEMES, useModules, useTheme } from '../app/ThemeProvider'
 import { Button, Icon, PageHeader, Panel, Segmented, useGo, visibleNav } from '../components/ui'
+import { can } from '../lib/permissions'
 
 /** «Más» de la barra inferior: las secciones que no caben en ella, el tema y cerrar sesión. */
 export function MorePage() {
@@ -23,9 +24,18 @@ export function MorePage() {
         ))}
       </div>
       <div className="bd-page-more">
-        <a href="/cuenta" className="bd-more-link bd-focusable" onClick={go('/cuenta')}>
-          <Icon name="lock" />Cambiar contraseña<Icon name="chevron-right" className="bd-chev" />
+        <a href="/exportar" className="bd-more-link bd-focusable" onClick={go('/exportar')}>
+          <Icon name="box-arrow-up" />Exportar a Excel o CSV<Icon name="chevron-right" className="bd-chev" />
         </a>
+        {can(user.role, 'reglas') ? (
+          <a href="/configuracion" className="bd-more-link bd-focusable" onClick={go('/configuracion')}>
+            <Icon name="sliders" />Configuración<Icon name="chevron-right" className="bd-chev" />
+          </a>
+        ) : (
+          <a href="/cuenta" className="bd-more-link bd-focusable" onClick={go('/cuenta')}>
+            <Icon name="lock" />Cambiar contraseña<Icon name="chevron-right" className="bd-chev" />
+          </a>
+        )}
       </div>
       <Panel title="Tema" icon="palette">
         <Segmented label="Tema" value={theme} onChange={(v) => setTheme(v as typeof theme)} options={THEMES.map((t) => ({ value: t.value, label: t.label, icon: t.icon }))} />

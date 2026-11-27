@@ -161,3 +161,13 @@ export function useSaveSettings() {
   const deleteLogo = useMutation({ mutationFn: api.deleteLogo, onSuccess: done })
   return { save, uploadLogo, deleteLogo }
 }
+
+/** Importar inventario: al confirmar cambia casi todo, así que se recargan todas las listas afectadas. */
+export function useConfirmImport() {
+  const inv = useInvalidate()
+  return useMutation({
+    mutationFn: ({ upload, updateRows }: { upload: api.ImportUpload; updateRows: Partial<Record<api.ImportKind, number[]>> }) =>
+      api.confirmImport(upload, updateRows),
+    onSuccess: () => inv(...STOCK_KEYS, keys.categories, keys.machines, keys.suppliers),
+  })
+}

@@ -97,9 +97,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </button>
       ))}
       <div className="bd-usermenu-sep" />
-      <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/cuenta')}>
-        <Icon name="lock" />Cambiar contraseña
+      {/* Exportar y Configuración van aquí y no en el menú lateral, para no recargarlo (decisión de la usuaria) */}
+      <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/exportar')}>
+        <Icon name="box-arrow-up" />Exportar a Excel o CSV
       </button>
+      {/* Coordinador y soporte: Configuración (con su contraseña adentro). Los demás: directo a su contraseña. */}
+      {can(user.role, 'reglas') ? (
+        <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/configuracion')}>
+          <Icon name="sliders" />Configuración
+        </button>
+      ) : (
+        <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/cuenta')}>
+          <Icon name="lock" />Cambiar contraseña
+        </button>
+      )}
       <button
         type="button"
         role="menuitem"

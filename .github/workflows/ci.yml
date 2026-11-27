@@ -43,7 +43,10 @@ jobs:
       - run: ruff check .
       # Las tablas se crean igual que en una instalación nueva
       - run: alembic upgrade head
+      # La BD del CI es desechable: aquí sí corren las pruebas de concurrencia
       - run: pytest -v tests
+        env:
+          RUN_CONCURRENCY_TESTS: "1"
 
       # ---------- Frontend ----------
       - uses: actions/setup-node@v4

@@ -1,7 +1,7 @@
 /** soporte = el equipo de desarrollo: la empresa cliente no lo ve ni lo asigna. */
 export type Role = 'coordinador' | 'operador' | 'lectura' | 'soporte';
-/** configurar = marca, moneda y módulos (solo soporte); reglas = autoaprobación (coordinador y soporte). */
-export type Action = 'ver' | 'solicitar' | 'autorizar' | 'prestar' | 'administrar' | 'usuarios' | 'configurar' | 'reglas';
+/** configurar = marca, moneda y módulos (solo soporte); reglas = autoaprobación (coordinador y soporte); importar = cargar el inventario desde Excel o CSV. */
+export type Action = 'ver' | 'solicitar' | 'autorizar' | 'prestar' | 'administrar' | 'usuarios' | 'configurar' | 'reglas' | 'importar';
 
 export const ROLES: Record<Role, { label: string; icon: 'shield-lock' | 'wrench-adjustable' | 'eye' | 'person-badge' }> = {
   coordinador: { label: 'Coordinador', icon: 'shield-lock' },
@@ -11,7 +11,7 @@ export const ROLES: Record<Role, { label: string; icon: 'shield-lock' | 'wrench-
 };
 
 const PERMS: Record<Role, readonly Action[]> = {
-  coordinador: ['ver', 'solicitar', 'autorizar', 'prestar', 'administrar', 'usuarios', 'reglas'],
+  coordinador: ['ver', 'solicitar', 'autorizar', 'prestar', 'administrar', 'usuarios', 'reglas', 'importar'],
   operador: ['ver', 'solicitar', 'prestar'],
   lectura: ['ver'],
   soporte: ['ver', 'configurar', 'reglas'],

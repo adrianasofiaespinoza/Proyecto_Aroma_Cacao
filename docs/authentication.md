@@ -177,7 +177,8 @@ Cuerpo: `current_password`, `new_password` (8–128) y, opcional, `refresh_token
 - Si la contraseña actual es incorrecta responde `400`; si la nueva es igual a la actual, también `400`.
 - **Cierra las demás sesiones** del usuario (revoca sus refresh tokens). La sesión actual se conserva si envía su `refresh_token`; el frontend lo hace.
 - Los tokens de acceso de otros equipos siguen sirviendo hasta que vencen (15 minutos como máximo), porque no se conoce su `jti`; después ya no pueden renovarse.
-- En el frontend: menú de usuario → **Cambiar contraseña** (pantalla `/cuenta`), y en móvil desde «Más».
+- En el frontend (decisión de la usuaria, 2026-11-25): Coordinator y soporte la cambian en **Configuración** (sección al final). Operator y Read-only, en **Cambiar contraseña** (`/cuenta`). Las dos opciones están en el menú de usuario y en «Más» del celular.
+- **Olvidó la contraseña:** no puede entrar, así que no llega a ninguna de las dos. El Coordinator abre **Usuarios**, pulsa el candado de su fila (en el celular, «Restablecer contraseña»), luego **Crear enlace** y **Copiar enlace**, y se lo entrega en persona o por mensaje privado.
 
 ---
 

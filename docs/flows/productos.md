@@ -82,3 +82,7 @@ Trazabilidad por lote: casilla `requires_lot`, solo modificable con stock 0 (ver
 - Reactivación de productos: no está definida.
 - Paginación: el listado devuelve todos los productos, lo que es suficiente para el volumen actual.
 - `test_inventory_limits.py` dejaba productos `LIMIT_*` en la BD porque escribía en ella y su limpieza fallaba sin avisar. Desde el 2026-11-03 usa una transacción revertida y ya no deja residuos. Los 6 productos `LIMIT_*` se eliminaron el 2026-11-03 con un script SQL que ejecutó la usuaria. Para la categoría "Test Category" y la unidad "Units" (`un`), que creó esa misma prueba, se preparó otro script equivalente.
+
+## Importar desde Excel o CSV
+
+Desde el Sprint 5, el Coordinador puede cargar productos, stock inicial, máquinas y proveedores desde un archivo (botón **Importar** en Productos). Ver `docs/flows/importar-inventario.md`.
