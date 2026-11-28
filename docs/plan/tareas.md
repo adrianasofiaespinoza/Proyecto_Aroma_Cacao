@@ -294,6 +294,14 @@ Lee antes `docs/decisions/001-una-instalacion-por-empresa.md`: cada empresa tien
 
 **En curso (2026-11-25), rama `feature/sprint-5`.** Hecho: importador (`docs/flows/importar-inventario.md`), exportar a Excel o CSV (`docs/flows/exportar.md`, pedido por la usuaria), pruebas de concurrencia y el índice único de alertas (`docs/flows/movimientos-inventario.md`, «Operaciones simultáneas»). **Limpiar los datos de prueba** queda para cuando lleguen los datos reales: los actuales se usan para presentar (decisión de la usuaria). Guía de uso por rol en `docs/guia-uso.md`, con cada paso comprobado en el navegador. Pendiente: carga de datos reales, prueba de aceptación y salida a producción.
 
+**Ajustes del profesor (2026-11-27), rama `feature/sprint-5-ajustes`. Hecho:**
+- código de recuperación y «¿Olvidaste la contraseña?»;
+- el reseteo del coordinador, con contraseña temporal y enlace a la vez;
+- Soporte como rol aparte, con su panel técnico;
+- la ayuda (i) en los campos difíciles.
+
+Hay que aplicar la migración `0008` en Render después del merge, con una copia antes.
+
 ### Limpiar los datos de prueba de la BD
 **Responsable:** Adriana. **Parte manual:** revisar, aprobar y ejecutar.
 

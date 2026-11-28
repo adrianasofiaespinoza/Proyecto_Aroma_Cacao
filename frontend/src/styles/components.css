@@ -153,6 +153,14 @@ a.bd-kpi:hover { background: var(--surface); }
 .bd-req { color: var(--danger-ink); font-weight: 700; }
 .bd-opt { font-weight: 500; color: var(--ink-muted); font-size: 13px; }
 .bd-hint { font: 500 13px/18px var(--font-sans); color: var(--ink-muted); }
+/* Ayuda contextual: ícono (i) junto a la etiqueta (InfoTip) */
+/* La ayuda se ancla al ancho del campo (no al ícono) para no salirse de la pantalla en el celular */
+.bd-label-row { position: relative; display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.bd-infotip { display: inline-flex; }
+.bd-infotip-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; margin: -4px 0; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--info-ink); cursor: pointer; }
+.bd-infotip-btn:hover, .bd-infotip-btn[aria-expanded="true"] { background: var(--info-tint); }
+.bd-infotip-btn .bd-icon { width: 16px; height: 16px; }
+.bd-infotip-pop { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; width: max-content; max-width: min(360px, 100%); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-raised); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-overlay); font: 400 14px/20px var(--font-sans); white-space: normal; }
 .bd-error { font: 600 13px/18px var(--font-sans); color: var(--danger-ink); display: flex; gap: 6px; align-items: flex-start; }
 .bd-error .bd-icon { width: 14px; height: 14px; margin-top: 2px; }
 .bd-input, .bd-select, .bd-textarea { font: 400 16px/24px var(--font-sans); color: var(--ink); background: var(--surface-raised); width: 100%;

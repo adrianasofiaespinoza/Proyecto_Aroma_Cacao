@@ -17,6 +17,7 @@ export type ErrorCode =
   | 'SIN_PERMISO'
   | 'CAMBIAR_CLAVE'
   | 'ENLACE_INVALIDO'
+  | 'CODIGO_INVALIDO'
   | 'MODULO_DESACTIVADO'
   | 'NO_ENCONTRADO'
   | 'DUPLICADO'
@@ -64,7 +65,13 @@ function translate(status: number, detail: string): { code: ErrorCode; title: st
     return { code: 'ENLACE_INVALIDO', title: 'El enlace ya no sirve', message: 'Ya se usó, venció o se creó uno más nuevo. Pídele otro al coordinador: cada enlace sirve una vez durante 24 horas.' }
   }
   if (/Cannot reset the password of an inactive user/.test(detail)) {
-    return { code: 'DATOS_INVALIDOS', title: 'El usuario está inactivo', message: 'Reactívalo antes de crear un enlace para su contraseña.' }
+    return { code: 'DATOS_INVALIDOS', title: 'El usuario está inactivo', message: 'Reactívalo antes de resetear su contraseña.' }
+  }
+  if (/Invalid email or recovery code/.test(detail)) {
+    return { code: 'CODIGO_INVALIDO', title: 'El correo o el código no coinciden', message: 'Revisa los dos. El código sirve una sola vez: si ya lo usaste, vale el último que te mostró el sistema. Si no lo tienes, pídele al coordinador que resetee tu contraseña.' }
+  }
+  if (/Support accounts cannot access warehouse data/.test(detail)) {
+    return { code: 'SIN_PERMISO', title: 'Soporte no ve los datos de la bodega', message: 'La cuenta de soporte solo usa el panel técnico, Usuarios y Configuración.' }
   }
   let m = detail.match(/Insufficient stock for product '(.+)'\. Current: (\S+), Loaned: (\S+), Available: (\S+), Requested: (\S+)/)
   if (m) {
@@ -107,7 +114,7 @@ function translate(status: number, detail: string): { code: ErrorCode; title: st
   }
   if (status === 429) {
     const minutes = /in (\d+) minutes/i.exec(detail)?.[1] ?? '15'
-    return { code: 'DEMASIADOS_INTENTOS', title: 'Demasiados intentos fallidos', message: `Por seguridad, el acceso con este correo quedó bloqueado ${minutes} minutos. Espera y vuelve a intentarlo, o pídele al coordinador que restablezca tu contraseña.` }
+    return { code: 'DEMASIADOS_INTENTOS', title: 'Demasiados intentos fallidos', message: `Por seguridad, el acceso con este correo quedó bloqueado ${minutes} minutos. Espera y vuelve a intentarlo.` }
   }
   if (/Current password is incorrect/i.test(detail)) {
     return { code: 'CLAVE_ACTUAL', title: 'La contraseña actual no es correcta', message: 'Escribe la contraseña con la que entraste hoy.' }

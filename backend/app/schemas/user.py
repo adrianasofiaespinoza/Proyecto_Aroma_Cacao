@@ -82,9 +82,26 @@ class PasswordChange(BaseModel):
 
 
 class PasswordResetLink(BaseModel):
-    """Respuesta al Coordinator: el token se muestra una sola vez."""
+    """Respuesta al Coordinator: el enlace y la contraseña temporal se muestran una sola vez."""
     token: str
     expires_at: datetime
+    temporary_password: str
+
+
+class RecoveryCodeRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+
+
+class RecoveryCodeResponse(BaseModel):
+    """El código en claro se muestra una sola vez; se guarda solo su hash."""
+    recovery_code: str
+
+
+class PasswordRecover(BaseModel):
+    """«¿Olvidaste la contraseña?» en el login: correo + código de recuperación."""
+    email: EmailStr
+    recovery_code: str = Field(min_length=1, max_length=40)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class PasswordResetInfo(BaseModel):

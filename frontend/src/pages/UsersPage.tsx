@@ -45,18 +45,19 @@ export function UsersPage() {
   const [tried, setTried] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [toggling, setToggling] = useState<User | null>(null)
-  // Enlace de un solo uso: se pide confirmación y se muestra una sola vez
+  // Resetear (respaldo del código de recuperación): contraseña temporal + enlace, a la vez.
+  // Se pide confirmación y se muestran una sola vez.
   const [resetting, setResetting] = useState<User | null>(null)
   const [resetBusy, setResetBusy] = useState(false)
-  const [resetLink, setResetLink] = useState<{ user: User; url: string; expires: string } | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [resetLink, setResetLink] = useState<{ user: User; url: string; expires: string; temporary: string } | null>(null)
+  const [copied, setCopied] = useState<'temp' | 'link' | null>(null)
 
   const createResetLink = async (u: User) => {
     setResetBusy(true)
     try {
       const r = await api.createPasswordReset(u.id)
-      setResetLink({ user: u, url: `${window.location.origin}/restablecer?token=${encodeURIComponent(r.token)}`, expires: r.expires_at })
-      setCopied(false)
+      setResetLink({ user: u, url: `${window.location.origin}/restablecer?token=${encodeURIComponent(r.token)}`, expires: r.expires_at, temporary: r.temporary_password })
+      setCopied(null)
     } catch (err) {
       const d = describeError(err)
       toast.danger(<><b>{d.title}</b> {d.message}</>)
@@ -65,13 +66,13 @@ export function UsersPage() {
       setResetting(null)
     }
   }
-  const copyLink = async () => {
+  const copy = async (what: 'temp' | 'link') => {
     if (!resetLink) return
     try {
-      await navigator.clipboard.writeText(resetLink.url)
-      setCopied(true)
+      await navigator.clipboard.writeText(what === 'temp' ? resetLink.temporary : resetLink.url)
+      setCopied(what)
     } catch {
-      /* sin permiso de portapapeles: el enlace sigue visible para copiarlo a mano */
+      /* sin permiso de portapapeles: siguen visibles para copiarlos a mano */
     }
   }
 
@@ -141,8 +142,8 @@ export function UsersPage() {
   const resetBtn = (u: User, mobile: boolean) => {
     if (u.id === me.id || !u.is_active) return null
     return mobile
-      ? <Button variant="secondary" icon="lock" onClick={() => setResetting(u)}>Restablecer contraseña</Button>
-      : <IconButton icon="lock" label={'Enlace para restablecer la contraseña de ' + u.full_name} onClick={() => setResetting(u)} />
+      ? <Button variant="secondary" icon="lock" onClick={() => setResetting(u)}>Resetear contraseña</Button>
+      : <IconButton icon="lock" label={'Resetear la contraseña de ' + u.full_name} onClick={() => setResetting(u)} />
   }
   const toggleBtn = (u: User, mobile: boolean) => {
     if (u.id === me.id) return null
@@ -182,13 +183,13 @@ export function UsersPage() {
         >
           <form id="user-form" onSubmit={submit} noValidate className="bd-form-grid">
             {error && <div className="bd-span"><Notice tone="danger">{error}</Notice></div>}
-            <Field label="Usuario" htmlFor="u-user" required error={errors.username} hint={isNew ? 'Corto y sin espacios, p. ej. lcedeno' : 'No se puede cambiar.'}>
+            <Field label="Usuario" htmlFor="u-user" required info="Nombre corto que identifica a la persona en el historial. Para iniciar sesión se usa el correo, no este nombre." error={errors.username} hint={isNew ? 'Corto y sin espacios, p. ej. lcedeno' : 'No se puede cambiar.'}>
               {isNew ? <TextInput id="u-user" className="bd-mono" value={form.username} onChange={(e) => set('username', e.target.value)} maxLength={50} autoFocus autoComplete="off" /> : <TextInput readOnlyValue={form.username} />}
             </Field>
             <Field label="Nombre completo" htmlFor="u-name" required error={errors.name}><TextInput id="u-name" value={form.full_name} onChange={(e) => set('full_name', e.target.value)} maxLength={100} /></Field>
             <Field label="Correo" htmlFor="u-email" required className="bd-span" error={errors.email}><TextInput id="u-email" type="email" icon="envelope" value={form.email} onChange={(e) => set('email', e.target.value)} maxLength={100} autoComplete="off" /></Field>
             {isNew && (
-              <Field label="Contraseña inicial" htmlFor="u-pass" required className="bd-span" error={errors.password} hint="Mínimo 8 caracteres. Entrégasela en persona: al entrar deberá elegir la suya.">
+              <Field label="Contraseña inicial" htmlFor="u-pass" required className="bd-span" error={errors.password} hint="Mínimo 8 caracteres. Entrégasela en persona: al entrar deberá elegir la suya." info="Sirve para un solo ingreso. Al entrar, el sistema obliga a la persona a elegir su propia contraseña y le muestra su código de recuperación. Tú nunca conocerás su contraseña final.">
                 <TextInput id="u-pass" type="password" icon="lock" value={form.password} onChange={(e) => set('password', e.target.value)} maxLength={128} autoComplete="new-password" />
               </Field>
             )}
@@ -201,27 +202,44 @@ export function UsersPage() {
       {resetting && (
         <ConfirmDialog
           icon="lock"
-          title={`¿Crear un enlace para ${resetting.full_name}?`}
-          confirmLabel="Crear enlace"
+          title={`¿Resetear la contraseña de ${resetting.full_name}?`}
+          confirmLabel="Sí, resetear"
           confirmIcon="lock"
           loading={resetBusy}
           onCancel={() => setResetting(null)}
           onConfirm={() => void createResetLink(resetting)}
-          consequences={[['Usuario', `${resetting.username} · ${resetting.email}`], ['Validez', '24 horas, un solo uso'], ['Enlaces anteriores', 'Dejan de servir']]}
+          consequences={[['Usuario', `${resetting.username} · ${resetting.email}`], ['Contraseña actual', 'Deja de servir ahora'], ['Sesiones abiertas', 'Se cierran ahora'], ['Enlaces anteriores', 'Dejan de servir']]}
         >
-          <p style={{ margin: 0 }}>Con el enlace, {resetting.full_name} elige una contraseña nueva que tú no vas a conocer. Al usarlo se cierran sus sesiones abiertas.</p>
+          <p style={{ margin: 0 }}>
+            Úsalo solo si {resetting.full_name} olvidó su contraseña y tampoco tiene su código de recuperación.
+            Recibirás una contraseña temporal y un enlace: entrégale cualquiera de los dos. En ambos casos elegirá una contraseña nueva que tú no vas a conocer.
+          </p>
         </ConfirmDialog>
       )}
       {resetLink && (
         <Modal
-          title="Enlace para restablecer la contraseña"
+          title="Contraseña reseteada"
           icon="lock"
           onClose={() => setResetLink(null)}
-          footer={<><Button variant="secondary" size="lg" onClick={() => setResetLink(null)}>Cerrar</Button><Button variant="primary" size="lg" icon={copied ? 'check-lg' : 'clipboard-check'} onClick={() => void copyLink()}>{copied ? 'Copiado' : 'Copiar enlace'}</Button></>}
+          footer={<Button variant="primary" size="lg" onClick={() => setResetLink(null)}>Listo</Button>}
         >
           <div className="bd-stack">
-            <Notice tone="pending" title="Solo se muestra esta vez">Entrégaselo únicamente a {resetLink.user.full_name}, en persona o por un mensaje privado. Sirve una vez y vence el {fmtDateTime(resetLink.expires)}.</Notice>
-            <TextInput readOnly aria-label="Enlace" className="bd-mono" value={resetLink.url} onFocus={(e) => e.currentTarget.select()} />
+            <Notice tone="pending" title="Solo se muestra esta vez">
+              Entrégale a {resetLink.user.full_name} <b>una</b> de las dos opciones, en persona o por un mensaje privado. Las dos sirven una sola vez.
+            </Notice>
+            <Field label="Contraseña temporal" htmlFor="rs-temp" hint="Para entrar una sola vez: al entrar, el sistema le pide elegir su propia contraseña." info="Útil si se la dictas en persona o por teléfono. Con ella inicia sesión normalmente; el sistema no le deja hacer nada hasta que elija la suya.">
+              <div className="bd-row us-copy">
+                <TextInput id="rs-temp" readOnly className="bd-mono" value={resetLink.temporary} onFocus={(e) => e.currentTarget.select()} />
+                <Button variant="secondary" icon={copied === 'temp' ? 'check-lg' : 'clipboard-check'} onClick={() => void copy('temp')}>{copied === 'temp' ? 'Copiada' : 'Copiar'}</Button>
+              </div>
+            </Field>
+            <Field label="Enlace" htmlFor="rs-link" hint={`Vence el ${fmtDateTime(resetLink.expires)}.`} info="Útil si se lo envías por mensaje: al abrirlo elige su contraseña directamente, sin escribir la temporal.">
+              <div className="bd-row us-copy">
+                <TextInput id="rs-link" readOnly className="bd-mono" value={resetLink.url} onFocus={(e) => e.currentTarget.select()} />
+                <Button variant="secondary" icon={copied === 'link' ? 'check-lg' : 'clipboard-check'} onClick={() => void copy('link')}>{copied === 'link' ? 'Copiado' : 'Copiar'}</Button>
+              </div>
+            </Field>
+            <p className="bd-muted" style={{ margin: 0 }}>Al elegir su contraseña recibirá un código de recuperación nuevo, para no depender de ti la próxima vez.</p>
           </div>
         </Modal>
       )}

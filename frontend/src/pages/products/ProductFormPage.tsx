@@ -4,7 +4,7 @@ import { useCreateProduct, useDeactivateProduct, useMovements, useReactivateProd
 import { useInventory } from '../../api/useInventory'
 import type { Product } from '../../api/types'
 import { useSessionUser } from '../../app/AuthProvider'
-import { Button, Checkbox, CodeTag, ConfirmDialog, ConnectionError, Field, LoadingRows, Notice, PageHeader, Panel, Select, StatusBadge, StockMeter, TextInput, useToast } from '../../components/ui'
+import { InfoTip, Button, Checkbox, CodeTag, ConfirmDialog, ConnectionError, Field, LoadingRows, Notice, PageHeader, Panel, Select, StatusBadge, StockMeter, TextInput, useToast } from '../../components/ui'
 import { isLowStock } from '../../lib/domain'
 import { describeError, isApiError } from '../../lib/errors'
 import { fmtQty, movementCode, n } from '../../lib/format'
@@ -187,13 +187,13 @@ export function ProductFormPage() {
       {serverError && <Notice tone="danger" title={serverError.title} code={serverError.code}>{serverError.message}</Notice>}
       <Panel title="Identificación" icon="box-seam">
         <div className="bd-form-grid">
-          <Field label="Código interno" htmlFor="code" required hint="Único. Prefijo de categoría + número." error={errors.code}><TextInput id="code" className="bd-mono" value={form.internal_code} onChange={(e) => set('internal_code', e.target.value.toUpperCase())} maxLength={30} /></Field>
+          <Field label="Código interno" htmlFor="code" required info="El código con que la bodega identifica el producto (por ejemplo ROD-0012). No se puede repetir y conviene escribirlo en la etiqueta del estante." hint="Único. Prefijo de categoría + número." error={errors.code}><TextInput id="code" className="bd-mono" value={form.internal_code} onChange={(e) => set('internal_code', e.target.value.toUpperCase())} maxLength={30} /></Field>
           <Field label="Nombre" htmlFor="name" required className="bd-span" error={errors.name}><TextInput id="name" value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={100} /></Field>
           <Field label="Marca" htmlFor="brand" optional><TextInput id="brand" value={form.brand} onChange={(e) => set('brand', e.target.value)} maxLength={50} /></Field>
           <Field label="Modelo" htmlFor="model" optional><TextInput id="model" value={form.model} onChange={(e) => set('model', e.target.value)} maxLength={50} /></Field>
           <Field label="Número de parte" htmlFor="part" optional><TextInput id="part" className="bd-mono" value={form.part_number} onChange={(e) => set('part_number', e.target.value)} maxLength={50} /></Field>
           <Field label="Categoría" htmlFor="cat" required error={errors.category}><Select id="cat" value={form.category_id} onChange={(e) => set('category_id', e.target.value)} placeholder="Elige una" options={inv.categories.map((c) => ({ value: String(c.id), label: c.name }))} /></Field>
-          <Field label="Unidad" htmlFor="unit" required error={errors.unit}><Select id="unit" value={form.unit_of_measure_id} onChange={(e) => set('unit_of_measure_id', e.target.value)} placeholder="Elige una" options={inv.units.map((u) => ({ value: String(u.id), label: `${u.name} (${u.abbreviation})` }))} /></Field>
+          <Field label="Unidad" htmlFor="unit" required info="Cómo se cuenta el producto: unidades, metros, litros, kilos… Todas las cantidades (stock, mínimo, salidas) se escriben en esta unidad." error={errors.unit}><Select id="unit" value={form.unit_of_measure_id} onChange={(e) => set('unit_of_measure_id', e.target.value)} placeholder="Elige una" options={inv.units.map((u) => ({ value: String(u.id), label: `${u.name} (${u.abbreviation})` }))} /></Field>
         </div>
       </Panel>
       <Panel title="Stock y ubicación" icon="geo-alt">
@@ -205,14 +205,14 @@ export function ProductFormPage() {
           ) : (
             <Field label="Stock actual" hint="Solo cambia con movimientos autorizados."><TextInput readOnlyValue={fmtQty(product?.current_stock, unit)} /></Field>
           )}
-          <Field label="Mínimo" htmlFor="min" required error={errors.min}><TextInput id="min" inputMode="decimal" value={form.minimum_stock} onChange={(e) => set('minimum_stock', e.target.value)} suffix={unit} /></Field>
-          <Field label="Máximo" htmlFor="max" optional error={errors.max}><TextInput id="max" inputMode="decimal" value={form.maximum_stock} onChange={(e) => set('maximum_stock', e.target.value)} suffix={unit} /></Field>
-          <Field label="Ubicación física" htmlFor="loc" optional hint="Bodega-estante-nivel, p. ej. A-03-2"><TextInput id="loc" className="bd-mono" value={form.physical_location} onChange={(e) => set('physical_location', e.target.value)} maxLength={100} /></Field>
+          <Field label="Mínimo" htmlFor="min" required info="Cuando el stock llega a esta cantidad o baja de ella, aparece una alerta de stock bajo en Inicio y en la campana, para pedir más a tiempo." error={errors.min}><TextInput id="min" inputMode="decimal" value={form.minimum_stock} onChange={(e) => set('minimum_stock', e.target.value)} suffix={unit} /></Field>
+          <Field label="Máximo" htmlFor="max" optional info="La cantidad máxima que conviene tener (por espacio o por costo). Sirve de referencia al reponer; el sistema no impide superarla." error={errors.max}><TextInput id="max" inputMode="decimal" value={form.maximum_stock} onChange={(e) => set('maximum_stock', e.target.value)} suffix={unit} /></Field>
+          <Field label="Ubicación física" htmlFor="loc" optional info="Dónde está guardado en la bodega, para encontrarlo rápido. Usa siempre el mismo orden: bodega, estante y nivel." hint="Bodega-estante-nivel, p. ej. A-03-2"><TextInput id="loc" className="bd-mono" value={form.physical_location} onChange={(e) => set('physical_location', e.target.value)} maxLength={100} /></Field>
         </div>
       </Panel>
       <Panel title="Control" icon="sliders">
         <div className="bd-row" style={{ justifyContent: 'space-between' }}>
-          <Checkbox label="Requiere lote y fecha de vencimiento" checked={form.requires_lot} onChange={(e) => set('requires_lot', e.target.checked)} />
+          <span className="bd-row bd-label-row" style={{ gap: 0 }}><Checkbox label="Requiere lote y fecha de vencimiento" checked={form.requires_lot} onChange={(e) => set('requires_lot', e.target.checked)} /><InfoTip label="Qué es «Requiere lote»">Márcalo en productos que vencen o se rastrean por partida (grasas, aceites, químicos). Cada entrada y salida pedirá el lote, y el sistema avisa antes de que venza. Estos productos no se prestan.</InfoTip></span>
           {product && <span className="bd-row"><span className="bd-muted">Estado</span><StatusBadge status={product.status === 'active' ? 'activo' : 'inactivo'} />{product.requires_lot && <Button size="sm" variant="ghost" icon="layers" onClick={() => navigate(`/productos/${product.id}/lotes`)}>Lotes</Button>}</span>}
         </div>
       </Panel>

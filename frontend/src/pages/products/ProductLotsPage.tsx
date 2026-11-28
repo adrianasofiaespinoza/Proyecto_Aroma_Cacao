@@ -118,7 +118,7 @@ export function ProductLotsPage() {
         >
           <form id="lot-form" onSubmit={save} noValidate className="bd-stack">
             {error && <Notice tone="danger">{error}</Notice>}
-            <Field label="Número de lote" htmlFor="lot-number" required hint="Como viene en la etiqueta del proveedor."><TextInput id="lot-number" className="bd-mono" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} maxLength={30} autoFocus /></Field>
+            <Field label="Número de lote" htmlFor="lot-number" required info="El código de partida que el fabricante imprime en el envase (a veces dice «Lote», «Batch» o «L:»). Cópialo tal cual para poder rastrearlo." hint="Como viene en la etiqueta del proveedor."><TextInput id="lot-number" className="bd-mono" value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} maxLength={30} autoFocus /></Field>
             <Field label="Fecha de vencimiento" htmlFor="lot-exp" optional hint="Déjala vacía si el producto no vence."><TextInput id="lot-exp" type="date" value={expiration} onChange={(e) => setExpiration(e.target.value)} /></Field>
             {editing !== 'new' && <Field label="Cantidad restante" hint="Cambia solo con entradas, salidas y ajustes de ese lote."><TextInput readOnlyValue={fmtQty(editing.remaining_quantity, unit)} /></Field>}
           </form>

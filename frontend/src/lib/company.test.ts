@@ -80,6 +80,8 @@ describe('módulos y errores nuevos', () => {
     expect(ids('operador')).not.toContain('usuarios')
     // Configuración y Exportar están en el menú del usuario, no en el lateral (decisión de la usuaria)
     expect(ids('coordinador')).not.toContain('configuracion')
+    // Soporte: panel técnico propio (Inicio) y Usuarios; no ve la bodega (decisión de la usuaria, 2026-11-27)
+    expect(ids('soporte')).toEqual(['inicio', 'usuarios'])
     const sinPrestamos = ids('coordinador', { loans: false, machines: true, suppliers: false })
     expect(sinPrestamos).not.toContain('prestamos')
     expect(sinPrestamos).not.toContain('proveedores')

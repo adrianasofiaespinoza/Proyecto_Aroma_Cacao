@@ -32,13 +32,19 @@ function renderAt(url: string) {
 describe('Restablecer contraseña con enlace', () => {
   it('con un enlace válido la persona elige su contraseña y vuelve al login', async () => {
     check.mockResolvedValueOnce({ full_name: 'Luis Cedeño', email: 'l@x.ec' })
-    complete.mockResolvedValueOnce(undefined)
+    complete.mockResolvedValueOnce('ABCD-EFGH-JKMN')
     renderAt('/restablecer?token=abc123')
     expect(await screen.findByText('Luis Cedeño')).toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/Contraseña nueva/), 'MiClaveNueva1')
     await userEvent.type(screen.getByLabelText(/Repite la contraseña/), 'MiClaveNueva1')
     await userEvent.click(screen.getByRole('button', { name: /Guardar contraseña/ }))
     await waitFor(() => expect(complete).toHaveBeenCalledWith('abc123', 'MiClaveNueva1'))
+    // Antes de volver al login ve su código de recuperación y confirma que lo guardó
+    expect(await screen.findByText('ABCD-EFGH-JKMN')).toBeInTheDocument()
+    const go = screen.getByRole('button', { name: /Ir a iniciar sesión/ })
+    expect(go).toBeDisabled()
+    await userEvent.click(screen.getByLabelText(/Ya guardé mi código/))
+    await userEvent.click(go)
     expect(await screen.findByText('Pantalla de login')).toBeInTheDocument()
   })
 

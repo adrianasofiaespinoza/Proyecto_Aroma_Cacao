@@ -24,9 +24,11 @@ export function MorePage() {
         ))}
       </div>
       <div className="bd-page-more">
-        <a href="/exportar" className="bd-more-link bd-focusable" onClick={go('/exportar')}>
-          <Icon name="box-arrow-up" />Exportar a Excel o CSV<Icon name="chevron-right" className="bd-chev" />
-        </a>
+        {can(user.role, 'ver') && (
+          <a href="/exportar" className="bd-more-link bd-focusable" onClick={go('/exportar')}>
+            <Icon name="box-arrow-up" />Exportar a Excel o CSV<Icon name="chevron-right" className="bd-chev" />
+          </a>
+        )}
         {can(user.role, 'reglas') ? (
           <a href="/configuracion" className="bd-more-link bd-focusable" onClick={go('/configuracion')}>
             <Icon name="sliders" />Configuración<Icon name="chevron-right" className="bd-chev" />

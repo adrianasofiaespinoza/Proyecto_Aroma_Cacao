@@ -49,7 +49,7 @@ Estos endpoints permiten consultar información pública sin proporcionar un tok
 El registro público (`POST /auth/register`) **se cerró en el Sprint 2**: nadie puede crear una cuenta sin un `Coordinator`. El endpoint ya no existe (responde `404`).
 
 - Los usuarios los crea un `Coordinator` desde la pantalla **Usuarios** (`POST /users`), con su rol y una contraseña inicial que la persona **debe cambiar al entrar** (`must_change_password`).
-- Una contraseña olvidada se restablece con un **enlace de un solo uso** que genera el `Coordinator`; la persona elige la nueva sin que él la conozca. Detalle en `docs/flows/usuarios.md`.
+- Una contraseña olvidada se recupera desde el login con el **código de recuperación** de un solo uso de cada persona. Si también lo perdió, el `Coordinator` la resetea: contraseña temporal de un solo ingreso y enlace de un solo uso. Nadie conoce la contraseña de otra persona. Detalle en `docs/flows/usuarios.md`.
 - El **primer Coordinator** de una base nueva se crea en la consola con `backend/app/create_coordinator.py`, que pide los datos y la contraseña sin mostrarla (ver `docs/plan/guia-trabajo-equipo.md`, sección 2.5).
 
 Las contraseñas no se almacenan directamente en la base de datos. Se utiliza **Argon2** para realizar el hash de las contraseñas.
@@ -62,7 +62,7 @@ Se definieron roles para controlar el acceso:
     
 - `Read-only`
 
-- `Support`: el equipo de desarrollo; configura la instalación y solo consulta lo demás. La empresa no lo ve (Sprint 3).
+- `Support`: el equipo de desarrollo, con su propio panel técnico; configura la instalación y administra usuarios, pero no ve los datos de la bodega (2026-11-27). La empresa no lo ve (Sprint 3).
     
 
 ---
@@ -178,7 +178,8 @@ Cuerpo: `current_password`, `new_password` (8–128) y, opcional, `refresh_token
 - **Cierra las demás sesiones** del usuario (revoca sus refresh tokens). La sesión actual se conserva si envía su `refresh_token`; el frontend lo hace.
 - Los tokens de acceso de otros equipos siguen sirviendo hasta que vencen (15 minutos como máximo), porque no se conoce su `jti`; después ya no pueden renovarse.
 - En el frontend (decisión de la usuaria, 2026-11-25): Coordinator y soporte la cambian en **Configuración** (sección al final). Operator y Read-only, en **Cambiar contraseña** (`/cuenta`). Las dos opciones están en el menú de usuario y en «Más» del celular.
-- **Olvidó la contraseña:** no puede entrar, así que no llega a ninguna de las dos. El Coordinator abre **Usuarios**, pulsa el candado de su fila (en el celular, «Restablecer contraseña»), luego **Crear enlace** y **Copiar enlace**, y se lo entrega en persona o por mensaje privado.
+- **Olvidó la contraseña:** en el login pulsa **«¿Olvidaste la contraseña?»** y usa su código de recuperación (`POST /auth/recover`). Si no lo tiene, el Coordinator abre **Usuarios**, pulsa el candado de su fila («Resetear contraseña») y le entrega la contraseña temporal o el enlace. Ver `docs/flows/usuarios.md`.
+- La respuesta incluye `recovery_code` cuando la persona venía de una contraseña inicial o temporal, o no tenía código (se muestra una sola vez); en un cambio normal es `null`.
 
 ---
 

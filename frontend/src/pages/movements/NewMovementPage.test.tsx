@@ -57,7 +57,7 @@ describe('Nueva solicitud', () => {
     await userEvent.click(plus)
     expect(await screen.findByText('Máximo disponible: 2 u.')).toBeInTheDocument()
     expect(screen.getByText('Supera lo disponible')).toBeInTheDocument()
-    await userEvent.type(screen.getByLabelText(/Motivo/), 'Cambio de rodamiento')
+    await userEvent.type(screen.getByRole('textbox', { name: /Motivo/ }), 'Cambio de rodamiento')
     await userEvent.click(screen.getByRole('button', { name: /Enviar solicitud/ }))
     await waitFor(() => expect(createMovement).not.toHaveBeenCalled())
   })

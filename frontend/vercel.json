@@ -132,6 +132,14 @@
       "destination": "https://aroma-cacao.onrender.com/exports/:path*"
     },
     {
+      "source": "/system",
+      "destination": "https://aroma-cacao.onrender.com/system"
+    },
+    {
+      "source": "/system/:path*",
+      "destination": "https://aroma-cacao.onrender.com/system/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

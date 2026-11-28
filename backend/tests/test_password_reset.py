@@ -144,12 +144,14 @@ def test_link_clears_login_lock(auth_client, make_user):
     assert login(auth_client, user.email, "Desbloqueo123").status_code == 200
 
 
-def test_only_coordinator_creates_links_and_never_for_support(client, users):
-    for role in ("Operator", "Read-only", "Support"):
+def test_only_coordinator_and_support_reset_and_never_for_support(client, users):
+    for role in ("Operator", "Read-only"):
         client.act_as(role)
         assert client.post(f"/users/{users['Operator'].id}/password-reset").status_code == 403
-    client.act_as("Coordinator")
-    assert client.post(f"/users/{users['Support'].id}/password-reset").status_code == 404
+    for role in ("Coordinator", "Support"):
+        client.act_as(role)
+        assert client.post(f"/users/{users['Operator'].id}/password-reset").status_code == 201
+        assert client.post(f"/users/{users['Support'].id}/password-reset").status_code == 404
 
 
 def test_inactive_user_gets_no_link(client, session, users):

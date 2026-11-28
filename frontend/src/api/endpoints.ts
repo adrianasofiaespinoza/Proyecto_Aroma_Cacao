@@ -31,8 +31,9 @@ export async function logout(): Promise<void> {
 export const getMe = () => request<User>('/users/me')
 
 /** Cambia la contraseña propia. Conserva esta sesión y cierra las demás del usuario. */
+/** recovery_code: código de recuperación nuevo, solo si viene de una contraseña inicial o temporal. */
 export const changePassword = (input: { current_password: string; new_password: string }) =>
-  request<{ message: string }>('/users/me/password', { method: 'POST', ...json({ ...input, refresh_token: tokenStorage.getRefreshToken() }) })
+  request<{ message: string; recovery_code: string | null }>('/users/me/password', { method: 'POST', ...json({ ...input, refresh_token: tokenStorage.getRefreshToken() }) })
 
 // ---------- Catálogos ----------
 export const getCategories = () => request<Category[]>('/categories')
@@ -112,9 +113,35 @@ export const updateRules = (input: { coordinator_auto_approve: boolean }) => req
 export const uploadLogo = (data_url: string) => request<CompanySettings>('/settings/logo', { method: 'PUT', ...json({ data_url }) })
 export const deleteLogo = () => request<CompanySettings>('/settings/logo', { method: 'DELETE' })
 
-// ---------- Restablecer contraseña con enlace de un solo uso ----------
-/** Solo Coordinator. El token se muestra una vez: el enlace no se guarda en ningún lado. */
-export const createPasswordReset = (userId: number) => request<{ token: string; expires_at: string }>(`/users/${userId}/password-reset`, { method: 'POST' })
+// ---------- Restablecer contraseña ----------
+/**
+ * Coordinador o soporte. Entrega a la vez una contraseña temporal (un solo ingreso) y un enlace
+ * de un solo uso. Se muestran una vez: no se guardan en ningún lado.
+ */
+export const createPasswordReset = (userId: number) =>
+  request<{ token: string; expires_at: string; temporary_password: string }>(`/users/${userId}/password-reset`, { method: 'POST' })
+
+/** Código de recuperación nuevo (el anterior deja de servir). Pide la contraseña actual. */
+export const newRecoveryCode = (current_password: string) =>
+  request<{ recovery_code: string }>('/users/me/recovery-code', { method: 'POST', ...json({ current_password }) })
+
+/** Sin sesión: «¿Olvidaste la contraseña?» con el correo y el código de recuperación. Devuelve el código nuevo. */
+export async function recoverPassword(input: { email: string; recovery_code: string; new_password: string }): Promise<string> {
+  const res = await fetch('/auth/recover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) })
+  if (!res.ok) throw await errorFromResponse(res)
+  return ((await res.json()) as { recovery_code: string }).recovery_code
+}
+
+// ---------- Panel técnico (solo soporte) ----------
+export interface SystemStatus {
+  server_time: string
+  version: string | null
+  database: { ok: boolean; migration: string | null; migration_expected: string | null; up_to_date: boolean }
+  company: { name: string; modules: { loans: boolean; machines: boolean; suppliers: boolean }; coordinator_auto_approve: boolean }
+  users: { by_role: Record<string, { active: number; inactive: number }>; pending_password_change: number; without_recovery_code: number; locked_emails: string[] }
+  totals: { products_active: number; products_inactive: number; movements: number; movements_pending: number; last_movement_at: string | null; alerts_active: number; loans_open: number }
+}
+export const getSystemStatus = () => request<SystemStatus>('/system/status')
 
 /** Sin sesión: quien abre el enlace todavía no puede entrar. */
 export async function checkPasswordReset(token: string): Promise<{ full_name: string; email: string }> {
@@ -122,9 +149,11 @@ export async function checkPasswordReset(token: string): Promise<{ full_name: st
   if (!res.ok) throw await errorFromResponse(res)
   return (await res.json()) as { full_name: string; email: string }
 }
-export async function completePasswordReset(token: string, new_password: string): Promise<void> {
+/** Devuelve el código de recuperación nuevo de la persona. */
+export async function completePasswordReset(token: string, new_password: string): Promise<string | null> {
   const res = await fetch('/auth/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, new_password }) })
   if (!res.ok) throw await errorFromResponse(res)
+  return ((await res.json()) as { recovery_code: string | null }).recovery_code
 }
 
 // ---------- Importar inventario (solo Coordinator) ----------

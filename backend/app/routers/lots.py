@@ -19,7 +19,7 @@ from app.schemas.lot import (
     LotCreate,
     LotResponse,
 )
-from app.security.auth import get_current_user, require_roles
+from app.security.auth import get_company_user, require_roles
 
 
 router = APIRouter(
@@ -60,7 +60,7 @@ def ensure_unique_lot_number(
 def list_lots(
     expiring_within_days: int | None = Query(default=None, ge=0, le=3650),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
 
     stmt = select(Lot).order_by(Lot.expiration_date.asc().nulls_last(), Lot.id)

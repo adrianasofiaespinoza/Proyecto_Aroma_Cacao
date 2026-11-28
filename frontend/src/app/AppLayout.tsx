@@ -77,14 +77,28 @@ function useShellAlerts(role: string): { alerts: AlertItem[]; pendingCount: numb
   return { alerts: list, pendingCount: pending.data?.length ?? 0, offline, retry }
 }
 
+type ShellAlerts = ReturnType<typeof useShellAlerts>
+const NO_ALERTS: ShellAlerts = { alerts: [], pendingCount: 0, offline: false, retry: () => {} }
+
+/** Soporte no ve la bodega: no consulta alertas, stock ni solicitudes (el backend respondería 403). */
 export function AppLayout({ children }: { children: ReactNode }) {
+  const user = useSessionUser()
+  return can(user.role, 'ver') ? <WarehouseLayout>{children}</WarehouseLayout> : <Layout shell={NO_ALERTS}>{children}</Layout>
+}
+
+function WarehouseLayout({ children }: { children: ReactNode }) {
+  const user = useSessionUser()
+  return <Layout shell={useShellAlerts(user.role)}>{children}</Layout>
+}
+
+function Layout({ children, shell }: { children: ReactNode; shell: ShellAlerts }) {
   const user = useSessionUser()
   const { logout } = useAuth()
   const { tenant, theme, setTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [alertsOpen, setAlertsOpen] = useState(false)
-  const { alerts, pendingCount, offline, retry } = useShellAlerts(user.role)
+  const { alerts, pendingCount, offline, retry } = shell
 
   const userMenu = (
     <>
@@ -98,9 +112,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
       ))}
       <div className="bd-usermenu-sep" />
       {/* Exportar y Configuración van aquí y no en el menú lateral, para no recargarlo (decisión de la usuaria) */}
-      <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/exportar')}>
-        <Icon name="box-arrow-up" />Exportar a Excel o CSV
-      </button>
+      {can(user.role, 'ver') && (
+        <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/exportar')}>
+          <Icon name="box-arrow-up" />Exportar a Excel o CSV
+        </button>
+      )}
       {/* Coordinador y soporte: Configuración (con su contraseña adentro). Los demás: directo a su contraseña. */}
       {can(user.role, 'reglas') ? (
         <button type="button" role="menuitem" className="bd-usermenu-item" onClick={() => navigate('/configuracion')}>

@@ -27,7 +27,7 @@ from app.schemas.movement import (
     MovementResponse,
 )
 from app.security.auth import (
-    get_current_user,
+    get_company_user,
 )
 
 router = APIRouter(
@@ -98,7 +98,7 @@ def list_movements(
     status_filter: Literal["pending", "authorized", "rejected"] | None = None,
     type_filter: Literal["ENTRY", "EXIT", "ADJUSTMENT"] | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     stmt = select(Movement).order_by(Movement.id.desc())
 
@@ -123,7 +123,7 @@ def list_movements(
 def get_movement(
     movement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     movement = db.get(Movement, movement_id)
 
@@ -150,7 +150,7 @@ def get_movement(
 def create_movement(
     movement_data: MovementCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     if current_user.role not in {"Operator", "Coordinator"}:
         raise HTTPException(
@@ -374,7 +374,7 @@ def apply_authorization(db: Session, movement: Movement, authorizer: User) -> No
 def authorize_movement(
     movement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     if current_user.role != "Coordinator":
         raise HTTPException(
@@ -421,7 +421,7 @@ def authorize_movement(
 def reject_movement(
     movement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     if current_user.role != "Coordinator":
         raise HTTPException(

@@ -22,6 +22,8 @@ import { UsersPage } from '../pages/UsersPage'
 import { MorePage } from '../pages/MorePage'
 import { AccountPage, FirstPasswordPage } from '../pages/AccountPage'
 import { ResetPasswordPage } from '../pages/ResetPasswordPage'
+import { RecoverPage } from '../pages/password/RecoverPage'
+import { SupportPage } from '../pages/SupportPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { ExportPage } from '../pages/ExportPage'
 import { ComponentsDevPage } from '../pages/ComponentsDevPage'
@@ -56,6 +58,18 @@ function AccountRoute() {
   return user && can(user.role, 'reglas') ? <Navigate to="/configuracion" replace /> : <AccountPage />
 }
 
+/** Datos de la bodega: todos menos soporte, que tiene su propio panel técnico. */
+function RequireWarehouse() {
+  const { user } = useAuth()
+  return user && can(user.role, 'ver') ? <Outlet /> : <Navigate to="/" replace />
+}
+
+/** Inicio: el tablero de la bodega o, para soporte, el panel técnico. */
+function HomeRoute() {
+  const { user } = useAuth()
+  return user && can(user.role, 'sistema') ? <SupportPage /> : <DashboardPage />
+}
+
 function RequireImport() {
   const { user } = useAuth()
   return user && can(user.role, 'importar') ? <Outlet /> : <Navigate to="/productos" replace />
@@ -75,8 +89,10 @@ export function App() {
     <Routes key={`${tenant.currency}|${tenant.dateFormat}`}>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/restablecer" element={<ResetPasswordPage />} />
+      <Route path="/recuperar" element={<RecoverPage />} />
       <Route element={<RequireAuth />}>
-        <Route index element={<DashboardPage />} />
+        <Route index element={<HomeRoute />} />
+        <Route element={<RequireWarehouse />}>
         <Route path="productos" element={<ProductsPage />} />
         <Route path="productos/nuevo" element={<ProductFormPage />} />
         <Route element={<RequireImport />}>
@@ -98,13 +114,14 @@ export function App() {
           <Route path="proveedores" element={<SuppliersPage />} />
           <Route path="proveedores/:id" element={<SupplierDetailPage />} />
         </Route>
+        <Route path="exportar" element={<ExportPage />} />
+        </Route>
         <Route element={<RequireUsersAdmin />}>
           <Route path="usuarios" element={<UsersPage />} />
         </Route>
         <Route element={<RequireSettings />}>
           <Route path="configuracion" element={<SettingsPage />} />
         </Route>
-        <Route path="exportar" element={<ExportPage />} />
         <Route path="mas" element={<MorePage />} />
         <Route path="cuenta" element={<AccountRoute />} />
         {import.meta.env.DEV && <Route path="dev/componentes" element={<ComponentsDevPage />} />}

@@ -2,7 +2,7 @@
 
 Para el personal de la bodega de mantenimiento. Explica las tareas de todos los días según tu rol. No necesitas saber nada técnico.
 
-> Cada paso de esta guía se comprobó en el sistema el 2026-11-25. Los nombres entre comillas son los textos exactos de los botones y campos.
+> Cada paso de esta guía se comprobó en el sistema el 2026-11-25. Las partes de contraseña, código de recuperación y ayuda (i) se comprobaron el 2026-11-27. Los nombres entre comillas son los textos exactos de los botones y campos.
 
 ## Antes de empezar
 
@@ -20,13 +20,24 @@ Lo que tu rol no puede hacer no aparece en tu pantalla.
 
 1. Abre el sistema y escribe tu **Correo** y la **Contraseña** que te entregó el coordinador. Pulsa **Entrar**.
 2. El sistema te pide **«Elige tu contraseña»**. En «Contraseña actual» escribe la que te entregaron. Luego escribe tu contraseña nueva dos veces y pulsa **Guardar y entrar**.
-3. Desde ese momento, solo tú conoces tu contraseña.
+3. El sistema te muestra tu **código de recuperación**, por ejemplo `ABCD-EFGH-JKMN`. **Anótalo en papel o guárdalo en tu celular**: solo se muestra esta vez. Puedes pulsar **Copiar** o **Descargar .txt**. Marca **«Ya guardé mi código»** y pulsa **Entrar**.
+4. Desde ese momento, solo tú conoces tu contraseña.
 
 Marca **«Recordarme en este equipo»** solo en tu computadora o tu celular, nunca en uno compartido.
 
 ### Si olvidaste la contraseña
 
-Pídele al coordinador un **enlace para elegir una nueva**. Ábrelo y escribe tu contraseña nueva dos veces. El enlace sirve **una sola vez** durante 24 horas.
+**Con tu código de recuperación, sin pedirle nada a nadie:**
+
+1. En el inicio de sesión pulsa **¿Olvidaste la contraseña?**.
+2. Escribe tu **Correo**, tu **Código de recuperación** y tu contraseña nueva dos veces. Pulsa **Cambiar contraseña**.
+3. El código que usaste deja de servir y el sistema te muestra **uno nuevo**. Guárdalo igual que el primero.
+
+**Si también perdiste el código:** pídele al coordinador que **resetee tu contraseña**. Te dará una **contraseña temporal** o un **enlace**, y los dos sirven una sola vez:
+- Con la temporal, inicia sesión normalmente y el sistema te pedirá elegir la tuya.
+- Con el enlace, ábrelo y elige tu contraseña ahí mismo. Vence en 24 horas.
+
+En los dos casos recibes un código de recuperación nuevo.
 
 ### En el celular
 
@@ -153,11 +164,12 @@ El stock inicial queda registrado como una entrada «Carga inicial».
   - una **Contraseña inicial** de al menos 8 caracteres.
 
   Entrégale la contraseña en persona. Al entrar, deberá elegir la suya.
-- **Si alguien olvidó su contraseña:**
-  1. Pulsa el **candado** en su fila. En el celular, el botón es **Restablecer contraseña**.
-  2. Pulsa **Crear enlace** y luego **Copiar enlace**.
+- **Si alguien olvidó su contraseña:** primero pregúntale si tiene su **código de recuperación**. Con él la recupera sola desde el inicio de sesión. Si no lo tiene:
+  1. Pulsa el **candado** en su fila. En el celular, el botón es **Resetear contraseña**.
+  2. Confirma con **Sí, resetear**. Su contraseña anterior deja de servir.
+  3. El sistema muestra una **contraseña temporal** y un **enlace**. Entrégale **uno** de los dos, con **Copiar**: la temporal si se la dictas, el enlace si se lo envías por mensaje.
 
-  El enlace **solo se muestra esta vez**. Entrégaselo únicamente a esa persona, en persona o por mensaje privado. Nadie más conoce su contraseña, ni siquiera tú.
+  Se muestran **solo esta vez** y sirven una sola vez. Entrégaselos únicamente a esa persona, en persona o por mensaje privado. Al elegir su contraseña, nadie más la conoce, ni siquiera tú.
 - **Desactivar:** pulsa el botón de apagado y confirma con **Sí, desactivar**. La persona ya no puede entrar y su historial se conserva. Se puede **Reactivar** cuando quieras.
 
 Siempre debe quedar al menos un coordinador activo.
@@ -196,6 +208,14 @@ Abre el menú de tu nombre, arriba a la derecha (en el celular, **Más**), y eli
 1. Escribe tu **Contraseña actual**.
 2. Escribe la **Contraseña nueva** dos veces.
 3. Pulsa **Cambiar contraseña**. Tus sesiones en otros equipos se cierran; en este sigues conectado.
+
+### Tu código de recuperación
+
+Si perdiste tu código o alguien más lo vio, genera uno nuevo en el mismo lugar donde cambias tu contraseña. Pulsa **Generar código nuevo**, escribe tu contraseña actual y guarda el código que aparece. El anterior deja de servir.
+
+### Ayuda en los formularios
+
+El ícono **(i)** junto a un campo explica qué escribir ahí. Púlsalo para leer la ayuda y vuelve a pulsarlo, o pulsa fuera, para cerrarla. Está en los campos que más dudas generan, por ejemplo «Cantidad contada en bodega», «Lote», «Mínimo» u «Orden de trabajo».
 
 ### Cerrar sesión y tema
 
