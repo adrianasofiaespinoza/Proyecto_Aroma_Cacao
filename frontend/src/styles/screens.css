@@ -143,6 +143,8 @@ html, body, #root { height: 100%; }
 /* ---------- Usuarios ---------- */
 .us-role { display: inline-flex; gap: 6px; align-items: center; font: 600 14px/20px var(--font-sans); }
 .us-role .bd-icon { width: 14px; height: 14px; color: var(--ink-muted); }
+.us-copy { gap: var(--space-2); align-items: stretch; }
+.us-copy > :first-child { flex: 1; min-width: 0; }
 
 /* Inicio: los dos paneles terminan a la misma altura y muestran solo un resumen */
 .db-split { align-items: stretch; }
@@ -248,3 +250,19 @@ html, body, #root { height: 100%; }
 .ex-grid { display: grid; gap: var(--space-3) var(--space-4); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .ex-note { margin: 0; font-size: 14px; }
 .ex-form .bd-seg { width: fit-content; max-width: 100%; }
+
+/* Código de recuperación (pages/password/RecoveryCode.tsx) */
+.rc-code { display: block; padding: var(--space-4); border: 2px dashed var(--line-strong); border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--ink); font-size: clamp(20px, 6vw, 28px); font-weight: 700; letter-spacing: 0.08em; text-align: center; overflow-wrap: anywhere; }
+.rc-actions { flex-wrap: wrap; gap: var(--space-2); }
+.rc-note { margin: 0; display: flex; gap: var(--space-2); align-items: center; }
+.lg-link { justify-self: center; }
+
+/* Panel técnico de soporte (pages/SupportPage.tsx) */
+.sp-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; margin-top: var(--space-4); }
+.sp-grid .bd-panel > :last-child { margin-top: var(--space-3); }
+.sp-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--space-2) var(--space-4); margin: 0; font: 400 14px/20px var(--font-sans); }
+.sp-list dt { color: var(--ink-muted); }
+.sp-list dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.sp-pair { display: contents; }
+.sp-ok { color: var(--ok-ink); display: inline-flex; gap: 4px; align-items: center; }
+.sp-bad { color: var(--danger-ink); font-weight: 600; }

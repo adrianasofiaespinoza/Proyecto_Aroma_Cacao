@@ -14,17 +14,19 @@ def get_utc_now() -> datetime:
 
 from jose import JWTError
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 
 from app.models.user import User
+from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.revoked_access_token import RevokedAccessToken
 
 from app.schemas.user import (
+    PasswordRecover,
     PasswordResetComplete,
     PasswordResetInfo,
     UserLogin,
@@ -34,7 +36,8 @@ from app.schemas.user import (
 )
 
 from app.security.auth import bearer_scheme
-from app.security.password import verify_password
+from app.security.password import hash_password, verify_password
+from app.services.recovery import check_recovery_code, issue_recovery_code
 from app.services.password_reset import complete_reset, find_valid
 from app.services.login_limit import (
     LOGIN_LOCK_MINUTES,
@@ -381,9 +384,70 @@ def complete_password_reset(
     if found is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=INVALID_RESET)
     reset, user = found
-    complete_reset(db, reset, user, data.new_password)
+    code = complete_reset(db, reset, user, data.new_password)
     db.commit()
-    return {"message": "Password updated"}
+    return {"message": "Password updated", "recovery_code": code}
+
+
+# ============================================================
+# FORGOT PASSWORD WITH THE RECOVERY CODE (no session)
+# ============================================================
+
+INVALID_RECOVERY = "Invalid email or recovery code"
+
+
+@router.post(
+    "/recover",
+    summary="Choose a new password with the email and the one-time recovery code"
+)
+def recover_password(
+    data: PasswordRecover,
+    db: Session = Depends(get_db)
+):
+    # Comparte el contador de intentos del login: no se puede adivinar el código
+    # probando muchos, y un código mal escrito cuenta como un intento fallido.
+    attempt = get_attempt(db, data.email)
+
+    wait = seconds_locked(attempt)
+    if wait:
+        db.commit()
+        raise too_many_attempts(wait)
+
+    user = db.scalar(
+        select(User).where(User.email == data.email).with_for_update()
+    )
+
+    # El mismo mensaje si el correo no existe, está inactivo o el código no coincide
+    if not user or not user.is_active or not check_recovery_code(user, data.recovery_code):
+        wait = register_failure(attempt)
+        db.commit()
+        if wait:
+            raise too_many_attempts(wait)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=INVALID_RECOVERY
+        )
+
+    # El código se gasta: recibe uno nuevo. Se cierran todas sus sesiones y se anulan
+    # los enlaces pendientes, por si alguien más los tenía.
+    now = get_utc_now()
+    user.password_hash = hash_password(data.new_password)
+    user.must_change_password = False
+    code = issue_recovery_code(user)
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=now)
+    )
+    db.execute(
+        update(PasswordResetToken)
+        .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
+        .values(used_at=now)
+    )
+    clear_attempts(db, data.email)
+    db.commit()
+
+    return {"message": "Password updated", "recovery_code": code}
 
 
 # ============================================================

@@ -4,6 +4,7 @@ import * as api from '../api/endpoints'
 import { useTheme } from '../app/ThemeProvider'
 import { Button, Field, LoadingRows, Notice, TextInput, useToast } from '../components/ui'
 import { describeError } from '../lib/errors'
+import { RecoveryCodeView } from './password/RecoveryCode'
 
 const MIN_PASSWORD = 8
 
@@ -26,6 +27,11 @@ export function ResetPasswordPage() {
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ title: string; message: string } | null>(null)
+  const [code, setCode] = useState<string | null>(null)
+  const done = () => {
+    toast.ok(<><b>Contraseña guardada.</b> Ya puedes iniciar sesión con ella.</>)
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     if (!token) {
@@ -58,9 +64,9 @@ export function ResetPasswordPage() {
     if (errors.next || errors.confirm) return
     setBusy(true)
     try {
-      await api.completePasswordReset(token, next)
-      toast.ok(<><b>Contraseña guardada.</b> Ya puedes iniciar sesión con ella.</>)
-      navigate('/login', { replace: true })
+      const recoveryCode = await api.completePasswordReset(token, next)
+      if (recoveryCode) setCode(recoveryCode)
+      else done()
     } catch (err) {
       setError(describeError(err))
     } finally {
@@ -76,15 +82,16 @@ export function ResetPasswordPage() {
           {tenant.logoSrc ? <img className="lg-logo" src={tenant.logoSrc} alt={tenant.name} /> : <span className="lg-co">{tenant.shortName}</span>}
         </div>
         <div className="lg-panel">
-          <h1>Nueva contraseña</h1>
-          {link.status === 'checking' && <LoadingRows rows={2} label="Comprobando el enlace…" />}
-          {link.status === 'invalid' && (
+          <h1>{code ? 'Contraseña guardada' : 'Nueva contraseña'}</h1>
+          {code && <RecoveryCodeView code={code} doneLabel="Ir a iniciar sesión" onDone={done} />}
+          {!code && link.status === 'checking' && <LoadingRows rows={2} label="Comprobando el enlace…" />}
+          {!code && link.status === 'invalid' && (
             <>
               <Notice tone="danger" title={link.title}>{link.message}</Notice>
               <Button variant="secondary" icon="box-arrow-in-right" onClick={() => navigate('/login')}>Ir a iniciar sesión</Button>
             </>
           )}
-          {link.status === 'valid' && (
+          {!code && link.status === 'valid' && (
             <>
               <p className="lg-sub">Para <b>{link.name}</b> ({link.email}). Elige una contraseña que solo tú conozcas. El enlace sirve una sola vez.</p>
               {error && <Notice tone="danger" title={error.title}>{error.message}</Notice>}

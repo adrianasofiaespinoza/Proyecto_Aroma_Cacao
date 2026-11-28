@@ -25,7 +25,7 @@ from app.schemas.product import (
 )
 
 from app.security.auth import (
-    get_current_user,
+    get_company_user,
 )
 
 
@@ -63,7 +63,7 @@ def require_coordinator(
 def get_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -89,7 +89,7 @@ def get_product(
     product_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -122,7 +122,7 @@ def create_product(
     product_data: ProductCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -274,7 +274,7 @@ def update_product(
     product_data: ProductUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -455,7 +455,7 @@ def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -495,7 +495,7 @@ def delete_product(
 def reactivate_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     # Solo el coordinador puede reactivar productos.
     require_coordinator(current_user)

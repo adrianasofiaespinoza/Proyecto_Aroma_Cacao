@@ -20,9 +20,13 @@ Cada empresa tiene su propia instalación, con su servidor y su base de datos (`
 
 La marca, la moneda y los módulos son parte del servicio que el equipo de desarrollo vende e instala, no de la empresa cliente (decisión de la usuaria, 2026-11-25):
 
-- **Soporte** (`Support`, revisión `0005`): la cuenta del equipo de desarrollo en cada instalación. Ve **Configuración** completa y consulta el resto del sistema en modo lectura. No crea, autoriza ni presta nada, así que su nombre nunca aparece en el historial de la empresa.
+- **Soporte** (`Support`, revisión `0005`): la cuenta del equipo de desarrollo en cada instalación. No crea, autoriza ni presta nada, así que su nombre nunca aparece en el historial de la empresa.
+- **Rol aparte con su propio panel** (recomendación del profesor, decisión de la usuaria, 2026-11-27): soporte **no ve los datos de la bodega**. Ve:
+  - **Panel técnico** (su Inicio, `GET /system/status`, solo `Support`). Muestra la conexión y la migración de la BD (con aviso si falta aplicar alguna), la versión, los módulos, los usuarios por rol, quién debe elegir su contraseña o no tiene código de recuperación, los correos bloqueados y totales sin detalle (productos, movimientos, alertas y préstamos).
+  - **Usuarios:** crea usuarios de la empresa, incluido el primer coordinador, los edita, los desactiva y resetea contraseñas.
+  - **Configuración** completa.
+- **En el backend**, las rutas de la bodega (productos, catálogos, movimientos, lotes, alertas, préstamos, máquinas, proveedores y exportar) usan `get_company_user`, que responde `403` a soporte. En el frontend, soporte no tiene esas pantallas ni la campana (`RequireWarehouse`, acción `ver`).
 - **La empresa no lo ve:** `GET /users` no lista las cuentas de soporte, `PUT /users/{id}` responde `404` con ellas y nadie puede asignar el rol desde la API (`422`). Se crean por consola con `app/create_support.py` o con el instalador.
-- **Pendiente de decidir:** si la cuenta de soporte debe dejar de ver los datos del cliente (solo **Configuración**) o si la configuración pasa a hacerse solo por consola. Ver `docs/contexto_proyecto.md`, E6.
 - **Coordinator de la empresa:** en **Configuración** solo ve la regla de **autoaprobación** (`GET` y `PUT /settings/rules`).
 - **Dónde está** (decisión de la usuaria, 2026-11-25): en el menú de usuario (su nombre, arriba a la derecha) y en «Más» del celular, no en el menú lateral. Solo la ven Coordinator y soporte, y al final tiene la sección **Cambiar contraseña**. Operator y Read-only ven en su lugar **Cambiar contraseña** (`/cuenta`); si abren `/configuracion` van a `/cuenta`, y a la inversa para Coordinator y soporte. El backend no cambió: `/settings` sigue siendo solo de soporte y `/settings/rules`, de Coordinator y soporte.
 

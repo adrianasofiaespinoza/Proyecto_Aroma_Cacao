@@ -14,11 +14,11 @@ export interface NavItem { id: string; label: string; icon: string; href: string
 
 export const NAV: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: 'house-door', href: '/', m: true },
-  { id: 'productos', label: 'Productos', icon: 'box-seam', href: '/productos', m: true },
-  { id: 'movimientos', label: 'Movimientos', icon: 'arrow-left-right', href: '/movimientos', m: true },
-  { id: 'prestamos', label: 'Préstamos', icon: 'tools', href: '/prestamos', m: true, module: 'loans' },
-  { id: 'maquinas', label: 'Máquinas', icon: 'gear-wide-connected', href: '/maquinas', module: 'machines' },
-  { id: 'proveedores', label: 'Proveedores', icon: 'truck', href: '/proveedores', module: 'suppliers' },
+  { id: 'productos', label: 'Productos', icon: 'box-seam', href: '/productos', m: true, action: 'ver' },
+  { id: 'movimientos', label: 'Movimientos', icon: 'arrow-left-right', href: '/movimientos', m: true, action: 'ver' },
+  { id: 'prestamos', label: 'Préstamos', icon: 'tools', href: '/prestamos', m: true, module: 'loans', action: 'ver' },
+  { id: 'maquinas', label: 'Máquinas', icon: 'gear-wide-connected', href: '/maquinas', module: 'machines', action: 'ver' },
+  { id: 'proveedores', label: 'Proveedores', icon: 'truck', href: '/proveedores', module: 'suppliers', action: 'ver' },
   { id: 'usuarios', label: 'Usuarios', icon: 'people', href: '/usuarios', action: 'usuarios' },
 ]
 
@@ -102,7 +102,8 @@ export function AppShell({ brand, user, current = 'inicio', pendingCount = 0, al
             <div className="bd-mhead-brand"><BrandMark brand={brand} layout="row" /></div>
             <div className="bd-header-ctx"><Icon name="building" /><b>{brand.name}</b><span>·</span><span>Bodega de mantenimiento</span></div>
             <div className="bd-header-right">
-              <NotificationBell count={alerts.length} open={alertsOpen} onToggle={onToggleAlerts} />
+              {/* Soporte no ve la bodega: sin campana de alertas */}
+              {can(user.role, 'ver') && <NotificationBell count={alerts.length} open={alertsOpen} onToggle={onToggleAlerts} />}
               <div className="bd-usermenu" ref={menuRef}>
                 <button type="button" className="bd-user bd-focusable" aria-haspopup="menu" aria-expanded={menuOpen ? 'true' : 'false'} onClick={() => setMenuOpen((o) => !o)}>
                   <span className="bd-avatar" aria-hidden="true">{initials(user.name)}</span>

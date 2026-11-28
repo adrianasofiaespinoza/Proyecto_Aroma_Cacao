@@ -16,7 +16,7 @@ from app.schemas.product import (
     CategoryResponse,
     UnitOfMeasureResponse,
 )
-from app.security.auth import get_current_user
+from app.security.auth import get_company_user
 
 
 router = APIRouter(
@@ -36,7 +36,7 @@ router = APIRouter(
 def list_categories(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 
@@ -59,7 +59,7 @@ def list_categories(
 def list_units(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 

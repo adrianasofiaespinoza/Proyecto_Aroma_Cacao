@@ -128,7 +128,7 @@ export function LoansPage() {
     <Panel title="Nuevo préstamo" icon="tools">
       <form onSubmit={submit} noValidate className="bd-stack">
         {formError && <Notice tone="danger">{formError}</Notice>}
-        <Field label="Herramienta" htmlFor="tool" required error={tried && !tool ? 'Elige la herramienta.' : undefined} hint="Los productos con lotes no se prestan.">
+        <Field label="Herramienta" htmlFor="tool" required info="Mientras esté prestada, esa cantidad no está disponible para salidas. Cuando la devuelvan, registra la devolución para que vuelva a estar disponible." error={tried && !tool ? 'Elige la herramienta.' : undefined} hint="Los productos con lotes no se prestan.">
           <Select id="tool" value={toolId} onChange={(e) => { setToolId(e.target.value); setQty(1) }} placeholder="Elige una" options={tools.map((p) => ({ value: String(p.id), label: `${p.internal_code} · ${p.name}` }))} />
         </Field>
         {tool && (
@@ -138,7 +138,7 @@ export function LoansPage() {
             <div className="pr-calc-res"><small>Disponible</small><b>{fmtNum(toolAvail)}</b></div>
           </div>
         )}
-        <Field label="Trabajador" htmlFor="worker" required hint="Escribe el nombre completo. No necesita cuenta en el sistema." error={tried && !worker.trim() ? 'Escribe el nombre del trabajador.' : undefined}>
+        <Field label="Trabajador" htmlFor="worker" required info="Quién se lleva la herramienta y responde por ella. Escribe siempre el mismo nombre completo para la misma persona, así su historial de préstamos queda junto." hint="Escribe el nombre completo. No necesita cuenta en el sistema." error={tried && !worker.trim() ? 'Escribe el nombre del trabajador.' : undefined}>
           <TextInput id="worker" icon="person-badge" value={worker} onChange={(e) => setWorker(e.target.value)} list="workers" maxLength={100} autoComplete="off" />
           <datalist id="workers">{(workers.data ?? []).map((w) => <option key={w.id} value={w.full_name} />)}</datalist>
         </Field>

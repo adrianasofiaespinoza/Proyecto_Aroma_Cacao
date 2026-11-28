@@ -20,7 +20,8 @@ from app.models.user import User
 from app.security.jwt import decode_token
 
 
-# Equipo de desarrollo: configura la instalación y ve el sistema en modo lectura.
+# Equipo de desarrollo, con su propio panel técnico: configura la instalación, administra
+# usuarios y ve el estado del sistema. No ve el inventario (decisión de la usuaria, 2026-11-27).
 # La empresa cliente no lo ve en Usuarios ni puede asignarlo; se crea por consola.
 SUPPORT_ROLE = "Support"
 
@@ -133,3 +134,18 @@ def require_roles(*roles: str):
         return current_user
 
     return checker
+
+
+def get_company_user(
+    current_user: User = Depends(get_current_user)
+):
+    """Usuario de la empresa: los datos de la bodega (inventario, movimientos, préstamos,
+    alertas y exportaciones) no son para la cuenta de soporte."""
+
+    if current_user.role == SUPPORT_ROLE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Support accounts cannot access warehouse data"
+        )
+
+    return current_user

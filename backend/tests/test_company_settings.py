@@ -406,4 +406,5 @@ def test_support_cannot_create_or_authorize_movements(client, product):
         "details": [{"product_id": product.id, "quantity": "1"}],
     })
     assert response.status_code == 403
-    assert client.get("/products").status_code == 200
+    # Panel técnico propio: tampoco ve el inventario (decisión de la usuaria, 2026-11-27)
+    assert client.get("/products").status_code == 403

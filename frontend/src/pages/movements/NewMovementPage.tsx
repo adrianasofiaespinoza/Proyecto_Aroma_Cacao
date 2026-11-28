@@ -44,6 +44,14 @@ function ProductPicker({ products, onPick, unitOf, availableOf }: { products: Pr
   )
 }
 
+
+/** Ayuda contextual de la cantidad según el tipo de solicitud. */
+const QTY_INFO: Record<string, string> = {
+  entrada: 'Cuántas unidades llegaron a la bodega, en la unidad del producto.',
+  salida: 'Cuántas unidades se llevan. No puede superar lo disponible: el stock menos lo que está prestado.',
+  ajuste: 'Escribe lo que contaste físicamente en la bodega, no la diferencia. El sistema calcula cuánto sobra o falta y lo muestra abajo.',
+}
+
 export function NewMovementPage() {
   const user = useSessionUser()
   const navigate = useNavigate()
@@ -150,7 +158,7 @@ export function NewMovementPage() {
               )}
             </Field>
             {product && needsLot && (
-              <Field label="Lote" htmlFor="lot" required error={errors.lot} hint={lots.length === 0 ? 'Este producto no tiene lotes registrados: pide una entrada con lote nuevo desde Productos › Lotes.' : undefined}>
+              <Field label="Lote" htmlFor="lot" required info="Este producto se controla por lote (por ejemplo, grasas o químicos con vencimiento). Elige el lote del que realmente sale o entra la mercadería: el número está en la etiqueta del envase." error={errors.lot} hint={lots.length === 0 ? 'Este producto no tiene lotes registrados: pide una entrada con lote nuevo desde Productos › Lotes.' : undefined}>
                 <Select
                   id="lot"
                   value={lotId}
@@ -161,19 +169,19 @@ export function NewMovementPage() {
               </Field>
             )}
             <div className="bd-form-grid">
-              <Field label={qtyLabel} htmlFor="qty" required hint={qtyHint} error={errors.qty}>
+              <Field label={qtyLabel} htmlFor="qty" required hint={qtyHint} error={errors.qty} info={QTY_INFO[type]}>
                 <QuantityStepper id="qty" value={qty} min={0} unit={unit} step={unit === 'u.' ? 1 : 0.5} onChange={setQty} label={qtyLabel} />
               </Field>
               {type === 'salida' && inv.machinesEnabled && (
-                <Field label="Máquina destino" htmlFor="machine" optional>
+                <Field label="Máquina destino" htmlFor="machine" optional info="La máquina donde se va a usar el repuesto. Sirve para saber cuánto gasta cada máquina. Primero aparecen los repuestos vinculados a esa máquina.">
                   <Select id="machine" value={machineId} onChange={(e) => setMachineId(e.target.value)} placeholder="Sin máquina" options={inv.machines.map((m) => ({ value: String(m.id), label: `${m.identification_code} · ${m.name}` }))} />
                 </Field>
               )}
-              <Field label="Orden de trabajo" htmlFor="ot" optional>
+              <Field label="Orden de trabajo" htmlFor="ot" optional info="El número de la orden de trabajo de mantenimiento (OT) que justifica la salida, si existe. Por ejemplo: OT-2026-118.">
                 <TextInput id="ot" className="bd-mono" value={ot} onChange={(e) => setOt(e.target.value)} maxLength={30} placeholder="OT-0000" />
               </Field>
             </div>
-            <Field label="Motivo" htmlFor="reason" required={reasonRequired(type)} optional={!reasonRequired(type)} error={errors.reason}>
+            <Field label="Motivo" htmlFor="reason" required={reasonRequired(type)} optional={!reasonRequired(type)} error={errors.reason} info="Para qué es el movimiento. El coordinador lo lee antes de autorizar. En salidas y ajustes es obligatorio; por ejemplo: «Cambio de rodamiento de la tostadora T-01» o «Conteo mensual: faltaban 2».">
               <Textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={150} placeholder={type === 'ajuste' ? 'Ej.: conteo cíclico del estante C-02' : type === 'salida' ? 'Ej.: cambio preventivo del rodamiento lado motor' : 'Ej.: compra OC-1187'} />
             </Field>
             <div className="ns-foot">

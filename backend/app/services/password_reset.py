@@ -14,9 +14,9 @@ from sqlalchemy.orm import Session
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.security.password import hash_password
 from app.security.token_utils import hash_token
 from app.services.login_limit import clear_attempts
+from app.services.recovery import new_session_password
 
 RESET_TTL = timedelta(hours=24)
 
@@ -62,11 +62,13 @@ def find_valid(db: Session, token: str, lock: bool = False) -> tuple[PasswordRes
     return reset, user
 
 
-def complete_reset(db: Session, reset: PasswordResetToken, user: User, new_password: str) -> None:
-    """Fija la contraseña elegida por el usuario y cierra todas sus sesiones. No hace commit."""
+def complete_reset(db: Session, reset: PasswordResetToken, user: User, new_password: str) -> str | None:
+    """Fija la contraseña elegida por el usuario y cierra todas sus sesiones. No hace commit.
+
+    Devuelve su código de recuperación nuevo si le corresponde (services/recovery.py).
+    """
     now = utc_now()
-    user.password_hash = hash_password(new_password)
-    user.must_change_password = False
+    code = new_session_password(db, user, new_password)
     reset.used_at = now
     db.execute(
         update(RefreshToken)
@@ -75,3 +77,4 @@ def complete_reset(db: Session, reset: PasswordResetToken, user: User, new_passw
     )
     # Si estaba bloqueado por intentos fallidos, puede entrar de inmediato
     clear_attempts(db, user.email)
+    return code

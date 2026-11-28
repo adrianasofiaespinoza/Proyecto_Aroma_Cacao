@@ -28,9 +28,18 @@ No existe un endpoint para restablecer contraseñas: se mantiene la herramienta 
 - **Al desactivar** a un usuario se revocan todos sus refresh tokens activos. Sus tokens de acceso dejan de funcionar en la siguiente petición, porque `get_current_user` comprueba `is_active` (`403 Inactive user`).
 - **Nadie conoce la contraseña de otra persona (2026-11-25, decisión de la usuaria):**
   - Un usuario creado por el `Coordinator`, el primer Coordinator creado por consola (`create_coordinator.py` o `install.py`) y uno restablecido con `reset_password.py` quedan con `must_change_password = true`. Las cuentas de soporte no, porque las crea su propia dueña. Hasta elegir la suya, el backend responde `403 Password change required` a todo excepto `/users/me` y `/users/me/password`. En la app ve solo la pantalla «Elige tu contraseña».
-  - **Si alguien olvida su contraseña:** el `Coordinator` pulsa el candado en **Usuarios** y obtiene un **enlace de un solo uso** (`POST /users/{id}/password-reset`). Vence a las 24 horas, generar otro anula el anterior y se registra quién lo creó. La persona lo abre (`/restablecer?token=…`), elige su contraseña (`GET` y `POST /auth/password-reset`, sin sesión), se cierran sus sesiones y se borra su bloqueo por intentos. El `Coordinator` nunca conoce la contraseña resultante. Solo se guarda el hash del token.
-  - No se generan enlaces para usuarios inactivos (`400`) ni para cuentas de soporte (`404`).
-  - Revisión `0006`; pruebas en `backend/tests/test_password_reset.py`.
+  - **Si alguien olvida su contraseña, la recupera sola con su código de recuperación** (recomendación del profesor, decisión de la usuaria, 2026-11-27: «no quiero que siempre se dependa del coordinador»):
+    - Al elegir su contraseña (primer ingreso, después de un reseteo o si todavía no tenía código), el sistema le muestra un **código de recuperación de un solo uso** (`ABCD-EFGH-JKMN`, sin caracteres confusos como 0/O o 1/I). Solo se muestra esa vez; puede copiarlo o descargarlo, y debe marcar «Ya guardé mi código» para seguir. Se guarda solo su hash Argon2id (`users.recovery_code_hash`, revisión `0008`).
+    - En el login, **«¿Olvidaste la contraseña?»** (`/recuperar`) pide el correo, el código y la contraseña nueva (`POST /auth/recover`, sin sesión). El código se gasta y recibe uno nuevo. Además, se cierran sus sesiones y se anulan los enlaces pendientes. Acepta minúsculas, espacios y guiones.
+    - Mismo mensaje si el correo no existe, está inactivo o el código no coincide. Cada intento fallido cuenta en el mismo límite del login (5 fallos → 15 minutos de bloqueo), así que no se puede adivinar el código probando.
+    - Desde su cuenta (Configuración o Cambiar contraseña) puede **generar un código nuevo** con su contraseña actual (`POST /users/me/recovery-code`); el anterior deja de servir. Un cambio de contraseña normal conserva el código que ya tenía.
+  - **Respaldo del coordinador:** si además perdió el código, el `Coordinator` (o soporte) pulsa **Resetear contraseña** en **Usuarios** (`POST /users/{id}/password-reset`). La contraseña actual de la persona deja de servir, se cierran sus sesiones y se borra su bloqueo por intentos. El sistema entrega **a la vez** (decisión de la usuaria: el coordinador no elige):
+    - una **contraseña temporal** de un solo ingreso, generada por el sistema: al entrar con ella debe elegir la suya (`must_change_password`);
+    - un **enlace de un solo uso** (`/restablecer?token=…`, 24 horas) para elegirla sin escribir la temporal. Generar otro anula el anterior y se registra quién lo creó.
+
+    La persona usa cualquiera de los dos y recibe un código de recuperación nuevo. El `Coordinator` nunca conoce la contraseña final. Solo se guardan hashes.
+  - No se resetean usuarios inactivos (`400`) ni cuentas de soporte (`404`).
+  - Revisiones `0006` y `0008`; pruebas en `backend/tests/test_password_reset.py` y `backend/tests/test_recovery.py`.
 - El campo "Cargo" de la maqueta se omitió por decisión de la usuaria: no existe en la tabla `users`.
 
 ## 4. Interfaz (`frontend/usuarios.html`)

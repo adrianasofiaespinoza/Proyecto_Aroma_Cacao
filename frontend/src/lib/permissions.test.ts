@@ -20,9 +20,12 @@ describe('can()', () => {
     expect(can('lectura', 'ver')).toBe(true)
     for (const a of ['solicitar', 'autorizar', 'prestar', 'administrar', 'usuarios', 'configurar', 'reglas', 'importar'] as const) expect(can('lectura', a)).toBe(false)
   })
-  it('soporte configura y solo consulta lo demás', () => {
-    for (const a of ['ver', 'configurar', 'reglas'] as const) expect(can('soporte', a)).toBe(true)
-    for (const a of ['solicitar', 'autorizar', 'prestar', 'administrar', 'usuarios', 'importar'] as const) expect(can('soporte', a)).toBe(false)
+  it('soporte tiene su panel técnico: configura y administra usuarios, pero no ve la bodega', () => {
+    for (const a of ['usuarios', 'configurar', 'reglas', 'sistema'] as const) expect(can('soporte', a)).toBe(true)
+    for (const a of ['ver', 'solicitar', 'autorizar', 'prestar', 'administrar', 'importar'] as const) expect(can('soporte', a)).toBe(false)
+  })
+  it('solo soporte ve el panel técnico', () => {
+    for (const r of ['coordinador', 'operador', 'lectura'] as const) expect(can(r, 'sistema')).toBe(false)
   })
   it('sin rol no puede nada', () => {
     expect(can(undefined, 'ver')).toBe(false)

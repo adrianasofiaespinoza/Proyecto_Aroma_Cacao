@@ -71,6 +71,13 @@ class User(Base):
         default=False
     )
 
+    # Hash Argon2id del código de recuperación de un solo uso (services/recovery.py).
+    # Con él la persona elige una contraseña nueva desde el login, sin el coordinador.
+    recovery_code_hash: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
     auth_provider: Mapped[str] = mapped_column(
         String(30),
         nullable=False,

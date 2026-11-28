@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.alert import Alert
 from app.models.user import User
-from app.security.auth import get_current_user
+from app.security.auth import get_company_user
 
 
 router = APIRouter(
@@ -31,7 +31,7 @@ router = APIRouter(
 def get_alerts(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        get_current_user
+        get_company_user
     )
 ):
 

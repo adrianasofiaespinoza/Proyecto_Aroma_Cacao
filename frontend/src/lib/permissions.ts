@@ -1,7 +1,13 @@
-/** soporte = el equipo de desarrollo: la empresa cliente no lo ve ni lo asigna. */
+/**
+ * soporte = el equipo de desarrollo: la empresa cliente no lo ve ni lo asigna. Tiene su propio
+ * panel técnico y no ve la bodega (decisión de la usuaria, 2026-11-27).
+ */
 export type Role = 'coordinador' | 'operador' | 'lectura' | 'soporte';
-/** configurar = marca, moneda y módulos (solo soporte); reglas = autoaprobación (coordinador y soporte); importar = cargar el inventario desde Excel o CSV. */
-export type Action = 'ver' | 'solicitar' | 'autorizar' | 'prestar' | 'administrar' | 'usuarios' | 'configurar' | 'reglas' | 'importar';
+/**
+ * ver = datos de la bodega (inventario, movimientos, préstamos, exportar); configurar = marca, moneda y módulos (solo soporte);
+ * reglas = autoaprobación (coordinador y soporte); importar = cargar el inventario desde Excel o CSV; sistema = panel técnico (solo soporte).
+ */
+export type Action = 'ver' | 'solicitar' | 'autorizar' | 'prestar' | 'administrar' | 'usuarios' | 'configurar' | 'reglas' | 'importar' | 'sistema';
 
 export const ROLES: Record<Role, { label: string; icon: 'shield-lock' | 'wrench-adjustable' | 'eye' | 'person-badge' }> = {
   coordinador: { label: 'Coordinador', icon: 'shield-lock' },
@@ -14,7 +20,7 @@ const PERMS: Record<Role, readonly Action[]> = {
   coordinador: ['ver', 'solicitar', 'autorizar', 'prestar', 'administrar', 'usuarios', 'reglas', 'importar'],
   operador: ['ver', 'solicitar', 'prestar'],
   lectura: ['ver'],
-  soporte: ['ver', 'configurar', 'reglas'],
+  soporte: ['usuarios', 'configurar', 'reglas', 'sistema'],
 };
 
 /** La interfaz oculta (no deshabilita) lo que el rol no puede hacer. El backend vuelve a validar. */

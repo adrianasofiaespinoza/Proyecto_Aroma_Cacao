@@ -221,7 +221,7 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Instalación:** `backend/app/install.py` (migraciones, catálogos, nombre, primer Coordinator y cuenta de soporte), idempotente. Las cuentas de soporte también se crean con `app/create_support.py`; los scripts validan el correo como el login.
 - **Pruebas:** backend 145 aprobadas (+48); frontend 51 (+20); build correcto. Flujos comprobados en el navegador con Playwright: configuración, módulos, autoaprobación, vistas de Coordinator y Soporte, primer ingreso y enlace de restablecimiento.
 
-**Pendiente de decidir (2026-11-25):** hoy la cuenta `Support` consulta todo el sistema del cliente (inventario, movimientos, préstamos). La usuaria lo va a consultar. Opciones: (a) que solo vea **Configuración** y el backend le responda `403` a todo lo demás, o (b) quitar el rol y configurar solo por consola. La regla sería la misma en todas las instalaciones.
+**Decidido (2026-11-27):** soporte es un rol aparte con su propio panel técnico y no ve la bodega (variante de la opción a: además administra usuarios). Ver E8.
 
 **Despliegue en Render (2026-11-25):** el despliegue automático no se lanzaba desde la PR #11 (las PR #12, #13 y #14 no se desplegaron solas). Se desplegó a mano y se revisó la configuración de Auto-Deploy. Si vuelve a pasar, revisar en Render *Settings → Build & Deploy* que Auto-Deploy esté activo y que la rama sea `main`.
 
@@ -253,6 +253,12 @@ Detalle completo en `docs/flows/movimientos-inventario.md`.
 - **Guía de uso por rol:** `docs/guia-uso.md`, para el personal y en lenguaje sencillo. Cada paso se comprobó en el navegador contra `aroma_test` con los tres roles (2026-11-25).
 - **Pruebas:** backend 202 aprobadas (más 7 que solo corren con `RUN_CONCURRENCY_TESTS=1`; en el CI corren todas: 209); frontend 58.
 
+**Ajustes pedidos por el profesor (2026-11-27), rama `feature/sprint-5-ajustes`.** La PR #18 ya está mergeada.
+- **Contraseñas sin depender del coordinador:** cada persona recibe un **código de recuperación** de un solo uso y recupera su contraseña sola desde el login. El coordinador conserva **Resetear contraseña** como respaldo, que entrega a la vez una contraseña temporal de un solo ingreso y un enlace. Migración `0008` (aplicada en la BD local, con copia previa `~/aroma-cacao-respaldos/aroma_inventory_antes_0008.sql`, y en `aroma_test`). Ver `docs/flows/usuarios.md`.
+- **Soporte como rol aparte con su propia interfaz:** su panel técnico, más Usuarios y Configuración. No ve la bodega (el backend responde `403`). Ver `docs/flows/configuracion-empresa.md`.
+- **Ayuda contextual:** ícono (i) junto a los campos difíciles. Al pulsarlo explica el campo, y funciona igual en el celular. Está en el componente `Field` (prop `info`) y en `InfoTip`.
+- **Pruebas:** backend 225 (más las de concurrencia); frontend 63. Se comprobó en el navegador contra `aroma_test`, a 1366 y 390 px: soporte, el reseteo del coordinador, el primer ingreso con código, la recuperación desde el login, el código ya usado (rechazado) y la ayuda (i).
+
 ### F. Roles y permisos
 
 Las reglas acordadas para los movimientos son:
@@ -276,7 +282,7 @@ Verificado el 2026-11-01 en productos, movimientos, catálogos, usuarios, máqui
 | Préstamos y devoluciones | Sí | Sí | No |
 | Consultas (productos, movimientos, máquinas, préstamos, proveedores, dashboard) | Sí | Sí | Sí |
 
-**`Support` (Sprint 3):** la cuenta del equipo de desarrollo. Cambia la configuración de la instalación (marca, moneda, módulos) y solo consulta lo demás: no crea, autoriza ni presta. La empresa no la ve en Usuarios ni puede asignar ese rol. Ver `docs/flows/configuracion-empresa.md`.
+**`Support` (Sprint 3; rol aparte desde el 2026-11-27):** la cuenta del equipo de desarrollo, con su propio **panel técnico**. Cambia la configuración de la instalación (marca, moneda, módulos) y administra usuarios (crear, editar, desactivar, resetear contraseñas). **No ve los datos de la bodega** (`403`). Tampoco crea, autoriza ni presta. La empresa no la ve en Usuarios ni puede asignar ese rol. Ver `docs/flows/configuracion-empresa.md`.
 
 ### G. Alertas de stock mínimo
 

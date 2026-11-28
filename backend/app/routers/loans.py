@@ -20,7 +20,7 @@ from app.schemas.loan import (
     LoanResponse,
     WorkerResponse,
 )
-from app.security.auth import get_current_user, require_roles
+from app.security.auth import get_company_user, require_roles
 from app.services.stock import available_quantity
 
 
@@ -40,7 +40,7 @@ router = APIRouter(
 )
 def list_workers(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
 
     return db.scalars(
@@ -60,7 +60,7 @@ def list_workers(
 def list_loans(
     status_filter: Literal["loaned", "returned"] | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
 
     stmt = select(Loan).order_by(Loan.id.desc())

@@ -125,11 +125,17 @@ def test_text_that_looks_like_a_formula_is_never_a_formula(client, session, prod
     assert row[1] == "'" + product.name
 
 
-@pytest.mark.parametrize("role", ["Operator", "Read-only", "Support"])
-def test_every_role_can_export(client, role):
+@pytest.mark.parametrize("role", ["Operator", "Read-only"])
+def test_every_company_role_can_export(client, role):
     client.act_as(role)
     assert client.get("/exports/inventory").status_code == 200
     assert client.get("/exports/movements").status_code == 200
+
+
+def test_support_cannot_export_warehouse_data(client):
+    client.act_as("Support")
+    assert client.get("/exports/inventory").status_code == 403
+    assert client.get("/exports/movements").status_code == 403
 
 
 # ============================================================

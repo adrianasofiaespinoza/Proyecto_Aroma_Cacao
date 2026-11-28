@@ -63,7 +63,7 @@ export function LoginPage() {
           </Field>
           <Checkbox label="Recordarme en este equipo" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           <Button variant="primary" size="xl" block icon="box-arrow-in-right" type="submit" loading={busy} disabled={!email || !password}>Entrar</Button>
-          <p className="lg-help">¿Olvidaste la contraseña? Pídele al coordinador un enlace para elegir una nueva.</p>
+          <Button variant="ghost" className="lg-link" icon="question-circle" onClick={() => navigate('/recuperar')}>¿Olvidaste la contraseña?</Button>
         </div>
         <span className="lg-foot">{APP_NAME} {APP_VERSION} · {tenant.name}</span>
       </form>

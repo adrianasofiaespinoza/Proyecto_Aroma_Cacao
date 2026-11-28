@@ -18,7 +18,7 @@ from app.schemas.supplier import (
     SupplierProductPrice,
     SupplierResponse,
 )
-from app.security.auth import get_current_user, require_roles
+from app.security.auth import get_company_user, require_roles
 
 
 router = APIRouter(
@@ -95,7 +95,7 @@ def normalized(supplier_data: SupplierCreate) -> dict:
 )
 def list_suppliers(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
 
     return db.scalars(
@@ -111,7 +111,7 @@ def list_suppliers(
 def get_supplier(
     supplier_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
 
     return get_supplier_or_404(db, supplier_id)

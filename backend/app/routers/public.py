@@ -11,7 +11,7 @@ from app.models.product import Product
 from app.schemas.product import ProductResponse
 
 from app.models.user import User
-from app.security.auth import get_current_user
+from app.security.auth import get_company_user
 from app.services.company import get_settings
 
 router = APIRouter(
@@ -49,7 +49,7 @@ def public_info(db: Session = Depends(get_db)):
 )
 def public_products(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_company_user)
 ):
     products = db.scalars(
         select(Product)

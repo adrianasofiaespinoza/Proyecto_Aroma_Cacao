@@ -17,6 +17,8 @@ from app.models.user import User
 from app.schemas.user import (
     PasswordChange,
     PasswordResetLink,
+    RecoveryCodeRequest,
+    RecoveryCodeResponse,
     UserCreate,
     UserResponse,
     UserUpdate,
@@ -24,7 +26,14 @@ from app.schemas.user import (
 from app.security.auth import SUPPORT_ROLE, get_current_user, require_roles
 from app.security.password import hash_password, verify_password
 from app.security.token_utils import hash_token
+from app.services.login_limit import clear_attempts
 from app.services.password_reset import create_reset
+from app.services.recovery import issue_recovery_code, new_session_password, temporary_password
+
+
+# Soporte (equipo de desarrollo) también administra usuarios: crea al primer coordinador
+# y resetea contraseñas. Nunca ve ni edita otras cuentas de soporte.
+user_admins = require_roles("Coordinator", SUPPORT_ROLE)
 
 
 router = APIRouter(
@@ -78,8 +87,7 @@ def change_my_password(
             detail="New password must be different from the current one"
         )
 
-    current_user.password_hash = hash_password(data.new_password)
-    current_user.must_change_password = False
+    recovery_code = new_session_password(db, current_user, data.new_password)
 
     # Se cierran las demás sesiones persistentes; la actual se conserva si envía su refresh token
     stmt = update(RefreshToken).where(
@@ -98,13 +106,49 @@ def change_my_password(
 
     db.commit()
 
+    # Si venía de una contraseña inicial o temporal, recibe su código de recuperación
+    # (se muestra una sola vez). En un cambio normal conserva el que ya tenía.
     return {
-        "message": "Password updated"
+        "message": "Password updated",
+        "recovery_code": recovery_code
     }
 
 
 # ============================================================
-# LIST USERS (Coordinator)
+# NEW RECOVERY CODE (any role)
+# ============================================================
+
+@router.post(
+    "/me/recovery-code",
+    response_model=RecoveryCodeResponse,
+    summary="Generate a new one-time recovery code (the previous one stops working)"
+)
+def new_recovery_code(
+    data: RecoveryCodeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    )
+):
+
+    # Pide la contraseña: alguien con la sesión abierta en un equipo ajeno no puede sacarlo
+    if not current_user.password_hash or not verify_password(
+        data.current_password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+
+    code = issue_recovery_code(current_user)
+    db.commit()
+
+    return {"recovery_code": code}
+
+
+# ============================================================
+# LIST USERS (Coordinator and Support)
 # ============================================================
 
 @router.get(
@@ -115,7 +159,7 @@ def change_my_password(
 def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Coordinator")
+        user_admins
     )
 ):
 
@@ -128,7 +172,7 @@ def list_users(
 
 
 # ============================================================
-# CREATE USER (Coordinator)
+# CREATE USER (Coordinator and Support)
 # ============================================================
 
 @router.post(
@@ -141,7 +185,7 @@ def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Coordinator")
+        user_admins
     )
 ):
 
@@ -168,7 +212,7 @@ def create_user(
 
 
 # ============================================================
-# UPDATE USER (Coordinator)
+# UPDATE USER (Coordinator and Support)
 # ============================================================
 
 @router.put(
@@ -181,7 +225,7 @@ def update_user(
     user_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Coordinator")
+        user_admins
     )
 ):
 
@@ -239,16 +283,7 @@ def update_user(
 
     # Al desactivar, se revocan sus sesiones persistentes
     if was_active and not user.is_active:
-        db.execute(
-            update(RefreshToken)
-            .where(
-                RefreshToken.user_id == user.id,
-                RefreshToken.revoked_at.is_(None)
-            )
-            .values(
-                revoked_at=datetime.now(timezone.utc).replace(tzinfo=None)
-            )
-        )
+        revoke_sessions(db, user)
 
     commit_or_conflict(db)
     db.refresh(user)
@@ -257,20 +292,20 @@ def update_user(
 
 
 # ============================================================
-# PASSWORD RESET LINK (Coordinator)
+# PASSWORD RESET: TEMPORARY PASSWORD + LINK (Coordinator and Support)
 # ============================================================
 
 @router.post(
     "/{user_id}/password-reset",
     response_model=PasswordResetLink,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a one-time link for the user to choose a new password"
+    summary="Reset a user's password: one-time temporary password and a one-time link"
 )
 def create_password_reset(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles("Coordinator")
+        user_admins
     )
 ):
     user = db.get(User, user_id)
@@ -288,15 +323,38 @@ def create_password_reset(
             detail="Cannot reset the password of an inactive user"
         )
 
+    # Respaldo cuando la persona perdió también su código de recuperación. Se entregan
+    # las dos cosas y la persona usa la que prefiera (decisión de la usuaria, 2026-11-27):
+    # - contraseña temporal: sirve para un solo ingreso; al entrar debe elegir la suya.
+    # - enlace: elige su contraseña sin escribir la temporal. Vence en 24 horas.
+    temporary = temporary_password()
+    user.password_hash = hash_password(temporary)
+    user.must_change_password = True
+    revoke_sessions(db, user)
+    clear_attempts(db, user.email)
     token, expires_at = create_reset(db, user, current_user)
     db.commit()
 
-    return {"token": token, "expires_at": expires_at}
+    return {"token": token, "expires_at": expires_at, "temporary_password": temporary}
 
 
 # ============================================================
 # HELPERS
 # ============================================================
+
+def revoke_sessions(db: Session, user: User):
+
+    db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.revoked_at.is_(None)
+        )
+        .values(
+            revoked_at=datetime.now(timezone.utc).replace(tzinfo=None)
+        )
+    )
+
 
 def ensure_unique(
     db: Session,

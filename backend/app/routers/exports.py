@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.security.auth import get_current_user
+from app.security.auth import get_company_user
 from app.services.company import MODULES, get_settings, is_module_enabled
 from app.services.exporter import (
     CSV_MEDIA_TYPE,
@@ -66,7 +66,7 @@ def export_inventory(
     kind: InventoryKind | None = None,
     tz: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_company_user),
 ):
     try:
         zone = resolve_timezone(tz)
@@ -106,7 +106,7 @@ def export_movements(
     status_filter: Literal["pending", "authorized", "rejected"] | None = None,
     tz: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_company_user),
 ):
     try:
         zone = resolve_timezone(tz)
